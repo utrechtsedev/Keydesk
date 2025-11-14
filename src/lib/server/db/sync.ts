@@ -16,13 +16,9 @@ interface SyncOptions {
 class DatabaseSync {
   private spinner: Ora = ora();
 
-  /**
-   * Seed initial configuration data
-   */
   private async seedConfigurations(): Promise<void> {
     this.spinner.start("Seeding configuration data...");
 
-    // Attachments configuration
     const attachments = await models.Config.findOne({
       where: { key: "attachments" },
     });
@@ -52,7 +48,6 @@ class DatabaseSync {
       this.spinner.info("Attachments configuration already exists");
     }
 
-    // Business hours configuration
     this.spinner.start("Setting up business hours...");
     const businessHours = await models.Config.findOne({
       where: { key: "businesshours" },
@@ -77,7 +72,6 @@ class DatabaseSync {
       this.spinner.info("Business hours configuration already exists");
     }
 
-    // Priorities configuration
     this.spinner.start("Setting up priorities...");
     const priorities = await models.Priority.findAll();
     if (priorities.length < 1) {
@@ -146,7 +140,6 @@ class DatabaseSync {
       this.spinner.info("Statuses configuration already exists");
     }
 
-    // Notifications configuration
     this.spinner.start("Setting up notifications...");
     const notifications = await models.Config.findOne({
       where: { key: "notifications" },
@@ -268,7 +261,6 @@ class DatabaseSync {
         console.log(chalk.yellow("DRY RUN MODE - No changes will be made\n"));
       }
 
-      // Test database connection
       this.spinner.start("Testing database connection...");
       await sequelize.authenticate();
       this.spinner.succeed("Database connection established");
@@ -294,12 +286,10 @@ class DatabaseSync {
         return;
       }
 
-      // Sync schema unless seed-only mode
       if (!options.seedOnly) {
         await this.syncSchema(options);
       }
 
-      // Seed data
       console.log();
       await this.seedConfigurations();
       await this.seedCategories();
@@ -403,7 +393,6 @@ class DatabaseSync {
   }
 }
 
-// Create CLI program
 const program = new Command();
 const dbSync = new DatabaseSync();
 
@@ -412,7 +401,6 @@ program
   .description("Modern CLI tool for database synchronization and management")
   .version("1.0.0");
 
-// Setup command - first time initialization
 program
   .command("setup")
   .description("First-time database setup (create tables and seed data)")
@@ -429,7 +417,6 @@ program
     }
   });
 
-// Sync command - full synchronization
 program
   .command("sync")
   .description("Synchronize database (schema + data)")
@@ -446,7 +433,6 @@ program
     }
   });
 
-// Schema command - update schema only
 program
   .command("schema")
   .description("Update database schema only (no data seeding)")
@@ -463,7 +449,6 @@ program
     }
   });
 
-// Seed command - seed data only
 program
   .command("seed")
   .description("Seed initial data only (assumes tables exist)")
@@ -478,5 +463,4 @@ program
     }
   });
 
-// Parse command line arguments
 program.parse();

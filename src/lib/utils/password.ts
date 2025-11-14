@@ -1,6 +1,5 @@
 import { scryptAsync } from "@noble/hashes/scrypt.js";
 
-// Hex utilities
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map(b => b.toString(16).padStart(2, '0'))
@@ -15,7 +14,6 @@ function hexToBytes(hex: string): Uint8Array {
   return bytes;
 }
 
-// Constant time comparison
 function constantTimeEqual(
   a: ArrayBuffer | Uint8Array,
   b: ArrayBuffer | Uint8Array,
@@ -32,7 +30,6 @@ function constantTimeEqual(
   return c === 0;
 }
 
-// Scrypt config
 const config = {
   N: 16384,
   r: 16,

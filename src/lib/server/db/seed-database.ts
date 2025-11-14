@@ -1,4 +1,4 @@
-import { models } from "./models/index.js"; // Update this path
+import { models } from "./models/index.js";
 import { v4 as uuidv4 } from "uuid";
 import type { User } from "./models/user.model.js";
 import type { Requester } from "./models/requester.model.js";
@@ -80,7 +80,6 @@ class DatabaseSeeder {
     }
   }
 
-  // Sample data generators
   private getSampleSubjects(): string[] {
     return [
       "Unable to login to customer portal",
@@ -239,7 +238,6 @@ class DatabaseSeeder {
     return { firstNames, lastNames };
   }
 
-  // Clean database (only user data)
   private async cleanDatabase(): Promise<void> {
     this.log("Cleaning user data from database...");
 
@@ -252,7 +250,6 @@ class DatabaseSeeder {
       await models.Requester.destroy({ where: {}, truncate: true, cascade: true });
       await models.User.destroy({ where: {}, truncate: true, cascade: true });
 
-      // Reset Tag if it exists
       if (models.Tag) {
         await models.Tag.destroy({ where: {}, truncate: true, cascade: true });
       }
@@ -264,7 +261,6 @@ class DatabaseSeeder {
     }
   }
 
-  // Fetch existing statuses, priorities, and categories
   private async fetchExistingData(): Promise<void> {
     this.log("Fetching existing statuses, priorities, and categories...");
 
@@ -368,7 +364,6 @@ class DatabaseSeeder {
     this.log(`✓ Created ${this.createdRequesters.length} requesters`);
   }
 
-  // Generate realistic dates
   private getRealisticDate(daysAgo: number, variation: number = 0): Date {
     const now = new Date();
     const targetDate = new Date(now);
@@ -386,7 +381,6 @@ class DatabaseSeeder {
     return array[Math.floor(Math.random() * array.length)];
   }
 
-  // Create tickets with messages and attachments
   private async createTickets(): Promise<void> {
     this.log(`Creating ${this.options.ticketCount} tickets...`);
 
@@ -399,14 +393,12 @@ class DatabaseSeeder {
     let ticketsCreated = 0;
 
     for (let i = 0; i < this.options.ticketCount; i++) {
-      // Determine ticket age
       const ticketAge = this.options.realistic
-        ? Math.floor(Math.random() * 30) // 0-30 days old
-        : Math.floor(Math.random() * 7); // 0-7 days old
+        ? Math.floor(Math.random() * 30)
+        : Math.floor(Math.random() * 7);
 
       const createdAt = this.getRealisticDate(ticketAge, 0.5);
 
-      // Pick random data
       const requester = this.getRandomElement(this.createdRequesters);
       const assignedUser = Math.random() > 0.1 ? this.getRandomElement(this.createdUsers) : null;
       const status = this.getRandomElement(this.existingStatuses);
@@ -415,21 +407,18 @@ class DatabaseSeeder {
       const ticketChannel = this.getRandomElement(ticketChannels);
       const messageChannel = this.getRandomElement(messageChannels);
 
-      // Generate subject and description
       let subject = this.getRandomElement(subjects);
       subject = subject.replace("{num}", String(Math.floor(Math.random() * 9000 + 1000)));
       subject = subject.replace("{service}", ["Slack", "GitHub", "Salesforce"][Math.floor(Math.random() * 3)]);
 
       const description = this.getRandomElement(descriptions);
 
-      // Calculate target date based on priority
       const targetDate = new Date(createdAt);
       const hoursToAdd = priority.name === "Critical" ? 4 :
         priority.name === "High" ? 8 :
           priority.name === "Medium" ? 24 : 48;
       targetDate.setHours(targetDate.getHours() + hoursToAdd);
 
-      // Create ticket
       const ticket = await models.Ticket.create({
         ticketNumber: `TKT-${String(i + 1).padStart(4, '0')}`,
         requesterId: requester.id,
@@ -447,7 +436,6 @@ class DatabaseSeeder {
 
       this.createdTickets.push(ticket);
 
-      // Create initial message from requester
       let messageCount = 0;
       const firstMessage = await models.TicketMessage.create({
         ticketId: ticket.id,
@@ -466,12 +454,10 @@ class DatabaseSeeder {
       });
       messageCount++;
 
-      // Create attachments for first message if needed
       if (firstMessage.hasAttachments && !this.options.quick) {
         await this.createAttachments(ticket.id, firstMessage.id, requester, "requester", createdAt);
       }
 
-      // Create notification for ticket assignment
       if (assignedUser) {
         await this.createTicketNotification(
           "ticket",
@@ -484,16 +470,14 @@ class DatabaseSeeder {
         );
       }
 
-      // Create conversation (if not new status)
       if (status.name !== "New" && !this.options.quick) {
-        const numMessages = Math.floor(Math.random() * 5) + 2; // 2-6 additional messages
+        const numMessages = Math.floor(Math.random() * 5) + 2;
         let currentDate = new Date(createdAt);
         let isFirstResponse = true;
 
         for (let m = 0; m < numMessages; m++) {
-          // Alternate between agent and requester
           const isUser = m % 2 === 0;
-          currentDate = new Date(currentDate.getTime() + (Math.random() * 4 + 1) * 60 * 60 * 1000); // 1-5 hours later
+          currentDate = new Date(currentDate.getTime() + (Math.random() * 4 + 1) * 60 * 60 * 1000);
 
           if (isUser && assignedUser) {
             const userMessage = await models.TicketMessage.create({
@@ -501,10 +485,10 @@ class DatabaseSeeder {
               senderType: "user",
               requesterId: null,
               userId: assignedUser.id,
-              senderName: assignedUser.name.split(' ')[0], // First name only
+              senderName: assignedUser.name.split(' ')[0],
               senderEmail: assignedUser.email,
               message: this.getRandomElement(messages.user),
-              isPrivate: Math.random() > 0.8, // 20% chance of internal note
+              isPrivate: Math.random() > 0.8,
               channel: "email",
               isFirstResponse: isFirstResponse,
               hasAttachments: Math.random() > 0.9,
@@ -543,7 +527,6 @@ class DatabaseSeeder {
             await ticket.update({ lastRequesterResponseAt: currentDate });
             messageCount++;
 
-            // Create notification for new response
             if (assignedUser && Math.random() > 0.5) {
               await this.createTicketNotification(
                 "ticket",
@@ -558,20 +541,17 @@ class DatabaseSeeder {
           }
         }
 
-        // Update ticket with conversation stats
         await ticket.update({
           responseCount: messageCount,
           updatedAt: currentDate,
         });
 
-        // Mark as resolved if status is resolved/closed
         if (["Resolved", "Closed"].includes(status.name)) {
           await ticket.update({
             resolvedAt: currentDate,
             closedAt: status.name === "Closed" ? currentDate : null,
           });
 
-          // Create resolution notification
           if (assignedUser) {
             await this.createTicketNotification(
               "success",
@@ -585,9 +565,8 @@ class DatabaseSeeder {
           }
         }
 
-        // Create SLA warning notifications for some tickets
         if (Math.random() > 0.7 && assignedUser) {
-          const warningDate = new Date(currentDate.getTime() - (2 * 60 * 60 * 1000)); // 2 hours before
+          const warningDate = new Date(currentDate.getTime() - (2 * 60 * 60 * 1000));
           await this.createTicketNotification(
             "warning",
             "SLA deadline approaching",
@@ -629,7 +608,7 @@ class DatabaseSeeder {
       "console-output", "configuration", "debug-info", "example",
     ];
 
-    const numAttachments = Math.floor(Math.random() * 2) + 1; // 1-2 attachments
+    const numAttachments = Math.floor(Math.random() * 2) + 1;
 
     for (let i = 0; i < numAttachments; i++) {
       const fileType = this.getRandomElement(fileTypes);
@@ -655,7 +634,6 @@ class DatabaseSeeder {
     }
   }
 
-  // Create a ticket-related notification
   private async createTicketNotification(
     type: "info" | "success" | "warning" | "error" | "ticket" | "system",
     title: string,
@@ -673,22 +651,21 @@ class DatabaseSeeder {
       relatedEntityType: "ticket",
       relatedEntityId: ticket.id,
       actionUrl: `/dashboard/tickets/${ticket.id}`,
-      createdById: null, // System-generated
+      createdById: null,
       createdAt,
       updatedAt: createdAt,
     });
 
     this.createdNotifications.push(notification);
 
-    // Create UserNotification for each recipient
     for (const user of recipients) {
       const shouldSendEmail = channels.includes("email");
-      const emailSent = shouldSendEmail && Math.random() > 0.1; // 90% success rate
+      const emailSent = shouldSendEmail && Math.random() > 0.1;
 
       await models.UserNotification.create({
         notificationId: notification.id,
         userId: user.id,
-        isRead: Math.random() > 0.6, // 40% read rate
+        isRead: Math.random() > 0.6,
         readAt: Math.random() > 0.6 ? new Date(createdAt.getTime() + Math.random() * 2 * 60 * 60 * 1000) : null,
         sentViaEmail: emailSent,
         emailSentAt: emailSent ? new Date(createdAt.getTime() + Math.random() * 5 * 60 * 1000) : null,
@@ -699,7 +676,6 @@ class DatabaseSeeder {
     }
   }
 
-  // Create system notifications
   private async createSystemNotifications(): Promise<void> {
     this.log(`Creating ${this.options.notificationCount} system notifications...`);
 
@@ -710,10 +686,9 @@ class DatabaseSeeder {
 
     for (let i = 0; i < this.options.notificationCount; i++) {
       const template = this.getRandomElement(systemTemplates);
-      const daysAgo = Math.floor(Math.random() * 14); // Last 2 weeks
+      const daysAgo = Math.floor(Math.random() * 14);
       const createdAt = this.getRealisticDate(daysAgo, 0.2);
 
-      // Substitute placeholders
       let message = template.message;
       message = message.replace("{date}", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString());
       message = message.replace("{feature}", ["Advanced Search", "Bulk Actions", "Custom Fields", "Email Templates"][Math.floor(Math.random() * 4)]);
@@ -734,18 +709,17 @@ class DatabaseSeeder {
 
       this.createdNotifications.push(notification);
 
-      // Send to random subset of users (50-100% of users)
       const numRecipients = Math.floor(Math.random() * (this.createdUsers.length / 2)) + Math.ceil(this.createdUsers.length / 2);
       const recipients = this.shuffleArray([...this.createdUsers]).slice(0, numRecipients);
 
       for (const user of recipients) {
         const shouldSendEmail = template.channels.includes("email");
-        const emailSent = shouldSendEmail && Math.random() > 0.05; // 95% success rate for system notifications
+        const emailSent = shouldSendEmail && Math.random() > 0.05;
 
         await models.UserNotification.create({
           notificationId: notification.id,
           userId: user.id,
-          isRead: Math.random() > 0.5, // 50% read rate for system notifications
+          isRead: Math.random() > 0.5,
           readAt: Math.random() > 0.5 ? new Date(createdAt.getTime() + Math.random() * 24 * 60 * 60 * 1000) : null,
           sentViaEmail: emailSent,
           emailSentAt: emailSent ? new Date(createdAt.getTime() + Math.random() * 10 * 60 * 1000) : null,
@@ -761,7 +735,6 @@ class DatabaseSeeder {
     this.log(`✓ Created ${notificationsCreated} system notifications`);
   }
 
-  // Helper function to shuffle array
   private shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -771,32 +744,25 @@ class DatabaseSeeder {
     return shuffled;
   }
 
-  // Main seed function
   async seed(): Promise<void> {
     console.log("🌱 Starting database seeding...\n");
     console.log("Options:", this.options, "\n");
 
     try {
-      // Clean if requested
       if (this.options.clean) {
         await this.cleanDatabase();
         console.log("");
       }
 
-      // Fetch existing base data (statuses, priorities, categories)
       await this.fetchExistingData();
 
-      // Create tags
       await this.createTags();
 
-      // Create users and requesters
       await this.createUsers();
       await this.createRequesters();
 
-      // Create tickets with full conversations (includes ticket notifications)
       await this.createTickets();
 
-      // Create additional system notifications
       await this.createSystemNotifications();
 
       console.log("\n✅ Database seeding completed successfully!");
@@ -818,7 +784,6 @@ class DatabaseSeeder {
   }
 }
 
-// Parse command line arguments
 function parseArgs(): SeederOptions {
   const args = process.argv.slice(2);
   const options: SeederOptions = {
@@ -839,7 +804,6 @@ function parseArgs(): SeederOptions {
   return options;
 }
 
-// Run seeder
 const options = parseArgs();
 const seeder = new DatabaseSeeder(options);
 

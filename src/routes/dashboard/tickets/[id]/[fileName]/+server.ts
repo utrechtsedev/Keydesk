@@ -5,14 +5,12 @@ import path from 'path';
 
 export const GET: RequestHandler = async ({ params, locals }): Promise<Response> => {
   try {
-    // Validate user authentication
     if (!locals.user) {
       return error(401, { message: 'Authentication required.' });
     }
 
     const { id: ticketId, fileName } = params;
 
-    // Validate parameters
     if (!ticketId || isNaN(Number(ticketId))) {
       return error(400, { message: 'Valid ticket ID is required.' });
     }
@@ -21,7 +19,6 @@ export const GET: RequestHandler = async ({ params, locals }): Promise<Response>
       return error(400, { message: 'File name is required.' });
     }
 
-    // Find the attachment
     const attachment = await TicketAttachment.findOne({
       where: {
         ticketId: Number(ticketId),
@@ -33,10 +30,8 @@ export const GET: RequestHandler = async ({ params, locals }): Promise<Response>
       return error(404, { message: 'Attachment not found.' });
     }
 
-    // Verify file exists on disk
     const filePath = path.resolve(attachment.filePath);
 
-    // Security: Prevent path traversal attacks
     const uploadsDir = path.resolve('./uploads');
     if (!filePath.startsWith(uploadsDir)) {
       console.error('Path traversal attempt detected:', filePath);
@@ -48,7 +43,6 @@ export const GET: RequestHandler = async ({ params, locals }): Promise<Response>
       return error(404, { message: 'File not found on server.' });
     }
 
-    // Read file
     let fileBuffer: Buffer;
     try {
       fileBuffer = await fs.promises.readFile(filePath);
@@ -57,15 +51,12 @@ export const GET: RequestHandler = async ({ params, locals }): Promise<Response>
       return error(500, { message: 'Failed to read file.' });
     }
 
-    // Increment download count
     try {
       await attachment.increment('downloadCount');
     } catch (err) {
       console.error('Failed to increment download count:', err);
-      // Don't fail the download if we can't increment the counter
     }
 
-    // Return file with appropriate headers
     return new Response(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {

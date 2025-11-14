@@ -42,7 +42,6 @@
 	function handleSearch(query: string) {
 		searchQuery = query;
 
-		// Don't search if we're programmatically setting the value after selection
 		if (isSelecting) {
 			isSelecting = false;
 			return;
@@ -56,7 +55,6 @@
 			return;
 		}
 
-		// Clear old results immediately to prevent flash
 		requesters = [];
 		loading = true;
 		showDropdown = true;
@@ -80,7 +78,6 @@
 	}
 
 	function selectRequester(req: Requester) {
-		// set ticket properties
 		id = req.id;
 		requesterId = req.id;
 		name = req.name || undefined;
@@ -94,7 +91,6 @@
 		requesters = [];
 	}
 
-	// Reset state when dialog opens
 	$effect(() => {
 		if (open) {
 			isSelecting = true;

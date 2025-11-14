@@ -84,7 +84,6 @@
 		pageSize: currentPageSize
 	});
 
-	// modal states
 	let exportDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
 	let filterDialogOpen = $state(false);
@@ -104,13 +103,11 @@
 		itemType: 'user'
 	});
 
-	// Sync pageSizeValue with URL
 	$effect(() => {
 		const urlPageSize = Number(page.url.searchParams.get('pageSize')) || 10;
 		pageSizeValue = String(urlPageSize);
 	});
 
-	// Helper to get filter params
 	function getFilterParams(): string {
 		const filters: string[] = [];
 		const statusFilter = page.url.searchParams.get('status');

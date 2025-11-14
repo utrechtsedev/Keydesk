@@ -7,12 +7,10 @@ export const GET: RequestHandler = async ({ url }) => {
     const search = url.searchParams.get('search') || '';
     const limit = Number(url.searchParams.get('limit')) || 20;
 
-    // Validate limit
     if (limit < 1 || limit > 100) {
       return error(400, { message: 'Limit must be between 1 and 100' });
     }
 
-    // Validate search string length (prevent extremely long queries)
     if (search.length > 100) {
       return error(400, { message: 'Search query is too long' });
     }
@@ -38,7 +36,6 @@ export const GET: RequestHandler = async ({ url }) => {
   } catch (err) {
     console.error('Error searching requesters:', err);
 
-    // Handle specific Sequelize errors
     if (err instanceof Error) {
       if (err.name === 'SequelizeDatabaseError') {
         return error(500, { message: 'Database error occurred' });
@@ -48,7 +45,6 @@ export const GET: RequestHandler = async ({ url }) => {
       }
     }
 
-    // Generic error
     return error(500, { message: 'Failed to search requesters' });
   }
 };

@@ -18,7 +18,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 
     const formData = await request.formData();
 
-    // Extract ticket fields
     const subject = formData.get('subject') as string;
     const message = formData.get('message') as string;
     const isPrivate = formData.get('isPrivate') as string;
@@ -31,7 +30,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     const targetDate = formData.get('targetDate') as string;
     const files = formData.getAll('files').filter((file): file is File => file instanceof File);
 
-    // Validate required fields
     if (!subject || subject.trim() === '') {
       await transaction.rollback();
       hasRolledBack = true;
@@ -74,7 +72,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       return json({ success: false, message: 'Target date is required.' }, { status: 400 });
     }
 
-    // Parse isPrivate
     let isPrivateValue: boolean;
     try {
       isPrivateValue = JSON.parse(isPrivate);
@@ -89,7 +86,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       return json({ success: false, message: 'Invalid privacy setting format.' }, { status: 400 });
     }
 
-    // Get attachment configuration
     const attachmentOptions = await Config.findOne({ where: { key: 'attachments' } });
     if (!attachmentOptions) {
       await transaction.rollback();
@@ -107,10 +103,8 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       return json({ success: false, message: 'Invalid attachment configuration.' }, { status: 500 });
     }
 
-    // Generate ticket number
     const ticketNumber = await generateTicketNumber(transaction);
 
-    // Create the ticket
     const newTicket = await Ticket.create({
       ticketNumber,
       requesterId: Number(requesterId),
@@ -129,7 +123,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       lastRequesterResponseAt: null,
     }, { transaction });
 
-    // Create the initial ticket message
     const ticketMessage = await TicketMessage.create({
       ticketId: newTicket.id,
       senderType: 'user',
@@ -144,7 +137,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       hasAttachments: files.length > 0,
     }, { transaction });
 
-    // Upload files and create attachments
     for (const file of files) {
       const fileUpload = await uploadFile(file, attachmentConfig);
 

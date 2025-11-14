@@ -5,7 +5,6 @@ import { Op } from 'sequelize';
 
 export const GET: RequestHandler = async ({ url }) => {
   try {
-    // Get all query parameters
     const search = url.searchParams.get('search') || '';
     const status = url.searchParams.get('status');
     const priority = url.searchParams.get('priority');
@@ -15,10 +14,8 @@ export const GET: RequestHandler = async ({ url }) => {
     const dateTo = url.searchParams.get('dateTo');
     const includeResolved = url.searchParams.get('includeResolved') !== 'false'; // default true
 
-    // Build where clause
     const where: any = {};
 
-    // Search functionality - searches across ticket number, subject, and description
     if (search) {
       where[Op.or] = [
         { ticketNumber: { [Op.like]: `%${search}%` } },
@@ -27,7 +24,6 @@ export const GET: RequestHandler = async ({ url }) => {
       ];
     }
 
-    // Additional filters
     if (status) where.statusId = status;
     if (priority) where.priorityId = priority;
     if (category) where.categoryId = category;
@@ -35,14 +31,12 @@ export const GET: RequestHandler = async ({ url }) => {
       where.assignedUserId = assignee === 'unassigned' ? null : assignee;
     }
 
-    // Date range filtering on creation date
     if (dateFrom || dateTo) {
       where.createdAt = {};
       if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
       if (dateTo) where.createdAt[Op.lte] = new Date(dateTo);
     }
 
-    // Optionally exclude resolved tickets
     if (!includeResolved) {
       where.resolvedAt = null;
     }
@@ -82,12 +76,10 @@ export const GET: RequestHandler = async ({ url }) => {
     });
 
     const records = tickets.map(ticket => {
-      // Calculate first response time in minutes
       const firstResponseTime = ticket.firstResponseAt && ticket.createdAt
         ? Math.round((ticket.firstResponseAt.getTime() - ticket.createdAt.getTime()) / 60000)
         : null;
 
-      // Calculate resolution time in minutes
       const resolutionTime = ticket.resolvedAt && ticket.createdAt
         ? Math.round((ticket.resolvedAt.getTime() - ticket.createdAt.getTime()) / 60000)
         : null;
@@ -117,7 +109,6 @@ export const GET: RequestHandler = async ({ url }) => {
     const csvBody = csvStringifier.stringifyRecords(records);
     const csv = csvHeader + csvBody;
 
-    // Generate filename with timestamp and applied filters
     let filename = 'tickets-export';
     if (search) filename += `-search-${search.substring(0, 20)}`;
     if (status) filename += `-status-${status}`;

@@ -94,7 +94,6 @@
 				}
 			}
 
-			// Create blob and download
 			const blob = new Blob([response.data], { type: 'text/csv' });
 			const downloadUrl = window.URL.createObjectURL(blob);
 			const link = document.createElement('a');

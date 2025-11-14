@@ -52,7 +52,6 @@
 				});
 			}
 
-			// Network error or other issues
 			return toast.error(ToastComponent, {
 				componentProps: {
 					title: 'Request failed',
