@@ -27,16 +27,6 @@
 				name: 'Acme Inc',
 				logo: Office3,
 				plan: 'Enterprise'
-			},
-			{
-				name: 'Acme Corp.',
-				logo: AudioWaveformIcon,
-				plan: 'Startup'
-			},
-			{
-				name: 'Evil Corp.',
-				logo: CommandIcon,
-				plan: 'Free'
 			}
 		],
 

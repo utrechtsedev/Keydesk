@@ -1,16 +1,14 @@
 <script>
 	const { children } = $props();
-	import GalleryVerticalEndIcon from '@lucide/svelte/icons/gallery-vertical-end';
+	import Office3 from '$lib/icons/office-3.svelte';
 </script>
 
 <div class="grid min-h-svh lg:grid-cols-2">
 	<div class="flex flex-col gap-4 p-6 md:p-10">
 		<div class="flex justify-center gap-2 md:justify-start">
 			<a href="##" class="flex items-center gap-2 font-medium">
-				<div
-					class="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground"
-				>
-					<GalleryVerticalEndIcon class="size-4" />
+				<div class="flex size-6 items-center justify-center rounded-md bg-muted">
+					<Office3 class="size-4" />
 				</div>
 				Template
 			</a>
