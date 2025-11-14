@@ -7,10 +7,8 @@
 	const defaultValidate: TagsInputProps['validate'] = (val, tags) => {
 		const transformed = val.trim();
 
-		// disallow empties
 		if (transformed.length === 0) return undefined;
 
-		// disallow duplicates
 		if (tags.find((t) => transformed === t)) return undefined;
 
 		return transformed;
@@ -31,7 +29,6 @@
 	let isComposing = $state(false);
 
 	$effect(() => {
-		// whenever input value changes reset invalid
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		inputValue;
 
@@ -66,7 +63,6 @@
 		const target = e.target as HTMLInputElement;
 
 		if (e.key === 'Enter') {
-			// prevent form submit
 			e.preventDefault();
 
 			if (isComposing) return;
@@ -86,7 +82,6 @@
 				if (tagIndex !== undefined) {
 					deleteIndex(tagIndex);
 
-					// focus previous
 					const prev = tagIndex - 1;
 
 					if (prev < 0) {
@@ -110,7 +105,6 @@
 
 						deleteIndex(tagIndex);
 
-						// stay focused on the same index unless value.length === 0
 						if (value.length === 0) tagIndex = undefined;
 
 						shouldResetIndex = false;
@@ -119,9 +113,7 @@
 			}
 		}
 
-		// controls for tag selection
 		if (isAtBeginning) {
-			// left
 			if (e.key === 'ArrowLeft') {
 				if (tagIndex !== undefined) {
 					const prev = tagIndex - 1;
@@ -132,15 +124,12 @@
 						tagIndex = prev;
 					}
 				} else {
-					// set initial index
 					tagIndex = value.length - 1;
 				}
 
 				shouldResetIndex = false;
 			}
 
-			// right
-			// we can only move right if the value is empty
 			if (inputValue.length === 0) {
 				if (e.key === 'ArrowRight') {
 					if (tagIndex !== undefined) {
@@ -158,7 +147,6 @@
 			}
 		}
 
-		// reset the tag index to undefined
 		if (shouldResetIndex) {
 			tagIndex = undefined;
 		}

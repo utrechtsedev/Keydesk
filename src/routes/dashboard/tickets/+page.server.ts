@@ -12,7 +12,6 @@ export const load: PageServerLoad = async ({ url, depends }) => {
   const sortOrder = (url.searchParams.get('sortOrder') || 'DESC').toUpperCase() as 'ASC' | 'DESC';
   const search = url.searchParams.get('search') || '';
 
-  // Filter params
   const statusFilter = url.searchParams.get('status');
   const priorityFilter = url.searchParams.get('priority');
   const categoryFilter = url.searchParams.get('category');
@@ -37,10 +36,8 @@ export const load: PageServerLoad = async ({ url, depends }) => {
     orderClause = [[sortBy, sortOrder]];
   }
 
-  // Build where clause
   const whereClause: WhereOptions = {};
 
-  // Apply status filter (or default to [0, 1, 2, 3])
   if (statusFilter) {
     whereClause.statusId = Number(statusFilter);
   } else {
@@ -63,7 +60,6 @@ export const load: PageServerLoad = async ({ url, depends }) => {
     }
   }
 
-  // Date range filter
   if (dateFrom || dateTo) {
     const dateFilter: any = {};
     if (dateFrom) {
@@ -77,7 +73,6 @@ export const load: PageServerLoad = async ({ url, depends }) => {
     whereClause.createdAt = dateFilter;
   }
 
-  // Search filter - combine with existing conditions
   if (search) {
     const searchConditions = [
       { ticketNumber: { [Op.like]: `%${search}%` } },

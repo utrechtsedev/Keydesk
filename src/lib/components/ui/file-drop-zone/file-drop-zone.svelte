@@ -54,7 +54,6 @@
 
 		await upload(Array.from(selectedFiles));
 
-		// this if a file fails and we upload the same file again we still get feedback
 		(e.target as HTMLInputElement).value = '';
 	};
 
@@ -70,18 +69,15 @@
 		const fileName = file.name.toLowerCase();
 
 		const isAcceptable = acceptedTypes.some((pattern) => {
-			// check extension like .mp4
 			if (fileType.startsWith('.')) {
 				return fileName.endsWith(pattern);
 			}
 
-			// if pattern has wild card like video/*
 			if (pattern.endsWith('/*')) {
 				const baseType = pattern.slice(0, pattern.indexOf('/*'));
 				return fileType.startsWith(baseType + '/');
 			}
 
-			// otherwise it must be a specific type like video/mp4
 			return fileType === pattern;
 		});
 

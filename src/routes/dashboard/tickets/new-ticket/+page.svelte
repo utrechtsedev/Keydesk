@@ -46,7 +46,6 @@
 			updatedAt: new Date()
 		}
 	});
-	// color states
 	let highlightRequester = $state(false);
 	let highlightPriority = $state(false);
 	let highlightStatus = $state(false);
@@ -62,7 +61,6 @@
 			if (ticket.message.length < 10) return (highlightMessageInput = true);
 			if (!ticket.subject) return toast.error('Please add a subject.');
 
-			// build formdata
 			const formData = new FormData();
 			formData.append('subject', ticket.subject);
 			formData.append('message', ticket.message);
@@ -73,16 +71,14 @@
 			formData.append('statusId', ticket.statusId.toString());
 			formData.append('channel', 'portal');
 
-			// calculate target date
 			const targetDate = new Date();
-			targetDate.setDate(targetDate.getDate() + 7); // 7 days from now
+			targetDate.setDate(targetDate.getDate() + 7);
 			formData.append('targetDate', targetDate.toISOString());
 
 			if (ticket.assignedUserId) {
 				formData.append('assignedUserId', ticket.assignedUserId);
 			}
 
-			// Append files
 			ticket.selectedFiles.forEach((file) => {
 				formData.append('files', file);
 			});
@@ -92,7 +88,6 @@
 			});
 
 			if (response.data.success) {
-				// Clear form
 				ticket.subject = '';
 				ticket.message = '';
 				ticket.selectedFiles = [];
@@ -105,7 +100,6 @@
 
 				toast.success(response.data.message);
 
-				// Navigate to the new ticket
 				goto(`/dashboard/tickets/${response.data.data.ticketId}`);
 			} else {
 				toast.error(ToastComponent, {

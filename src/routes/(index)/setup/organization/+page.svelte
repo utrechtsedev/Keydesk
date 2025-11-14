@@ -106,7 +106,7 @@
 			<Input
 				id="domain"
 				type="text"
-				placeholder="http://localhost:5173"
+				placeholder="https://example.com"
 				required
 				bind:value={organization.domain}
 				class="w-[40%]"

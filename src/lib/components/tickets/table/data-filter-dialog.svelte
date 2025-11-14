@@ -22,7 +22,6 @@
 		users: User[];
 	} = $props();
 
-	// Read current filters from URL
 	const currentStatus = page.url.searchParams.get('status') || 'all';
 	const currentPriority = page.url.searchParams.get('priority') || 'all';
 	const currentCategory = page.url.searchParams.get('category') || 'all';
@@ -64,7 +63,6 @@
 	function handleApplyFilters() {
 		const params = new URLSearchParams(page.url.searchParams);
 
-		// Remove old filter params
 		params.delete('status');
 		params.delete('priority');
 		params.delete('category');
@@ -72,7 +70,6 @@
 		params.delete('dateFrom');
 		params.delete('dateTo');
 
-		// Add new filter params
 		if (selectedStatus !== 'all') params.set('status', selectedStatus);
 		if (selectedPriority !== 'all') params.set('priority', selectedPriority);
 		if (selectedCategory !== 'all') params.set('category', selectedCategory);
@@ -80,7 +77,6 @@
 		if (dateFrom) params.set('dateFrom', dateFrom);
 		if (dateTo) params.set('dateTo', dateTo);
 
-		// Reset to page 1 when filters change
 		params.set('page', '1');
 
 		goto(`?${params.toString()}`);
@@ -90,7 +86,6 @@
 	function handleReset() {
 		const params = new URLSearchParams(page.url.searchParams);
 
-		// Remove all filter params
 		params.delete('status');
 		params.delete('priority');
 		params.delete('category');
@@ -101,7 +96,6 @@
 
 		goto(`?${params.toString()}`);
 
-		// Reset local state
 		search = '';
 		selectedStatus = 'all';
 		selectedPriority = 'all';

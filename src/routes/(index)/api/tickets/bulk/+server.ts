@@ -25,7 +25,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
         const categoryId = Number(itemId);
         if (isNaN(categoryId)) return error(400, 'Invalid category ID');
         tickets = await Ticket.update({ categoryId }, { where });
-        break; // Added missing break
+        break;
       }
 
       case 'status': {
