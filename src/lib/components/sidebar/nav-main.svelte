@@ -8,6 +8,7 @@
 	import Ticket from '$lib/icons/ticket.svelte';
 	import ViewAll from '$lib/icons/view-all.svelte';
 	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
+	import Slider from '$lib/icons/slider.svelte';
 
 	let {
 		user
@@ -22,14 +23,7 @@
 	<Sidebar.GroupLabel>Platform</Sidebar.GroupLabel>
 	<Sidebar.Menu>
 		<!-- Dashboard -->
-		<Collapsible.Root
-			open={openItem === 'Dashboard'}
-			onOpenChange={(isOpen) => {
-				openItem = isOpen ? 'Dashboard' : '';
-				if (browser) localStorage.setItem('openSidebarItem', openItem);
-			}}
-			class="group/collapsible"
-		>
+		<Collapsible.Root>
 			{#snippet child({ props })}
 				<Sidebar.MenuItem {...props}>
 					<Sidebar.MenuButton tooltipContent="Dashboard" onclick={() => goto('/dashboard')}>
@@ -156,79 +150,16 @@
 
 		<!-- Settings -->
 		{#if user.role === 'admin'}
-			<Collapsible.Root
-				open={openItem === 'Settings'}
-				onOpenChange={(isOpen) => {
-					openItem = isOpen ? 'Settings' : '';
-					if (browser) localStorage.setItem('openSidebarItem', openItem);
-				}}
-				class="group/collapsible"
-			>
+			<Collapsible.Root>
 				{#snippet child({ props })}
 					<Sidebar.MenuItem {...props}>
 						<Sidebar.MenuButton
 							tooltipContent="Settings"
 							onclick={() => goto('/dashboard/settings')}
 						>
-							<Ticket />
+							<Slider />
 							<span>Settings</span>
-							<Collapsible.Trigger
-								class="ml-auto p-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden"
-							>
-								<ChevronRightIcon
-									class="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-								/>
-							</Collapsible.Trigger>
 						</Sidebar.MenuButton>
-						<Collapsible.Content>
-							<Sidebar.MenuSub>
-								<Sidebar.MenuSubItem>
-									<Sidebar.MenuSubButton>
-										{#snippet child({ props })}
-											<a href="/dashboard/settings/organization" {...props}>
-												<span>Organization</span>
-											</a>
-										{/snippet}
-									</Sidebar.MenuSubButton>
-								</Sidebar.MenuSubItem>
-								<Sidebar.MenuSubItem>
-									<Sidebar.MenuSubButton>
-										{#snippet child({ props })}
-											<a href="/dashboard/settings/outgoing-email" {...props}>
-												<span>Outgoing Email</span>
-											</a>
-										{/snippet}
-									</Sidebar.MenuSubButton>
-								</Sidebar.MenuSubItem>
-								<Sidebar.MenuSubItem>
-									<Sidebar.MenuSubButton>
-										{#snippet child({ props })}
-											<a href="/dashboard/settings/incoming-email" {...props}>
-												<span>Incoming Email</span>
-											</a>
-										{/snippet}
-									</Sidebar.MenuSubButton>
-								</Sidebar.MenuSubItem>
-								<Sidebar.MenuSubItem>
-									<Sidebar.MenuSubButton>
-										{#snippet child({ props })}
-											<a href="/dashboard/settings/portal" {...props}>
-												<span>Portal</span>
-											</a>
-										{/snippet}
-									</Sidebar.MenuSubButton>
-								</Sidebar.MenuSubItem>
-								<Sidebar.MenuSubItem>
-									<Sidebar.MenuSubButton>
-										{#snippet child({ props })}
-											<a href="/dashboard/" {...props}>
-												<span>Continue</span>
-											</a>
-										{/snippet}
-									</Sidebar.MenuSubButton>
-								</Sidebar.MenuSubItem>
-							</Sidebar.MenuSub>
-						</Collapsible.Content>
 					</Sidebar.MenuItem>
 				{/snippet}
 			</Collapsible.Root>
