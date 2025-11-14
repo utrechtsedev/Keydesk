@@ -15,7 +15,7 @@
 	});
 
 	async function handleNext() {
-		const response = await axios.post('', { portal });
+		const response = await axios.post('/api/settings/portal', { portal });
 		if (response.status < 300) {
 			toast.success('Succesfully saved portal settings.');
 			return;
@@ -24,7 +24,7 @@
 		return toast.error('Error saving configuration. Check browser console.');
 	}
 	onMount(async () => {
-		const { data } = await axios.get('');
+		const { data } = await axios.get('/api/settings/portal');
 
 		if (data.data) portal = data.data;
 	});

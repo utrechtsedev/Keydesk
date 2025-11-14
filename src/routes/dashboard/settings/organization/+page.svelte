@@ -8,7 +8,6 @@
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import type { Organization } from '$lib/types';
-	import { goto } from '$app/navigation';
 	import Upload4 from '$lib/icons/upload-4.svelte';
 	import Check2 from '$lib/icons/check-2.svelte';
 
@@ -61,7 +60,7 @@
 			!organization.timezone
 		)
 			return toast.error('Fill in all required fields.');
-		const response = await axios.post('', { organization });
+		const response = await axios.post('/api/settings/organization', { organization });
 
 		if (response.status < 300) {
 			toast.success('Succesfully saved organization settings.');
@@ -72,7 +71,7 @@
 	}
 
 	onMount(async () => {
-		let { data } = await axios.get('');
+		let { data } = await axios.get('/api/settings/organization');
 
 		if (data.data) {
 			organization = data.data;
@@ -81,7 +80,7 @@
 	});
 </script>
 
-<div class="flex flex-col bg-background">
+<div class="flex flex-col">
 	<div class="flex justify-between px-4 pb-3">
 		<div>
 			<h1 class="text-2xl font-bold">Organization Settings</h1>

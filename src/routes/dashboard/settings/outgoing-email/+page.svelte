@@ -6,7 +6,6 @@
 	import { toast } from 'svelte-sonner';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import type { SMTP } from '$lib/types';
 	import { ToastComponent } from '$lib/components/ui/toast';
 	import { Spinner } from '$lib/components/ui/spinner';
@@ -27,7 +26,7 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await axios.post('/setup/outgoing-email/test', { smtp });
+			const response = await axios.post('/api/settings/outgoing-email/test', { smtp });
 
 			if (response.data.success) {
 				saveDisabled = false;
@@ -73,7 +72,7 @@
 			);
 		}
 
-		const response = await axios.post('', { smtp });
+		const response = await axios.post('/api/settings/outgoing-email', { smtp });
 		if (response.status < 300) {
 			toast.success('Succesfully saved SMTP settings.');
 			return;
@@ -83,7 +82,7 @@
 	}
 
 	onMount(async () => {
-		let { data } = await axios.get('');
+		let { data } = await axios.get('/api/settings/outgoing-email');
 		if (data.data) smtp = data.data;
 	});
 

@@ -6,6 +6,7 @@
 	import Email from '$lib/icons/email.svelte';
 	import GridSquareCirclePlus from '$lib/icons/grid-square-circle-plus.svelte';
 	import InboxArrowUp from '$lib/icons/inbox-arrow-up.svelte';
+	import UmbrellaBeach from '$lib/icons/umbrella-beach.svelte';
 	const { children } = $props();
 	const routes = [
 		{
@@ -27,6 +28,11 @@
 			path: '/dashboard/settings/portal',
 			name: 'Portal',
 			icon: GridSquareCirclePlus
+		},
+		{
+			path: '/dashboard/settings/holidays',
+			name: 'Holidays',
+			icon: UmbrellaBeach
 		}
 	];
 </script>

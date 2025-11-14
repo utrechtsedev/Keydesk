@@ -63,7 +63,7 @@
 	}
 
 	async function handleSave() {
-		const response = await axios.post('/api/admin/holiday', { holidays });
+		const response = await axios.post('/api/settings/holiday', { holidays });
 
 		if (response.status < 300) {
 			toast.success('Successfully saved holiday settings.');
@@ -75,7 +75,7 @@
 	}
 
 	onMount(async () => {
-		const { data } = await axios.get('/api/admin/holiday');
+		const { data } = await axios.get('/api/settings/holiday');
 
 		if (data.data)
 			holidays = data.data.map((h: HolidayType) => ({

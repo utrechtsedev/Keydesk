@@ -6,7 +6,6 @@
 	import { toast } from 'svelte-sonner';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import type { IMAP } from '$lib/types';
 	import { ToastComponent } from '$lib/components/ui/toast';
 	import { Spinner } from '$lib/components/ui/spinner';
@@ -25,7 +24,7 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await axios.post('/setup/incoming-email/test', { imap });
+			const response = await axios.post('/api/settings/incoming-email/test', { imap });
 
 			if (response.data.success) {
 				saveDisabled = false;
@@ -64,7 +63,7 @@
 			return toast.error('Please enter IMAP details.');
 		}
 
-		const response = await axios.post('', { imap });
+		const response = await axios.post('/api/settings/incoming-email', { imap });
 		if (response.status < 300) {
 			toast.success('Succesfully saved IMAP settings.');
 			return;
@@ -74,7 +73,7 @@
 	}
 
 	onMount(async () => {
-		let { data } = await axios.get('');
+		let { data } = await axios.get('/api/settings/incoming-email');
 		if (data.data) imap = data.data;
 	});
 </script>
