@@ -1,1 +1,6 @@
-<div class="h-full w-full bg-background"></div>
+<script>
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+
+	onMount(() => goto('/dashboard/settings/organization'));
+</script>
