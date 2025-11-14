@@ -1,13 +1,13 @@
 <script>
-	const { size = 18 } = $props();
+	const { class: className = '' } = $props();
 </script>
 
 <svg
 	xmlns="http://www.w3.org/2000/svg"
-	width={size}
-	height={size}
+	width="18"
+	height="18"
 	viewBox="0 0 18 18"
-	class="dark:invert"
+	class="dark:invert {className}"
 	><title>inbox-arrow-up</title><g fill="#212121"
 		><path
 			fill-rule="evenodd"
