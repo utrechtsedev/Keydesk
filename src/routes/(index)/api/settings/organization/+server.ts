@@ -44,17 +44,29 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const GET: RequestHandler = async () => {
-  let organization = await models.Config.findOne({ where: { key: 'organization' } })
+  try {
+    let organization = await models.Config.findOne({ where: { key: 'organization' } })
 
 
-  if (!organization)
+    if (!organization)
+      return json({
+        success: true,
+        data: null,
+      })
+
     return json({
       success: true,
-      data: null,
+      data: JSON.parse(organization.value),
     })
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch outgoing organization settings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
 
-  return json({
-    success: true,
-    data: JSON.parse(organization.value),
-  })
+  }
 }

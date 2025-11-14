@@ -13,17 +13,17 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       where: { key: 'attachments' },
       defaults: {
         key: 'attachments',
-        value: JSON.stringify(attachments)
+        value: attachments
       }
     });
 
     if (!created) {
-      await config.update({ value: JSON.stringify(attachments) });
+      await config.update({ value: attachments });
     }
 
     return json({
       success: true,
-      data: JSON.parse(config.value),
+      data: config.value,
       created
     }, { status: created ? 201 : 200 });
 
@@ -39,16 +39,29 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const GET: RequestHandler = async (): Promise<Response> => {
-  let attachments = await models.Config.findOne({ where: { key: 'attachments' } })
+  try {
+    let attachments = await models.Config.findOne({ where: { key: 'attachments' } })
 
-  if (!attachments)
+    if (!attachments)
+      return json({
+        success: true,
+        data: null,
+      })
+
     return json({
       success: true,
-      data: null,
+      data: attachments.value,
     })
 
-  return json({
-    success: true,
-    data: JSON.parse(attachments.value),
-  })
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch business hours',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+
+  }
 }

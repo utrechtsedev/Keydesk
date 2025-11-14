@@ -37,9 +37,20 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const GET: RequestHandler = async (): Promise<Response> => {
-  let categories = await models.Category.findAll()
-  return json({
-    success: true,
-    data: categories,
-  })
+  try {
+    let categories = await models.Category.findAll()
+    return json({
+      success: true,
+      data: categories,
+    })
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch categories',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
 }

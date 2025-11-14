@@ -48,10 +48,20 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const GET: RequestHandler = async (): Promise<Response> => {
-  let statuses = await models.Status.findAll()
-  return json({
-    success: true,
-    data: statuses,
-  })
-}
-
+  try {
+    const statuses = await models.Status.findAll();
+    return json({
+      success: true,
+      data: statuses
+    });
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch statuses',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+};

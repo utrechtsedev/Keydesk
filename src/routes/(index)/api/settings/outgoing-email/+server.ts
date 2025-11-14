@@ -49,20 +49,32 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 }
 
 export const GET: RequestHandler = async () => {
-  let smtp = await models.Config.findOne({ where: { key: 'smtp' } })
+  try {
+    let smtp = await models.Config.findOne({ where: { key: 'smtp' } })
 
-  if (!smtp)
+    if (!smtp)
+      return json({
+        success: true,
+        data: null,
+      })
+
+    let response: SMTP = JSON.parse(smtp.value)
+
+    response.password = decrypt(response.password)
+
     return json({
       success: true,
-      data: null,
+      data: response,
     })
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch outgoing email settings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
 
-  let response: SMTP = JSON.parse(smtp.value)
-
-  response.password = decrypt(response.password)
-
-  return json({
-    success: true,
-    data: response,
-  })
+  }
 }

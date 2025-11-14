@@ -44,20 +44,33 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 }
 
 export const GET: RequestHandler = async () => {
-  let imap = await models.Config.findOne({ where: { key: 'imap' } })
+  try {
+    let imap = await models.Config.findOne({ where: { key: 'imap' } })
 
-  if (!imap)
+    if (!imap)
+      return json({
+        success: true,
+        data: null,
+      })
+
+    let response: IMAP = JSON.parse(imap.value)
+
+    response.password = decrypt(response.password)
+
     return json({
       success: true,
-      data: null,
+      data: response,
     })
 
-  let response: IMAP = JSON.parse(imap.value)
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch outgoing organization settings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
 
-  response.password = decrypt(response.password)
-
-  return json({
-    success: true,
-    data: response,
-  })
+  }
 }

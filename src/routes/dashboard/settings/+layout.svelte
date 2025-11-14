@@ -6,7 +6,13 @@
 	import Email from '$lib/icons/email.svelte';
 	import GridSquareCirclePlus from '$lib/icons/grid-square-circle-plus.svelte';
 	import InboxArrowUp from '$lib/icons/inbox-arrow-up.svelte';
+	import FileClip from '$lib/icons/file-clip.svelte';
+	import SuitcaseClock from '$lib/icons/suitcase-clock.svelte';
 	import UmbrellaBeach from '$lib/icons/umbrella-beach.svelte';
+	import Grid2 from '$lib/icons/grid-2.svelte';
+	import BellDot from '$lib/icons/bell-dot.svelte';
+	import PriorityMedium2 from '$lib/icons/priority-medium-2.svelte';
+	import Wip from '$lib/icons/wip.svelte';
 	const { children } = $props();
 	const routes = [
 		{
@@ -33,6 +39,36 @@
 			path: '/dashboard/settings/holidays',
 			name: 'Holidays',
 			icon: UmbrellaBeach
+		},
+		{
+			path: '/dashboard/settings/attachments',
+			name: 'Attachments',
+			icon: FileClip
+		},
+		{
+			path: '/dashboard/settings/business-hours',
+			name: 'Business Hours',
+			icon: SuitcaseClock
+		},
+		{
+			path: '/dashboard/settings/categories',
+			name: 'Categories',
+			icon: Grid2
+		},
+		{
+			path: '/dashboard/settings/notifications',
+			name: 'Notifications',
+			icon: BellDot
+		},
+		{
+			path: '/dashboard/settings/priorities',
+			name: 'Priorities',
+			icon: PriorityMedium2
+		},
+		{
+			path: '/dashboard/settings/statuses',
+			name: 'Statuses',
+			icon: Wip
 		}
 	];
 </script>

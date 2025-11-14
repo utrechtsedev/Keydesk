@@ -15,17 +15,17 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       where: { key: 'businesshours' },
       defaults: {
         key: 'businesshours',
-        value: JSON.stringify(businessHours)
+        value: businessHours
       }
     });
 
     if (!created) {
-      await config.update({ value: JSON.stringify(businessHours) });
+      await config.update({ value: businessHours });
     }
 
     return json({
       success: true,
-      data: JSON.parse(config.value),
+      data: config.value,
       created
     }, { status: created ? 201 : 200 });
 
@@ -41,16 +41,28 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const GET: RequestHandler = async (): Promise<Response> => {
-  let businessHours = await models.Config.findOne({ where: { key: 'businesshours' } })
+  try {
+    let businessHours = await models.Config.findOne({ where: { key: 'businesshours' } })
 
-  if (!businessHours)
+    if (!businessHours)
+      return json({
+        success: true,
+        data: null,
+      })
+
     return json({
       success: true,
-      data: null,
+      data: businessHours.value,
     })
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch business hours',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
 
-  return json({
-    success: true,
-    data: JSON.parse(businessHours.value),
-  })
+  }
 }

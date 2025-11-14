@@ -46,16 +46,22 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const GET: RequestHandler = async (): Promise<Response> => {
-  let priorities = await models.Config.findOne({ where: { key: 'priorities' } })
-
-  if (!priorities)
+  try {
+    let priorities = await models.Priority.findAll()
     return json({
       success: true,
-      data: null,
+      data: priorities,
     })
 
-  return json({
-    success: true,
-    data: JSON.parse(priorities.value),
-  })
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch priorities',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+
+  }
 }
