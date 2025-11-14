@@ -39,16 +39,29 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const GET: RequestHandler = async (): Promise<Response> => {
-  let portal = await models.Config.findOne({ where: { key: 'portal' } })
+  try {
+    let portal = await models.Config.findOne({ where: { key: 'portal' } })
 
-  if (!portal)
+    if (!portal)
+      return json({
+        success: true,
+        data: null,
+      })
+
     return json({
       success: true,
-      data: null,
+      data: JSON.parse(portal.value),
     })
 
-  return json({
-    success: true,
-    data: JSON.parse(portal.value),
-  })
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch portal settings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+
+  }
 }

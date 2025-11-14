@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Progress } from '$lib/components/ui/progress';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
 	import { Switch } from '$lib/components/ui/switch';
@@ -11,7 +10,6 @@
 	import type { Attachment } from '$lib/types';
 
 	let disabled = $state(false);
-
 	let attachments: Attachment = $state({
 		enabled: true,
 		maxFileSizeMB: 10,
@@ -30,19 +28,20 @@
 		]
 	});
 
-	function handlePrevious() {
-		setState(10);
-	}
-	async function handleNext() {
-		const response = await axios.post('/api/admin/attachment', { attachments });
+	async function handleSave() {
+		const response = await axios.post('/api/settings/attachments', { attachments });
+
 		if (response.status < 300) {
-			return setState(12);
+			toast.success('Successfully saved attachment settings.');
+			return;
 		}
+
 		console.log(response.status, response.statusText);
 		return toast.error('Error saving configuration. Check browser console.');
 	}
+
 	onMount(async () => {
-		const { data } = await axios.get('/api/admin/attachment');
+		const { data } = await axios.get('/api/settings/attachments');
 		if (data.data) attachments = data.data;
 	});
 
@@ -57,40 +56,40 @@
 	});
 </script>
 
-<div class="flex min-h-[72dvh] flex-col gap-6">
-	<div class="flex flex-col items-center gap-2 text-center">
-		<h1 class="text-2xl font-bold">Attachments Settings</h1>
+<div class="flex flex-col">
+	<div class="flex justify-between px-4 pb-3">
+		<div>
+			<h1 class="text-2xl font-bold">Attachment Settings</h1>
+			<p class="text-sm text-muted-foreground">Configure file upload settings</p>
+		</div>
+		<Button onclick={handleSave}>Save</Button>
 	</div>
 
-	<div class="flex flex-col items-center gap-6">
-		<div class="flex items-center gap-3">
-			<Label for="enable-attachments">Enable Attachments:</Label>
+	<div class="grid">
+		<div class="flex justify-between border-y px-4 py-3">
+			<Label for="enable-attachments" class="text-md">Enable Attachments</Label>
 			<Switch id="enable-attachments" bind:checked={attachments.enabled} />
 		</div>
-		<div class="flex items-center gap-3">
-			<Label for="max-filesize">Max Filesize (MB):</Label>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="max-filesize" class="text-md">Max Filesize (MB)</Label>
 			<Input
 				{disabled}
 				bind:value={attachments.maxFileSizeMB}
 				id="max-filesize"
 				type="number"
-				class="w-24"
+				class="w-[15%]"
 			/>
 		</div>
-		<div class="flex flex-col items-center gap-3">
-			<Label for="allowed-extensions">Allowed File Extensions:</Label>
+
+		<div class="flex justify-between px-4 py-3">
+			<Label for="allowed-extensions" class="text-md">Allowed File Extensions</Label>
 			<TagsInput
 				id="allowed-extensions"
 				bind:value={attachments.allowedMimeTypes}
-				class="w-96"
+				class="w-[40%]"
 				{disabled}
 			/>
 		</div>
-	</div>
-
-	<div class="mt-auto flex justify-between gap-4">
-		<Button onclick={handlePrevious} variant="outline">Previous</Button>
-		<Progress value={82.5} class="mt-3" />
-		<Button onclick={handleNext}>Next</Button>
 	</div>
 </div>

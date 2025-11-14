@@ -20,12 +20,12 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
     });
 
     if (!created) {
-      await config.update({ value: JSON.stringify(holidays) });
+      await config.update({ value: holidays });
     }
 
     return json({
       success: true,
-      data: JSON.parse(config.value),
+      data: config.value,
       created
     }, { status: created ? 201 : 200 });
 
@@ -41,16 +41,29 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const GET: RequestHandler = async (): Promise<Response> => {
-  let holidays = await models.Config.findOne({ where: { key: 'holidays' } })
+  try {
+    let holidays = await models.Config.findOne({ where: { key: 'holidays' } })
 
-  if (!holidays)
+    if (!holidays)
+      return json({
+        success: true,
+        data: null,
+      })
+
     return json({
       success: true,
-      data: null,
+      data: holidays.value,
     })
 
-  return json({
-    success: true,
-    data: JSON.parse(holidays.value),
-  })
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        message: 'Failed to fetch holiday settings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+
+  }
 }
