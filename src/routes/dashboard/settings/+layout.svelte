@@ -13,12 +13,18 @@
 	import BellDot from '$lib/icons/bell-dot.svelte';
 	import PriorityMedium2 from '$lib/icons/priority-medium-2.svelte';
 	import Wip from '$lib/icons/wip.svelte';
+	import Ticket from '$lib/icons/ticket.svelte';
 	const { children } = $props();
 	const routes = [
 		{
 			path: '/dashboard/settings/organization',
 			name: 'Organization',
 			icon: Organization
+		},
+		{
+			path: '/dashboard/settings/tickets',
+			name: 'Tickets',
+			icon: Ticket
 		},
 		{
 			path: '/dashboard/settings/outgoing-email',

@@ -230,6 +230,10 @@ let config = {
       "zip"
     ]
   },
-  "ticketPrefix": "T"
+  "tickets": {
+    "nextTicketNumber": 0,
+    "autoCreateRequesters": true,
+    "ticketPrefix": "T",
+  },
 }
 
