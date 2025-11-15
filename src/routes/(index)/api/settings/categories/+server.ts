@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
     return json({
       success: created ? true : false,
-      data: categories,
+      data: created,
     }, { status: created ? 201 : 400 });
 
   } catch (err) {

@@ -65,3 +65,79 @@ export const GET: RequestHandler = async (): Promise<Response> => {
     );
   }
 };
+
+export const DELETE: RequestHandler = async ({ request }): Promise<Response> => {
+  try {
+    const { id } = await request.json() as { id: number };
+
+    if (!id) {
+      return json({
+        success: false,
+        message: 'Status ID is required.'
+      }, { status: 400 });
+    }
+
+    const status = await models.Status.findByPk(id, {
+      include: [{
+        model: models.Ticket,
+        as: 'statusTickets',
+        attributes: ['id'],
+        limit: 1
+      }]
+    });
+
+    if (!status) {
+      return json({
+        success: false,
+        message: 'Status not found.'
+      }, { status: 404 });
+    }
+
+    if (status.isDefault) {
+      return json({
+        success: false,
+        message: 'Cannot delete the default status. Set another status as default first.'
+      }, { status: 400 });
+    }
+
+    if (status.statusTickets && status.statusTickets.length > 0) {
+      return json({
+        success: false,
+        message: 'Cannot delete status with associated tickets. Please reassign or delete all tickets first.'
+      }, { status: 400 });
+    }
+
+    const openStatusCount = await models.Status.count({ where: { isClosed: false } });
+    const closedStatusCount = await models.Status.count({ where: { isClosed: true } });
+
+    if (!status.isClosed && openStatusCount <= 1) {
+      return json({
+        success: false,
+        message: 'Cannot delete the last open status. At least 1 open status is required.'
+      }, { status: 400 });
+    }
+
+    if (status.isClosed && closedStatusCount <= 1) {
+      return json({
+        success: false,
+        message: 'Cannot delete the last closed status. At least 1 closed status is required.'
+      }, { status: 400 });
+    }
+
+    await status.destroy();
+
+    return json({
+      success: true,
+      message: 'Status deleted successfully.'
+    });
+
+  } catch (err) {
+    console.error('Error deleting status:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return json({
+      success: false,
+      message: 'Failed to delete status.',
+      error: errorMessage
+    }, { status: 500 });
+  }
+};

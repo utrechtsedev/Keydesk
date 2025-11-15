@@ -1,19 +1,18 @@
 <script lang="ts">
-	import { Switch } from '$lib/components/ui/switch';
+	import { Check, Plus, Save, SquarePen, Trash, X } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Check, Plus, Save, SquarePen, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
+	import { Switch } from '$lib/components/ui/switch';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import type { Status } from '$lib/types';
 
-	type StatusType = Omit<Status, 'id' | 'createdAt' | 'updatedAt'>;
-	let statuses = $state<StatusType[]>([]);
-	let editing = $state<StatusType>();
+	let statuses: Status[] = $state([]);
+	let editing = $state<Status>();
 
-	function startEdit(status: StatusType) {
+	function startEdit(status: Status) {
 		editing = status;
 	}
 
@@ -29,20 +28,57 @@
 	}
 
 	function addStatus() {
-		const newItem: StatusType = {
+		const maxId = statuses.length > 0 ? Math.max(...statuses.map((s) => s.id)) : 0;
+		const now = new Date();
+
+		const newItem: Status = {
+			id: maxId + 1,
 			name: 'New Status',
 			color: '#3B82F6',
+			isDefault: false,
 			isClosed: false,
-			isDefault: false
+			createdAt: now,
+			updatedAt: now
 		};
-
 		statuses.push(newItem);
 		editing = newItem;
 	}
 
-	function deleteStatus() {
-		statuses = statuses.filter((s) => s !== editing);
-		editing = undefined;
+	async function deleteStatus(status: Status) {
+		if (status.isDefault) {
+			return toast.error('Cannot delete the default status. Set another status as default first.');
+		}
+
+		const openStatuses = statuses.filter((s) => !s.isClosed);
+		const closedStatuses = statuses.filter((s) => s.isClosed);
+
+		if (!status.isClosed && openStatuses.length <= 1) {
+			return toast.error('Cannot delete the last open status. At least 1 open status is required.');
+		}
+
+		if (status.isClosed && closedStatuses.length <= 1) {
+			return toast.error(
+				'Cannot delete the last closed status. At least 1 closed status is required.'
+			);
+		}
+
+		try {
+			const response = await axios.delete('/api/settings/statuses', {
+				data: { id: status.id }
+			});
+
+			statuses = statuses.filter((s) => s !== status);
+			if (editing === status) {
+				editing = undefined;
+			}
+			toast.success('Status deleted successfully.');
+		} catch (error) {
+			if (axios.isAxiosError(error)) {
+				toast.error(error.response?.data?.message || 'Error deleting status.');
+			} else {
+				toast.error('Error deleting status.');
+			}
+		}
 	}
 
 	async function handleSave() {
@@ -68,7 +104,7 @@
 
 	onMount(async () => {
 		const { data } = await axios.get('/api/settings/statuses');
-		if (data.data && data.data.length > 0) statuses = data.data;
+		if (data.data) statuses = data.data;
 	});
 </script>
 
@@ -93,7 +129,7 @@
 			{@const isEditing = editing === status}
 
 			{#if isEditing}
-				<!-- Editing mode - 4 rows for name, color, default, closed -->
+				<!-- Editing mode -->
 				<div class="flex justify-between {isFirst ? 'border-y' : 'border-b'} px-4 py-3">
 					<Label for="status-name-{index}" class="text-md">Status Name</Label>
 					<Input id="status-name-{index}" type="text" bind:value={status.name} class="w-[40%]" />
@@ -112,10 +148,16 @@
 					<Switch id="status-default-{index}" bind:checked={status.isDefault} />
 				</div>
 				<div class="flex justify-between border-b px-4 py-3">
-					<Label for="status-closed-{index}" class="text-md">Mark as Closed</Label>
+					<Label for="status-closed-{index}" class="text-md">Closed Status</Label>
 					<Switch id="status-closed-{index}" bind:checked={status.isClosed} />
 				</div>
-				<div class="flex justify-end border-b bg-muted/30 px-4 py-3">
+				<div class="flex justify-between border-b bg-muted/30 px-4 py-3">
+					<div class="flex gap-2">
+						<Button onclick={() => deleteStatus(status)} variant="destructive" size="sm">
+							<Trash class="h-4 w-4" />
+							Delete
+						</Button>
+					</div>
 					<div class="flex gap-2">
 						<Button onclick={cancelEdit} variant="outline" size="sm">
 							<X class="h-4 w-4" />
@@ -128,7 +170,7 @@
 					</div>
 				</div>
 			{:else}
-				<!-- Display mode - single row -->
+				<!-- Display mode -->
 				<div class="flex justify-between {isFirst ? 'border-y' : 'border-b'} px-4 py-3">
 					<div class="flex items-center gap-4">
 						<div
@@ -139,13 +181,10 @@
 							<span class="text-md font-semibold">{status.name}</span>
 							<span class="text-sm text-muted-foreground">
 								{#if status.isDefault}
-									<Check class="inline h-4 w-4" /> Default
-								{/if}
-								{#if status.isDefault && status.isClosed}
-									•
+									<Check class="inline h-4 w-4" /> Default status
 								{/if}
 								{#if status.isClosed}
-									<Check class="inline h-4 w-4" /> Closed
+									• Closed status
 								{/if}
 								{#if !status.isDefault && !status.isClosed}
 									{status.color}
@@ -153,7 +192,10 @@
 							</span>
 						</div>
 					</div>
-					<div class="flex items-center gap-2">
+					<div class="flex gap-2">
+						<Button onclick={() => deleteStatus(status)} variant="destructive" size="sm">
+							<Trash class="h-4 w-4" />
+						</Button>
 						<Button onclick={() => startEdit(status)} variant="secondary" size="sm">
 							<SquarePen class="h-4 w-4" />
 							Edit

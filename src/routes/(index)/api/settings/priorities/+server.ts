@@ -1,10 +1,10 @@
-import { models } from "$lib/server/db/models";
-import type { Priority } from "$lib/types";
+import { models, Priority } from "$lib/server/db/models";
+import type { PriorityCreationAttributes } from "$lib/server/db/models/priority.model";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
-    const { priorities } = await request.json() as { priorities: Priority[] }
+    const { priorities } = await request.json() as { priorities: PriorityCreationAttributes[] }
 
     if (!priorities)
       return error(400, { message: 'Priorities are required.' });
@@ -16,23 +16,18 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
     if (defaultPriorities.length !== 1)
       return error(400, { message: 'You must only have 1 default priority.' });
 
-    const [config, created] = await models.Config.findOrCreate({
-      where: { key: 'priorities' },
-      defaults: {
-        key: 'priorities',
-        value: JSON.stringify(priorities)
-      }
+    const created = await Priority.bulkCreate(priorities, {
+      updateOnDuplicate: ['id', 'createdAt', 'updatedAt']
     });
 
     if (!created) {
-      await config.update({ value: JSON.stringify(priorities) });
+      return error(400, { message: 'Something went wrong while inserting fields into the database.' });
     }
 
     return json({
-      success: true,
-      data: JSON.parse(config.value),
-      created
-    }, { status: created ? 201 : 200 });
+      success: created ? true : false,
+      data: created,
+    }, { status: created ? 201 : 400 });
 
   } catch (err) {
     console.error('Error saving priorities:', err);

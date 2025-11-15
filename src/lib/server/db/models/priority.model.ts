@@ -1,4 +1,4 @@
-import { Model, DataTypes, type CreationOptional } from "sequelize";
+import { Model, DataTypes, type CreationOptional, type InferCreationAttributes } from "sequelize";
 import { sequelize } from "../instance.js";
 
 class Priority extends Model {
@@ -10,6 +10,8 @@ class Priority extends Model {
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
+
+export type PriorityCreationAttributes = InferCreationAttributes<Priority>;
 
 Priority.init(
   {
