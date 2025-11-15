@@ -255,3 +255,9 @@ export interface UserNotification {
   // includes?
   notification?: Notification
 }
+
+export interface TicketConfig {
+  nextTicketNumber: number,
+  autoCreateRequesters: boolean,
+  ticketPrefix: string,
+}
