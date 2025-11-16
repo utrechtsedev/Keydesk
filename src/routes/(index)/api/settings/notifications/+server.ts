@@ -13,17 +13,17 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       where: { key: 'notifications' },
       defaults: {
         key: 'notifications',
-        value: JSON.stringify(notifications)
+        value: notifications
       }
     });
 
     if (!created) {
-      await config.update({ value: JSON.stringify(notifications) });
+      await config.update({ value: notifications });
     }
 
     return json({
       success: true,
-      data: JSON.parse(config.value),
+      data: config.value,
       created
     }, { status: created ? 201 : 200 });
 
@@ -50,7 +50,7 @@ export const GET: RequestHandler = async (): Promise<Response> => {
 
     return json({
       success: true,
-      data: JSON.parse(notifications.value),
+      data: notifications.value,
     })
 
   } catch (error) {

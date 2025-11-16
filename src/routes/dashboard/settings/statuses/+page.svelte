@@ -24,9 +24,23 @@
 		let currentStatus = statuses.find((s) => s === editing);
 		if (!currentStatus || currentStatus.name.length < 1)
 			return toast.error('Status name must be at least 1 character');
+
+		if (currentStatus.isDefault && currentStatus.isClosed) {
+			return toast.error(
+				'A status cannot be both default and closed. New tickets must start as open.'
+			);
+		}
+
+		if (currentStatus.isDefault) {
+			statuses.forEach((s) => {
+				if (s !== currentStatus) {
+					s.isDefault = false;
+				}
+			});
+		}
+
 		editing = undefined;
 	}
-
 	function addStatus() {
 		const maxId = statuses.length > 0 ? Math.max(...statuses.map((s) => s.id)) : 0;
 		const now = new Date();

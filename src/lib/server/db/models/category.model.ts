@@ -1,5 +1,6 @@
 import { Model, DataTypes, type CreationOptional, type InferCreationAttributes } from "sequelize";
 import { sequelize } from "../instance.js";
+import type { Ticket } from "./ticket.model.js";
 
 class Category extends Model {
   declare id: CreationOptional<number>;
@@ -8,6 +9,8 @@ class Category extends Model {
   declare prefix: string;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  // includes
+  declare categoryTickets?: CreationOptional<Ticket[]>
 }
 
 export type CategoryCreationAttributes = InferCreationAttributes<Category>;

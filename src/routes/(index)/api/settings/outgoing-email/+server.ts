@@ -23,17 +23,17 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       where: { key: 'smtp' },
       defaults: {
         key: 'smtp',
-        value: JSON.stringify(smtp)
+        value: smtp
       }
     });
 
     if (!created) {
-      await config.update({ value: JSON.stringify(smtp) });
+      await config.update({ value: smtp });
     }
 
     return json({
       success: true,
-      data: JSON.parse(config.value),
+      data: config.value,
       created
     }, { status: created ? 201 : 200 });
 
@@ -58,7 +58,7 @@ export const GET: RequestHandler = async () => {
         data: null,
       })
 
-    let response: SMTP = JSON.parse(smtp.value)
+    let response: SMTP = smtp.value
 
     response.password = decrypt(response.password)
 

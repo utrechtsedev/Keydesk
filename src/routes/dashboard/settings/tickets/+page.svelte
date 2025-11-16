@@ -57,7 +57,7 @@
 			<Label for="auto-create-requesters" class="text-md">Auto Create Requesters</Label>
 			<Switch id="auto-create-requesters" bind:checked={tickets.autoCreateRequesters} />
 		</div>
-		<div class="flex justify-between border-b px-4 py-3">
+		<div class="flex justify-between px-4 py-3">
 			<Label for="language" class="text-md">Language</Label>
 			<Input
 				id="next-ticket-number"

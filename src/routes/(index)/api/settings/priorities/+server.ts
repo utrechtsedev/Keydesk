@@ -60,3 +60,71 @@ export const GET: RequestHandler = async (): Promise<Response> => {
 
   }
 }
+
+export const DELETE: RequestHandler = async ({ request }): Promise<Response> => {
+  try {
+    const { id } = await request.json() as { id: number };
+
+    if (!id) {
+      return json({
+        success: false,
+        message: 'Priority ID is required.'
+      }, { status: 400 });
+    }
+
+    const priority = await models.Priority.findByPk(id, {
+      include: [{
+        model: models.Ticket,
+        as: 'priorityTickets',
+        attributes: ['id'],
+        limit: 1
+      }]
+    });
+
+    if (!priority) {
+      return json({
+        success: false,
+        message: 'Priority not found.'
+      }, { status: 404 });
+    }
+
+    if (priority.isDefault) {
+      return json({
+        success: false,
+        message: 'Cannot delete the default priority. Set another priority as default first.'
+      }, { status: 400 });
+    }
+
+    if (priority.priorityTickets && priority.priorityTickets.length > 0) {
+      return json({
+        success: false,
+        message: 'Cannot delete priority with associated tickets. Please reassign or delete all tickets first.'
+      }, { status: 400 });
+    }
+
+    const priorityCount = await models.Priority.count();
+
+    if (priorityCount <= 1) {
+      return json({
+        success: false,
+        message: 'Cannot delete the last priority. At least 1 priority is required.'
+      }, { status: 400 });
+    }
+
+    await priority.destroy();
+
+    return json({
+      success: true,
+      message: 'Priority deleted successfully.'
+    });
+
+  } catch (err) {
+    console.error('Error deleting priority:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return json({
+      success: false,
+      message: 'Failed to delete priority.',
+      error: errorMessage
+    }, { status: 500 });
+  }
+};

@@ -177,7 +177,7 @@
 					class="w-[40%]"
 				/>
 			</div>
-			<div class="flex justify-between border-b px-4 py-3">
+			<div class="flex justify-between px-4 py-3">
 				<Label for="smtp-password" class="text-md">SMTP Password</Label>
 				<Input
 					id="smtp-password"
