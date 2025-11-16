@@ -9,12 +9,10 @@
 	import { onMount } from 'svelte';
 	import type { Category } from '$lib/types';
 
-	type CategoryType = Omit<Category, 'id' | 'updatedAt' | 'createdAt'>;
+	let categories: Category[] = $state([]);
+	let editing = $state<Category>();
 
-	let categories: CategoryType[] = $state([]);
-	let editing = $state<CategoryType>();
-
-	function startEdit(category: CategoryType) {
+	function startEdit(category: Category) {
 		editing = category;
 	}
 
@@ -30,21 +28,42 @@
 	}
 
 	function addCategory() {
-		const newItem: CategoryType = {
+		const maxId = categories.length > 0 ? Math.max(...categories.map((c) => c.id)) : 0;
+		const now = new Date();
+
+		const newItem: Category = {
+			id: maxId + 1,
 			name: 'New Category',
 			description: 'Category description',
-			prefix: ''
+			prefix: '',
+			createdAt: now,
+			updatedAt: now
 		};
 		categories.push(newItem);
 		editing = newItem;
 	}
 
-	function deleteCategory() {
+	async function deleteCategory(category: Category) {
 		if (categories.length === 1)
 			return toast.error('Cannot delete last category. At least 1 default category is required.');
 
-		categories = categories.filter((p) => p !== editing);
-		editing = undefined;
+		try {
+			const response = await axios.delete('/api/settings/categories', {
+				data: { id: category.id }
+			});
+
+			categories = categories.filter((p) => p !== category);
+			if (editing === category) {
+				editing = undefined;
+			}
+			toast.success('Category deleted successfully.');
+		} catch (error) {
+			if (axios.isAxiosError(error)) {
+				toast.error(error.response?.data?.message || 'Error deleting category.');
+			} else {
+				toast.error('Error deleting category.');
+			}
+		}
 	}
 
 	async function handleSave() {
@@ -117,7 +136,7 @@
 				</div>
 				<div class="flex justify-between border-b bg-muted/30 px-4 py-3">
 					<div class="flex gap-2">
-						<Button onclick={deleteCategory} variant="destructive" size="sm">
+						<Button onclick={() => deleteCategory(category)} variant="destructive" size="sm">
 							<Trash class="h-4 w-4" />
 							Delete
 						</Button>
@@ -146,7 +165,7 @@
 						</span>
 					</div>
 					<div class="flex gap-2">
-						<Button onclick={() => deleteCategory()} variant="destructive" size="sm">
+						<Button onclick={() => deleteCategory(category)} variant="destructive" size="sm">
 							<Trash class="h-4 w-4" />
 						</Button>
 						<Button onclick={() => startEdit(category)} variant="secondary" size="sm">

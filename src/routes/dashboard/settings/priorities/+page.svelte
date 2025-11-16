@@ -9,12 +9,10 @@
 	import { onMount } from 'svelte';
 	import type { Priority } from '$lib/types';
 
-	type PriorityType = Omit<Priority, 'id' | 'createdAt' | 'updatedAt'>;
+	let priorities: Priority[] = $state([]);
+	let editing = $state<Priority>();
 
-	let priorities: PriorityType[] = $state([]);
-	let editing = $state<PriorityType>();
-
-	function startEdit(priority: PriorityType) {
+	function startEdit(priority: Priority) {
 		editing = priority;
 	}
 
@@ -26,27 +24,64 @@
 		let currentPriority = priorities.find((p) => p === editing);
 		if (!currentPriority || currentPriority.name.length < 1)
 			return toast.error('Priority name must be at least 1 character');
+
+		// If this priority is set to default, unset all others
+		if (currentPriority.isDefault) {
+			priorities.forEach((p) => {
+				if (p !== currentPriority) {
+					p.isDefault = false;
+				}
+			});
+		}
+
 		editing = undefined;
 	}
-
 	function addPriority() {
-		const maxOrder = priorities.length > 0 ? Math.max(...priorities.map((obj) => obj.order)) : 0;
-		const newItem: PriorityType = {
+		const maxId = priorities.length > 0 ? Math.max(...priorities.map((p) => p.id)) : 0;
+		const maxOrder = priorities.length > 0 ? Math.max(...priorities.map((p) => p.order)) : 0;
+		const now = new Date();
+
+		const newItem: Priority = {
+			id: maxId + 1,
 			name: 'New Priority',
 			color: '#3B82F6',
 			order: maxOrder + 1,
-			isDefault: false
+			isDefault: false,
+			createdAt: now,
+			updatedAt: now
 		};
 		priorities.push(newItem);
 		editing = newItem;
 	}
 
-	function deletePriority() {
-		if (priorities.length === 1)
-			return toast.error('Cannot delete last priority. At least 1 default priority is required.');
+	async function deletePriority(priority: Priority) {
+		if (priority.isDefault) {
+			return toast.error(
+				'Cannot delete the default priority. Set another priority as default first.'
+			);
+		}
 
-		priorities = priorities.filter((p) => p !== editing);
-		editing = undefined;
+		if (priorities.length <= 1) {
+			return toast.error('Cannot delete the last priority. At least 1 priority is required.');
+		}
+
+		try {
+			const response = await axios.delete('/api/settings/priorities', {
+				data: { id: priority.id }
+			});
+
+			priorities = priorities.filter((p) => p !== priority);
+			if (editing === priority) {
+				editing = undefined;
+			}
+			toast.success('Priority deleted successfully.');
+		} catch (error) {
+			if (axios.isAxiosError(error)) {
+				toast.error(error.response?.data?.message || 'Error deleting priority.');
+			} else {
+				toast.error('Error deleting priority.');
+			}
+		}
 	}
 
 	async function handleSave() {
@@ -117,7 +152,7 @@
 				</div>
 				<div class="flex justify-between border-b bg-muted/30 px-4 py-3">
 					<div class="flex gap-2">
-						<Button onclick={deletePriority} variant="destructive" size="sm">
+						<Button onclick={() => deletePriority(priority)} variant="destructive" size="sm">
 							<Trash class="h-4 w-4" />
 							Delete
 						</Button>
@@ -134,7 +169,6 @@
 					</div>
 				</div>
 			{:else}
-				<!-- Display mode - single row -->
 				<div class="flex justify-between {isFirst ? 'border-y' : 'border-b'} px-4 py-3">
 					<div class="flex items-center gap-4">
 						<div
@@ -153,7 +187,7 @@
 						</div>
 					</div>
 					<div class="flex gap-2">
-						<Button onclick={deletePriority} variant="destructive" size="sm">
+						<Button onclick={() => deletePriority(priority)} variant="destructive" size="sm">
 							<Trash class="h-4 w-4" />
 						</Button>
 						<Button onclick={() => startEdit(priority)} variant="secondary" size="sm">

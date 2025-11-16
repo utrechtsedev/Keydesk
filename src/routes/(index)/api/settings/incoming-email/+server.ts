@@ -18,17 +18,17 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       where: { key: 'imap' },
       defaults: {
         key: 'imap',
-        value: JSON.stringify(imap)
+        value: imap
       }
     });
 
     if (!created) {
-      await config.update({ value: JSON.stringify(imap) });
+      await config.update({ value: imap });
     }
 
     return json({
       success: true,
-      data: JSON.parse(config.value),
+      data: config.value,
       created
     }, { status: created ? 201 : 200 });
 
@@ -53,7 +53,7 @@ export const GET: RequestHandler = async () => {
         data: null,
       })
 
-    let response: IMAP = JSON.parse(imap.value)
+    let response: IMAP = imap.value
 
     response.password = decrypt(response.password)
 

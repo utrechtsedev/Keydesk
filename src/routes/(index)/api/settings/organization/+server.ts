@@ -18,17 +18,17 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       where: { key: 'organization' },
       defaults: {
         key: 'organization',
-        value: JSON.stringify(organization)
+        value: organization
       }
     });
 
     if (!created) {
-      await config.update({ value: JSON.stringify(organization) });
+      await config.update({ value: organization });
     }
 
     return json({
       success: true,
-      data: JSON.parse(config.value),
+      data: config.value,
       created
     }, { status: created ? 201 : 200 });
 
@@ -56,13 +56,13 @@ export const GET: RequestHandler = async () => {
 
     return json({
       success: true,
-      data: JSON.parse(organization.value),
+      data: organization.value,
     })
   } catch (error) {
     return json(
       {
         success: false,
-        message: 'Failed to fetch outgoing organization settings',
+        message: 'Failed to fetch organization settings',
         error: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

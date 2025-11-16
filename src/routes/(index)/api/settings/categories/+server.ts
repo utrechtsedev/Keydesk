@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
     return json({
       success: created ? true : false,
-      data: categories,
+      data: created,
     }, { status: created ? 201 : 400 });
 
   } catch (err) {
@@ -54,3 +54,55 @@ export const GET: RequestHandler = async (): Promise<Response> => {
     );
   }
 }
+
+export const DELETE: RequestHandler = async ({ request }): Promise<Response> => {
+  try {
+    const { id } = await request.json() as { id: number };
+
+    if (!id) {
+      return json({
+        success: false,
+        message: 'Category ID is required.'
+      }, { status: 400 });
+    }
+
+    const category = await models.Category.findByPk(id, {
+      include: [{
+        model: models.Ticket,
+        as: 'categoryTickets',
+        attributes: ['id'],
+        limit: 1
+      }]
+    });
+
+    if (!category) {
+      return json({
+        success: false,
+        message: 'Category not found.'
+      }, { status: 404 });
+    }
+
+    if (category.categoryTickets && category.categoryTickets.length > 0) {
+      return json({
+        success: false,
+        message: 'Cannot delete category with associated tickets. Please reassign or delete all tickets first.'
+      }, { status: 400 });
+    }
+
+    await category.destroy();
+
+    return json({
+      success: true,
+      message: 'Category deleted successfully.'
+    });
+
+  } catch (err) {
+    console.error('Error deleting category:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return json({
+      success: false,
+      message: 'Failed to delete category.',
+      error: errorMessage
+    }, { status: 500 });
+  }
+};
