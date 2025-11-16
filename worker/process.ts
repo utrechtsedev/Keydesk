@@ -9,7 +9,7 @@ import path from "path";
 import fs from "fs"
 import { getLogTimestamp } from '../src/lib/utils/date';
 const client = await getClient()
-
+// TODO: Fetching notification settings en creating notifications if enabled
 /**
  * Processes incoming email messages and creates corresponding tickets in the database.
  * 

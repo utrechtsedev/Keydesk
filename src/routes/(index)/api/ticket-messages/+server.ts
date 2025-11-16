@@ -4,6 +4,7 @@ import type { Attachment } from '$lib/types';
 import { json, error, type RequestHandler } from '@sveltejs/kit';
 import { sequelize } from '$lib/server/db/instance';
 
+// TODO: Sending email to requester after saving message
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
   const transaction = await sequelize.transaction();
 

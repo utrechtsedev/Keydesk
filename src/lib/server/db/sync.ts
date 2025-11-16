@@ -25,7 +25,7 @@ class DatabaseSync {
     if (!attachments) {
       await models.Config.upsert({
         key: "attachments",
-        value: JSON.stringify({
+        value: {
           enabled: true,
           maxFileSizeMB: 10,
           allowedMimeTypes: [
@@ -41,7 +41,7 @@ class DatabaseSync {
             "text/*", // txt and  other text formats
             "application/zip",
           ],
-        }),
+        },
       });
       this.spinner.succeed("Attachments configuration created");
     } else {
@@ -55,7 +55,7 @@ class DatabaseSync {
     if (!businessHours) {
       await models.Config.upsert({
         key: "businesshours",
-        value: JSON.stringify({
+        value: {
           schedule: {
             monday: { enabled: true, start: "09:00", end: "17:00" },
             tuesday: { enabled: true, start: "09:00", end: "17:00" },
@@ -65,7 +65,7 @@ class DatabaseSync {
             saturday: { enabled: false, start: null, end: null },
             sunday: { enabled: false, start: null, end: null },
           },
-        }),
+        },
       });
       this.spinner.succeed("Business hours configuration created");
     } else {
@@ -147,33 +147,52 @@ class DatabaseSync {
     if (!notifications) {
       await models.Config.upsert({
         key: "notifications",
-        value: JSON.stringify({
-          ticketCreated: {
-            notifyRequester: true,
-            notifyAllUsers: true,
-            notifyUserEmail: true,
+        value: {
+          dashboard: {
+            ticket: {
+              created: {
+                notifyAllUsers: true,
+              },
+              assigned: {
+                notifyUser: true
+              },
+              updated: {
+                notifyUser: true
+              },
+              resolved: {
+                notifyUser: true
+              },
+              closed: {
+                notifyUser: true
+              }
+            }
           },
-          ticketAssigned: {
-            notifyRequester: true,
-            notifyAssignedUser: true,
-            notifyUserEmail: true,
+
+          email: {
+            ticket: {
+              created: {
+                notifyAllUsers: true,
+                notifyRequester: true,
+              },
+              assigned: {
+                notifyUser: true,
+                notifyRequester: true,
+              },
+              updated: {
+                notifyUser: true,
+                notifyRequester: true,
+              },
+              resolved: {
+                notifyUser: true,
+                notifyRequester: true,
+              },
+              closed: {
+                notifyUser: true,
+                notifyRequester: false,
+              },
+            }
           },
-          ticketUpdated: {
-            notifyRequester: true,
-            notifyAssignedUser: true,
-            notifyAssignedUserEmail: true,
-          },
-          ticketResolved: {
-            notifyRequester: true,
-            notifyUsers: true,
-            notifyUserEmail: true,
-          },
-          ticketClosed: {
-            notifyRequester: true,
-            notifyUsers: true,
-            notifyUserEmail: true,
-          },
-        }),
+        },
       });
       this.spinner.succeed("Notifications configuration created");
     } else {

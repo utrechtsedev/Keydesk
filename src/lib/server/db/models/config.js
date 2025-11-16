@@ -130,31 +130,51 @@ let config = {
   ],
 
   "notifications": {
-    "ticketCreated": {
-      "notifyRequester": true,
-      "notifyAllUsers": true,
-      "notifyUserEmail": true,
+    // users only get notified when following actions have not been done by themselves except for created.notifyAllUsers
+    "dashboard": {
+      "ticket": {
+        "created": {
+          "notifyAllUsers": true,
+        },
+        "assigned": {
+          "notifyUser": true
+        },
+        "updated": {
+          "notifyUser": true
+        },
+        "resolved": {
+          "notifyUser": true
+        },
+        "closed": {
+          "notifyUser": true
+        }
+      }
     },
-    "ticketAssigned": {
-      "notifyRequester": true,
-      "notifyAssignedUser": true,
-      "notifyUserEmail": true,
+
+    "email": {
+      "ticket": {
+        "created": {
+          "notifyAllUsers": true,
+          "notifyRequester": true,
+        },
+        "assigned": {
+          "notifyUser": true,
+          "notifyRequester": true,
+        },
+        "updated": {
+          "notifyUser": true,
+          "notifyRequester": true,
+        },
+        "resolved": {
+          "notifyUser": true,
+          "notifyRequester": true,
+        },
+        "closed": {
+          "notifyUser": true,
+          "notifyRequester": false,
+        },
+      }
     },
-    "ticketUpdated": {
-      "notifyRequester": true,
-      "notifyAssignedUser": true,
-      "notifyAssignedUserEmail": true,
-    },
-    "ticketResolved": {
-      "notifyRequester": true,
-      "notifyUsers": true,
-      "notifyUserEmail": true,
-    },
-    "ticketClosed": {
-      "notifyRequester": true,
-      "notifyUsers": true,
-      "notifyUserEmail": true,
-    }
   },
 
   "businessHours": {
