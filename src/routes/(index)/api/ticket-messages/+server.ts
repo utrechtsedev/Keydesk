@@ -1,8 +1,9 @@
-import { Config, TicketAttachment, TicketMessage } from '$lib/server/db/models';
+import { Config, Ticket, TicketAttachment, TicketMessage } from '$lib/server/db/models';
 import { uploadFile } from '$lib/server/file-upload';
-import type { Attachment } from '$lib/types';
+import type { Attachment, NotificationSettings } from '$lib/types';
 import { json, error, type RequestHandler } from '@sveltejs/kit';
 import { sequelize } from '$lib/server/db/instance';
+import { createNotification } from '$lib/server/notification';
 
 // TODO: Sending email to requester after saving message
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
@@ -54,7 +55,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 
     let attachmentConfig: Attachment;
     try {
-      attachmentConfig = JSON.parse(attachmentOptions.value) as Attachment;
+      attachmentConfig = attachmentOptions.value as Attachment;
     } catch (err) {
       console.error('Failed to parse attachment configuration:', err);
       await transaction.rollback();
@@ -98,6 +99,44 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     }
 
     await transaction.commit();
+
+    const ticket = await Ticket.findOne({ where: { id: ticketId } })
+
+    const fetchNotificationConfig = await Config.findOne({ where: { key: 'notifications' } });
+
+    if (!fetchNotificationConfig) {
+      throw new Error('Could not create notification for new Ticket Message.');
+    }
+
+    const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
+
+
+    // if ticket message sender is not assignee of ticket, notify assignee
+    if (ticket && ticket.assignedUserId && ticket.assignedUserId !== locals.user.id) {
+      if (notificationConfig.dashboard.ticket.updated.notifyUser)
+        createNotification({
+          title: "Ticket updated",
+          message: `Ticket ${ticket.id} updated by ${locals.user.name}`,
+          type: "ticket",
+          channel: "dashboard",
+          actionUrl: `/dashboard/tickets/${ticket.id}`,
+          relatedEntityId: ticket.id,
+          relatedEntityType: "ticket",
+          userId: ticket.assignedUserId
+        })
+
+      if (notificationConfig.email.ticket.updated.notifyUser)
+        createNotification({
+          title: "Ticket updated",
+          message: `Ticket ${ticket.id} updated by ${locals.user.name}`,
+          type: "ticket",
+          channel: "dashboard",
+          actionUrl: `/dashboard/tickets/${ticket.id}`,
+          relatedEntityId: ticket.id,
+          relatedEntityType: "ticket",
+          userId: ticket.assignedUserId
+        })
+    }
 
     return json({
       success: true,

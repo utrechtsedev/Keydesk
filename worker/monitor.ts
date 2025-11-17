@@ -179,7 +179,7 @@ async function ensureConnection(): Promise<void> {
 async function getMailOptions(): Promise<Attachment> {
   try {
     let attachmentConfig = await Config.findOne({ where: { key: 'attachments' } });
-    const config = JSON.parse(attachmentConfig?.value) as Attachment | undefined;
+    const config = attachmentConfig?.value as Attachment | undefined;
 
     if (!config?.allowedMimeTypes || !Array.isArray(config.allowedMimeTypes) || config.allowedMimeTypes.length === 0) {
       console.warn(`[${getLogTimestamp()}] Invalid or missing attachment config, attachments will be disabled`);

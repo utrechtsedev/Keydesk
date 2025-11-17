@@ -17,7 +17,7 @@ export async function getClient(): Promise<ImapFlow> {
     throw new Error(`[${getLogTimestamp()}] IMAP configuration not found in database, exiting...`);
   }
 
-  const config = JSON.parse(imap.value) as IMAP;
+  const config = imap.value as IMAP;
 
   client = new ImapFlow({
     host: config.host,

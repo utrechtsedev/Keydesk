@@ -5,7 +5,6 @@
 	import { browser } from '$app/environment';
 	import type { User, UserNotification } from '$lib/types';
 	import type { Snippet } from 'svelte';
-	import { page } from '$app/state';
 
 	let {
 		children,
@@ -17,6 +16,7 @@
 			notifications: UserNotification[];
 		};
 	} = $props();
+	console.log(data);
 	let open = $state(browser ? JSON.parse(localStorage.getItem('sidebarOpen') ?? 'true') : true);
 </script>
 
