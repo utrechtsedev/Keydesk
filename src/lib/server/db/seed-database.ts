@@ -7,7 +7,6 @@ import type { Priority } from "./models/priority.model.js";
 import type { Category } from "./models/category.model.js";
 import type { Tag } from "./models/tag.model.js";
 import type { Notification } from "./models/notification.model.js";
-import type { UserNotification } from "./models/user-notification.model.js";
 import type { Ticket } from "./models/ticket.model.js";
 
 /**
@@ -160,68 +159,68 @@ class DatabaseSeeder {
     type: "info" | "success" | "warning" | "error" | "ticket" | "system";
     title: string;
     message: string;
-    channels: string[];
+    channel: "email" | "dashboard";
   }[] {
     return [
       {
         type: "ticket",
         title: "New ticket assigned to you",
         message: "You have been assigned ticket #{ticketNumber}: {subject}",
-        channels: ["dashboard", "email"],
+        channel: "email",
       },
       {
         type: "ticket",
         title: "Ticket updated",
         message: "Ticket #{ticketNumber} has been updated by {userName}",
-        channels: ["dashboard"],
+        channel: "dashboard",
       },
       {
         type: "ticket",
         title: "New response on your ticket",
         message: "{userName} responded to ticket #{ticketNumber}",
-        channels: ["dashboard", "email"],
+        channel: "email",
       },
       {
         type: "warning",
         title: "SLA deadline approaching",
         message: "Ticket #{ticketNumber} is approaching its SLA deadline",
-        channels: ["dashboard", "email"],
+        channel: "dashboard",
       },
       {
         type: "error",
         title: "SLA deadline exceeded",
         message: "Ticket #{ticketNumber} has exceeded its SLA deadline",
-        channels: ["dashboard", "email"],
+        channel: "dashboard",
       },
       {
         type: "success",
         title: "Ticket resolved",
         message: "Ticket #{ticketNumber} has been marked as resolved",
-        channels: ["dashboard"],
+        channel: "dashboard",
       },
       {
         type: "ticket",
         title: "Priority changed",
         message: "The priority of ticket #{ticketNumber} has been changed to {priority}",
-        channels: ["dashboard"],
+        channel: "dashboard",
       },
       {
         type: "system",
         title: "System maintenance scheduled",
         message: "The ticket system will undergo maintenance on {date}",
-        channels: ["dashboard", "email"],
+        channel: "email",
       },
       {
         type: "info",
         title: "New feature available",
         message: "A new feature has been added to the ticket system: {feature}",
-        channels: ["dashboard"],
+        channel: "dashboard",
       },
       {
         type: "warning",
         title: "High ticket volume",
         message: "Your team has {count} unassigned tickets requiring attention",
-        channels: ["dashboard"],
+        channel: "dashboard",
       },
     ];
   }
@@ -463,7 +462,7 @@ class DatabaseSeeder {
           "ticket",
           "New ticket assigned to you",
           `You have been assigned ticket ${ticket.ticketNumber}: ${subject}`,
-          ["dashboard", "email"],
+          "email",
           ticket,
           [assignedUser],
           createdAt
@@ -532,7 +531,7 @@ class DatabaseSeeder {
                 "ticket",
                 "New response on your ticket",
                 `${requester.name} responded to ticket ${ticket.ticketNumber}`,
-                ["dashboard"],
+                "dashboard",
                 ticket,
                 [assignedUser],
                 currentDate
@@ -557,7 +556,7 @@ class DatabaseSeeder {
               "success",
               "Ticket resolved",
               `Ticket ${ticket.ticketNumber} has been marked as resolved`,
-              ["dashboard"],
+              "dashboard",
               ticket,
               [assignedUser],
               currentDate
@@ -571,7 +570,7 @@ class DatabaseSeeder {
             "warning",
             "SLA deadline approaching",
             `Ticket ${ticket.ticketNumber} is approaching its SLA deadline`,
-            ["dashboard", "email"],
+            "email",
             ticket,
             [assignedUser],
             warningDate
@@ -638,7 +637,7 @@ class DatabaseSeeder {
     type: "info" | "success" | "warning" | "error" | "ticket" | "system",
     title: string,
     message: string,
-    channels: string[],
+    channel: "email" | "dashboard",
     ticket: Ticket,
     recipients: User[],
     createdAt: Date
@@ -647,7 +646,7 @@ class DatabaseSeeder {
       title,
       message,
       type,
-      channels,
+      channel,
       relatedEntityType: "ticket",
       relatedEntityId: ticket.id,
       actionUrl: `/dashboard/tickets/${ticket.id}`,
@@ -659,7 +658,7 @@ class DatabaseSeeder {
     this.createdNotifications.push(notification);
 
     for (const user of recipients) {
-      const shouldSendEmail = channels.includes("email");
+      const shouldSendEmail = channel === "email";
       const emailSent = shouldSendEmail && Math.random() > 0.1;
 
       await models.UserNotification.create({
@@ -698,7 +697,7 @@ class DatabaseSeeder {
         title: template.title,
         message,
         type: template.type,
-        channels: template.channels,
+        channel: template.channel,
         relatedEntityType: "system",
         relatedEntityId: null,
         actionUrl: null,
@@ -713,7 +712,7 @@ class DatabaseSeeder {
       const recipients = this.shuffleArray([...this.createdUsers]).slice(0, numRecipients);
 
       for (const user of recipients) {
-        const shouldSendEmail = template.channels.includes("email");
+        const shouldSendEmail = template.channel === "email";
         const emailSent = shouldSendEmail && Math.random() > 0.05;
 
         await models.UserNotification.create({

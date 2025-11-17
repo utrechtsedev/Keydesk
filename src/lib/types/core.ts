@@ -61,32 +61,51 @@ export interface Holiday {
 }
 
 export interface NotificationSettings {
-  ticketCreated: {
-    notifyRequester: boolean;
-    notifyAllUsers: boolean;
-    notifyUserEmail: boolean;
+  dashboard: {
+    ticket: {
+      created: {
+        notifyAllUsers: boolean;
+      };
+      assigned: {
+        notifyUser: boolean;
+      };
+      updated: {
+        notifyUser: boolean;
+      };
+      resolved: {
+        notifyUser: boolean;
+      };
+      closed: {
+        notifyUser: boolean;
+      };
+    };
   };
-  ticketAssigned: {
-    notifyRequester: boolean;
-    notifyAssignedUsers: boolean;
-    notifyUserEmail: boolean;
-  };
-  ticketUpdated: {
-    notifyRequester: boolean;
-    notifyAssignedUser: boolean;
-    notifyAssignedUserEmail: boolean;
-  };
-  ticketResolved: {
-    notifyRequester: boolean;
-    notifyUsers: boolean;
-    notifyUserEmail: boolean;
-  };
-  ticketClosed: {
-    notifyRequester: boolean;
-    notifyUsers: boolean;
-    notifyUserEmail: boolean;
+  email: {
+    ticket: {
+      created: {
+        notifyAllUsers: boolean;
+        notifyRequester: boolean;
+      };
+      assigned: {
+        notifyUser: boolean;
+        notifyRequester: boolean;
+      };
+      updated: {
+        notifyUser: boolean;
+        notifyRequester: boolean;
+      };
+      resolved: {
+        notifyUser: boolean;
+        notifyRequester: boolean;
+      };
+      closed: {
+        notifyUser: boolean;
+        notifyRequester: boolean;
+      };
+    };
   };
 }
+
 
 export interface Organization {
   name: string;

@@ -8,30 +8,48 @@
 	import type { NotificationSettings } from '$lib/types';
 
 	let notifications: NotificationSettings = $state({
-		ticketCreated: {
-			notifyRequester: true,
-			notifyAllUsers: true,
-			notifyUserEmail: true
+		dashboard: {
+			ticket: {
+				created: {
+					notifyAllUsers: true
+				},
+				assigned: {
+					notifyUser: true
+				},
+				updated: {
+					notifyUser: true
+				},
+				resolved: {
+					notifyUser: true
+				},
+				closed: {
+					notifyUser: true
+				}
+			}
 		},
-		ticketAssigned: {
-			notifyRequester: true,
-			notifyAssignedUsers: true,
-			notifyUserEmail: true
-		},
-		ticketUpdated: {
-			notifyRequester: true,
-			notifyAssignedUser: true,
-			notifyAssignedUserEmail: true
-		},
-		ticketResolved: {
-			notifyRequester: true,
-			notifyUsers: true,
-			notifyUserEmail: true
-		},
-		ticketClosed: {
-			notifyRequester: true,
-			notifyUsers: true,
-			notifyUserEmail: true
+		email: {
+			ticket: {
+				created: {
+					notifyAllUsers: true,
+					notifyRequester: true
+				},
+				assigned: {
+					notifyUser: true,
+					notifyRequester: true
+				},
+				updated: {
+					notifyUser: true,
+					notifyRequester: true
+				},
+				resolved: {
+					notifyUser: true,
+					notifyRequester: true
+				},
+				closed: {
+					notifyUser: true,
+					notifyRequester: true
+				}
+			}
 		}
 	});
 
@@ -64,89 +82,114 @@
 	</div>
 
 	<div class="grid">
-		<!-- Ticket Created -->
-		<div class="border-y bg-muted/50 px-4 py-2">
+		<div class="border-y bg-primary/10 px-4 py-3">
+			<h2 class="text-lg font-bold">Dashboard Notifications</h2>
+			<p class="text-xs text-muted-foreground">In-app notifications for agents</p>
+		</div>
+
+		<div class="border-b bg-muted/50 px-4 py-2">
 			<span class="text-sm font-semibold">When Ticket is Created</span>
 		</div>
 		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer (Email)</Label>
-			<Switch bind:checked={notifications.ticketCreated.notifyRequester} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Agents (Dashboard)</Label>
-			<Switch bind:checked={notifications.ticketCreated.notifyAllUsers} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Agent (Email)</Label>
-			<Switch bind:checked={notifications.ticketCreated.notifyUserEmail} />
+			<Label class="text-md font-normal">Notify All Agents</Label>
+			<Switch bind:checked={notifications.dashboard.ticket.created.notifyAllUsers} />
 		</div>
 
-		<!-- Ticket Assigned -->
 		<div class="border-b bg-muted/50 px-4 py-2">
 			<span class="text-sm font-semibold">When Ticket is Assigned</span>
 		</div>
 		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer (Email)</Label>
-			<Switch bind:checked={notifications.ticketAssigned.notifyRequester} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent (Dashboard)</Label>
-			<Switch bind:checked={notifications.ticketAssigned.notifyAssignedUsers} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Agent (Email)</Label>
-			<Switch bind:checked={notifications.ticketAssigned.notifyUserEmail} />
+			<Label class="text-md font-normal">Notify Assigned Agent</Label>
+			<Switch bind:checked={notifications.dashboard.ticket.assigned.notifyUser} />
 		</div>
 
-		<!-- Ticket Updated -->
 		<div class="border-b bg-muted/50 px-4 py-2">
 			<span class="text-sm font-semibold">When Ticket is Updated</span>
 		</div>
 		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer (Email)</Label>
-			<Switch bind:checked={notifications.ticketUpdated.notifyRequester} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Agent (Dashboard)</Label>
-			<Switch bind:checked={notifications.ticketUpdated.notifyAssignedUser} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Agent (Email)</Label>
-			<Switch bind:checked={notifications.ticketUpdated.notifyAssignedUserEmail} />
+			<Label class="text-md font-normal">Notify Assigned Agent</Label>
+			<Switch bind:checked={notifications.dashboard.ticket.updated.notifyUser} />
 		</div>
 
-		<!-- Ticket Resolved -->
 		<div class="border-b bg-muted/50 px-4 py-2">
 			<span class="text-sm font-semibold">When Ticket is Resolved</span>
 		</div>
 		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer (Email)</Label>
-			<Switch bind:checked={notifications.ticketResolved.notifyRequester} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent (Dashboard)</Label>
-			<Switch bind:checked={notifications.ticketResolved.notifyUsers} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Agent (Email)</Label>
-			<Switch bind:checked={notifications.ticketResolved.notifyUserEmail} />
+			<Label class="text-md font-normal">Notify Assigned Agent</Label>
+			<Switch bind:checked={notifications.dashboard.ticket.resolved.notifyUser} />
 		</div>
 
-		<!-- Ticket Closed -->
 		<div class="border-b bg-muted/50 px-4 py-2">
 			<span class="text-sm font-semibold">When Ticket is Closed</span>
 		</div>
 		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer (Email)</Label>
-			<Switch bind:checked={notifications.ticketClosed.notifyRequester} />
+			<Label class="text-md font-normal">Notify Assigned Agent</Label>
+			<Switch bind:checked={notifications.dashboard.ticket.closed.notifyUser} />
+		</div>
+
+		<div class="border-y bg-primary/10 px-4 py-3">
+			<h2 class="text-lg font-bold">Email Notifications</h2>
+			<p class="text-xs text-muted-foreground">Email alerts for agents and customers</p>
+		</div>
+
+		<div class="border-b bg-muted/50 px-4 py-2">
+			<span class="text-sm font-semibold">When Ticket is Created</span>
 		</div>
 		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent (Dashboard)</Label>
-			<Switch bind:checked={notifications.ticketClosed.notifyUsers} />
+			<Label class="text-md font-normal">Notify Customer</Label>
+			<Switch bind:checked={notifications.email.ticket.created.notifyRequester} />
+		</div>
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label class="text-md font-normal">Notify All Agents</Label>
+			<Switch bind:checked={notifications.email.ticket.created.notifyAllUsers} />
+		</div>
+
+		<div class="border-b bg-muted/50 px-4 py-2">
+			<span class="text-sm font-semibold">When Ticket is Assigned</span>
+		</div>
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label class="text-md font-normal">Notify Customer</Label>
+			<Switch bind:checked={notifications.email.ticket.assigned.notifyRequester} />
+		</div>
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label class="text-md font-normal">Notify Assigned Agent</Label>
+			<Switch bind:checked={notifications.email.ticket.assigned.notifyUser} />
+		</div>
+
+		<div class="border-b bg-muted/50 px-4 py-2">
+			<span class="text-sm font-semibold">When Ticket is Updated</span>
+		</div>
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label class="text-md font-normal">Notify Customer</Label>
+			<Switch bind:checked={notifications.email.ticket.updated.notifyRequester} />
+		</div>
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label class="text-md font-normal">Notify Assigned Agent</Label>
+			<Switch bind:checked={notifications.email.ticket.updated.notifyUser} />
+		</div>
+
+		<div class="border-b bg-muted/50 px-4 py-2">
+			<span class="text-sm font-semibold">When Ticket is Resolved</span>
+		</div>
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label class="text-md font-normal">Notify Customer</Label>
+			<Switch bind:checked={notifications.email.ticket.resolved.notifyRequester} />
+		</div>
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label class="text-md font-normal">Notify Assigned Agent</Label>
+			<Switch bind:checked={notifications.email.ticket.resolved.notifyUser} />
+		</div>
+
+		<div class="border-b bg-muted/50 px-4 py-2">
+			<span class="text-sm font-semibold">When Ticket is Closed</span>
+		</div>
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label class="text-md font-normal">Notify Customer</Label>
+			<Switch bind:checked={notifications.email.ticket.closed.notifyRequester} />
 		</div>
 		<div class="flex justify-between px-4 py-3">
-			<Label class="text-md font-normal">Notify Agent (Email)</Label>
-			<Switch bind:checked={notifications.ticketClosed.notifyUserEmail} />
+			<Label class="text-md font-normal">Notify Assigned Agent</Label>
+			<Switch bind:checked={notifications.email.ticket.closed.notifyUser} />
 		</div>
 	</div>
 </div>

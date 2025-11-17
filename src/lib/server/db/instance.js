@@ -9,6 +9,6 @@ if (!DATABASE_NAME || !DATABASE_USERNAME || !DATABASE_PASSWORD) {
 export const sequelize = new Sequelize(DATABASE_NAME, DATABASE_USERNAME, DATABASE_PASSWORD, {
   dialect: "mariadb",
   host: DATABASE_HOST ?? 'localhost',
-  logging: false,
   timezone: '+02:00',
+  logging: false,
 });

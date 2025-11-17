@@ -23,7 +23,7 @@ interface NotificationOptions {
 
   // === NOTIFICATION SETTINGS ===
   type?: "info" | "success" | "warning" | "error" | "ticket" | "system";
-  channels?: ("dashboard" | "email")[];  // Default: ["dashboard"]
+  channel?: "dashboard" | "email";  // Default: "dashboard"
 
   // === OPTIONAL METADATA ===
   relatedEntityType?: "ticket" | "user" | "system" | null;
@@ -71,7 +71,7 @@ async function createNotification(options: NotificationOptions): Promise<Notific
       title: options.title,
       message: options.message,
       type: options.type || "info",
-      channels: options.channels || ["dashboard"],
+      channel: options.channel || "dashboard",
       relatedEntityType: options.relatedEntityType || null,
       relatedEntityId: options.relatedEntityId || null,
       actionUrl: options.actionUrl || null,
@@ -88,7 +88,7 @@ async function createNotification(options: NotificationOptions): Promise<Notific
 
     await UserNotification.bulkCreate(userNotifications);
 
-    if (options.channels?.includes("email")) {
+    if (options.channel === "email") {
       await queueEmailNotifications(notification.id, recipientUserIds);
     }
 
@@ -234,40 +234,40 @@ async function queueEmailNotifications(notificationId: number, userIds: string[]
 
 export async function notificationExamples() {
 
-  // Example 1: Notify single user - ticket assignment
+  // Example 1: Notify single user - ticket assignment (email)
   await createNotification({
     title: "New Ticket Assigned",
     message: "You have been assigned to ticket #12345",
     userId: "user-abc-123",
     type: "ticket",
-    channels: ["dashboard", "email"],
+    channel: "email",
     relatedEntityType: "ticket",
     relatedEntityId: 12345,
     actionUrl: "/tickets/12345",
     createdById: "admin-xyz-789",
   });
 
-  // Example 2: Notify multiple users - team notification
+  // Example 2: Notify multiple users - team notification (dashboard)
   await createNotification({
     title: "Team Meeting Tomorrow",
     message: "Don't forget our sprint planning meeting at 10 AM",
     userIds: ["user-1", "user-2", "user-3", "user-4"],
     type: "info",
-    channels: ["dashboard"],
+    channel: "dashboard",
     createdById: "manager-123"
   });
 
-  // Example 3: Notify all users - system announcement
+  // Example 3: Notify all users - system announcement (email)
   await createNotification({
     title: "Scheduled Maintenance",
     message: "System will be down Sunday 2-4 AM for maintenance",
     allUsers: true,
     type: "warning",
-    channels: ["dashboard", "email"],
+    channel: "email",
     relatedEntityType: "system",
   });
 
-  // Example 4: Notify users with filter - only admins
+  // Example 4: Notify users with filter - only admins (dashboard)
   await createNotification({
     title: "Admin: New Feature Available",
     message: "Check out the new admin dashboard features",
@@ -276,10 +276,10 @@ export async function notificationExamples() {
       banned: false
     },
     type: "success",
-    channels: ["dashboard"]
+    channel: "dashboard"
   });
 
-  // Example 5: Notify verified users only
+  // Example 5: Notify verified users only (dashboard)
   await createNotification({
     title: "Complete Your Profile",
     message: "Please update your profile information",
@@ -288,7 +288,7 @@ export async function notificationExamples() {
       banned: false
     },
     type: "info",
-    channels: ["dashboard"]
+    channel: "dashboard"
   });
 
   // Example 6: Dashboard only notification (no email)
@@ -297,7 +297,7 @@ export async function notificationExamples() {
     message: "John Doe commented on ticket #98765",
     userId: "user-abc-123",
     type: "info",
-    channels: ["dashboard"], // No email
+    channel: "dashboard", // Dashboard notification
     relatedEntityType: "ticket",
     relatedEntityId: 98765,
     actionUrl: "/tickets/98765#comment-456"
@@ -309,9 +309,10 @@ export async function notificationExamples() {
     message: "Your weekly ticket summary is attached",
     userId: "user-abc-123",
     type: "info",
-    channels: ["email"], // Only email
+    channel: "email", // Email only
   });
-  // Example 8: Urgent notification to all admins
+
+  // Example 8: Urgent notification to all admins (email)
   await createNotification({
     title: "URGENT: System Error Detected",
     message: "Critical error in payment processing system requires immediate attention",
@@ -320,11 +321,11 @@ export async function notificationExamples() {
       banned: false
     },
     type: "error",
-    channels: ["dashboard", "email"],
+    channel: "email",
     relatedEntityType: "system",
   });
 
-  // Example 9: Ticket status change notification
+  // Example 9: Ticket status change notification (dashboard)
   const ticketId = 12345;
   const assignedUserId = "user-abc-123";
   await createNotification({
@@ -332,20 +333,20 @@ export async function notificationExamples() {
     message: `Ticket #${ticketId} has been marked as resolved`,
     userId: assignedUserId,
     type: "success",
-    channels: ["dashboard", "email"],
+    channel: "dashboard",
     relatedEntityType: "ticket",
     relatedEntityId: ticketId,
     actionUrl: `/tickets/${ticketId}`,
     createdById: "support-agent-456"
   });
 
-  // Example 10: Bulk notification with result handling
+  // Example 10: Bulk notification with result handling (email)
   const result = await createNotification({
     title: "New Policy Update",
     message: "Please review the updated company policies",
     allUsers: true,
     type: "info",
-    channels: ["dashboard", "email"],
+    channel: "email",
     actionUrl: "/policies",
   });
 
@@ -580,7 +581,7 @@ async function getUsersWithPendingEmails(notificationId: number): Promise<string
   try {
     const notification = await Notification.findByPk(notificationId);
 
-    if (!notification || !notification.channels.includes('email')) {
+    if (!notification || notification.channel !== 'email') {
       return [];
     }
 
@@ -642,7 +643,7 @@ async function resendNotification(
     await UserNotification.bulkCreate(userNotifications);
 
     // Queue emails if email channel is enabled
-    if (notification.channels.includes('email')) {
+    if (notification.channel === 'email') {
       await queueEmailNotifications(notificationId, userIds);
     }
 

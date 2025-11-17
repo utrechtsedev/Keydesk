@@ -1,7 +1,8 @@
-import { Requester, Ticket, TicketAttachment, TicketMessage } from '../src/lib/server/db/models'
+import { Config, Requester, Ticket, TicketAttachment, TicketMessage } from '../src/lib/server/db/models'
+import { createNotification } from '../src/lib/server/notification'
 import { getFileExtension, generateRandomString } from '../src/lib/utils/string'
 import { getTicketPrefix, generateTicketNumber } from '../src/lib/server/ticket'
-import { type Attachment } from '../src/lib/types'
+import { NotificationSettings, type Attachment } from '../src/lib/types'
 import { MailParser } from "mailparser";
 import { sanitize } from "./sanitize";
 import { getClient } from "./client";
@@ -9,7 +10,6 @@ import path from "path";
 import fs from "fs"
 import { getLogTimestamp } from '../src/lib/utils/date';
 const client = await getClient()
-
 /**
  * Processes incoming email messages and creates corresponding tickets in the database.
  * 
@@ -100,7 +100,7 @@ export async function processMessage(
         }
       })
 
-      const prefix = getTicketPrefix();
+      const prefix = await getTicketPrefix();
       const match = subject.match(new RegExp(`${prefix}(\\d+)`, 'i'));
       const ticketNumber = match ? match[0] : null
 
@@ -110,7 +110,7 @@ export async function processMessage(
           ticketNumber: await generateTicketNumber(),
           requesterId: requester.id,
           assignedUserId: null,
-          subject: subject,
+          subject: subject || "No subject",
           channel: "email",
           statusId: 1,
           priorityId: 1,
@@ -254,8 +254,66 @@ export async function processMessage(
       await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
       console.log(`[${getLogTimestamp()}] Marked UID ${uid} as seen`);
 
+      const fetchNotificationConfig = await Config.findOne({ where: { key: 'notifications' } });
+
+      if (!fetchNotificationConfig) {
+        throw new Error(`[${getLogTimestamp()}] Could not create notifications, notification config not found.`);
+      }
+
+      const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
+      if (notificationConfig.dashboard.ticket.created.notifyAllUsers && createdTicket) {
+        createNotification({
+          title: "New Ticket",
+          message: `${ticket.ticketNumber}: ${ticket.subject}`,
+          allUsers: true,
+          type: "ticket",
+          channel: "dashboard",
+          relatedEntityType: "ticket",
+          relatedEntityId: ticket.id,
+          actionUrl: `/dashboard/tickets/${ticket.id}`,
+        })
+      }
+
+      if (notificationConfig.email.ticket.created.notifyAllUsers && createdTicket) {
+        createNotification({
+          title: "New Ticket",
+          message: `${ticket.ticketNumber}: ${ticket.subject}`,
+          allUsers: true,
+          type: "ticket",
+          channel: "email",
+          relatedEntityType: "ticket",
+          relatedEntityId: ticket.id,
+          actionUrl: `/dashboard/tickets/${ticket.id}`,
+        })
+      }
+      // TODO: add portal link to email to requester if portal is enabled
+      if (notificationConfig.email.ticket.created.notifyRequester && createdTicket) {
+        createNotification({
+          title: "Your ticket #{ticketNumber} received",
+          message: `We've received your request: ${ticket.subject}`,
+          allUsers: true,
+          type: "ticket",
+          channel: "email",
+          relatedEntityType: "ticket",
+          relatedEntityId: ticket.id,
+        })
+      }
+
+      if (notificationConfig.dashboard.ticket.updated.notifyUser && !createdTicket && ticket.assignedUserId) {
+        createNotification({
+          title: "Ticket Updated",
+          message: `Ticket ${ticket.id} has received a new response`,
+          userId: ticket.assignedUserId,
+          type: "ticket",
+          channel: "email",
+          relatedEntityType: "ticket",
+          relatedEntityId: ticket.id,
+          actionUrl: `/dashboard/tickets/${ticket.id}`
+        })
+      }
+
     } catch (error) {
-      console.error(`Error processing UID ${uid}:`, error);
+      console.error(`[${getLogTimestamp()}] Error processing UID ${uid}:`, error);
     }
   }
 }

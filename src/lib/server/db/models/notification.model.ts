@@ -25,7 +25,7 @@ class Notification extends Model {
   declare type: "info" | "success" | "warning" | "error" | "ticket" | "system";
 
   // delivery channels
-  declare channels: string[]; // ["dashboard", "email"] ["dashboard"] ["email"]
+  declare channel: string;
 
   // optional: link to related entity
   declare relatedEntityType: "ticket" | "user" | "system" | null;
@@ -76,11 +76,10 @@ Notification.init(
       allowNull: false,
       defaultValue: "info",
     },
-    channels: {
-      type: DataTypes.JSON,
+    channel: {
+      type: DataTypes.ENUM("dashboard", "email"),
       allowNull: false,
-      defaultValue: ["dashboard"],
-      comment: 'Array of channels: ["dashboard", "email"]',
+      defaultValue: "dashboard",
     },
     relatedEntityType: {
       type: DataTypes.ENUM("ticket", "user", "system"),

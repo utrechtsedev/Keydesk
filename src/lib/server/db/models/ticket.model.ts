@@ -26,7 +26,7 @@ class Ticket extends Model {
   // assignment and ownership
   declare assignedUserId: string | null;
   // ticket content
-  declare subject: string;
+  declare subject: string | null;
   declare channel: "email" | "portal" | "user";
   // classification
   declare statusId: number;
@@ -96,7 +96,7 @@ Ticket.init(
     // ticket content
     subject: {
       type: DataTypes.TEXT,
-      allowNull: false,
+      allowNull: true,
     },
     channel: {
       type: DataTypes.ENUM("email", "portal", "user"),
