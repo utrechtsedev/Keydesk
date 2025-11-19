@@ -4,7 +4,7 @@ import type { Attachment, NotificationSettings } from '$lib/types';
 import { json, error, type RequestHandler } from '@sveltejs/kit';
 import { sequelize } from '$lib/server/db/instance';
 import { createNotification } from '$lib/server/notification';
-import { sendTicketResponse } from '$lib/server/email/send-requester-notification';
+import { sendTicketResponse } from '$lib/server/email/template';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
   const transaction = await sequelize.transaction();

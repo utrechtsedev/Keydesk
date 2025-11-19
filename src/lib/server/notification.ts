@@ -1,12 +1,15 @@
+// notification.ts
 import { Notification, User, UserNotification } from "./db/models";
 import { Op } from "sequelize";
+import { enqueueEmail, enqueueBatchEmail, isQueueAvailable } from "./job-queue";
 import { sendEmail } from "./email/email";
+import { generateTemplate, type NotificationData } from "./email/template";
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
 
-interface NotificationOptions {
+export interface NotificationOptions {
   // === REQUIRED ===
   title: string;
   message: string;
@@ -25,16 +28,16 @@ interface NotificationOptions {
   type?: "info" | "success" | "warning" | "error" | "ticket" | "system";
   channel?: "dashboard" | "email";  // Default: "dashboard"
 
-  // === OPTIONAL METADATA ===
   relatedEntityType?: "ticket" | "user" | "system" | null;
   relatedEntityId?: number | null;
   actionUrl?: string | null;
-  createdById?: string | null;        // Who created this notification
+  createdById?: string | null;
 
-  // === EMAIL OPTIONS ===
+  // === EMAIL TEMPLATE DATA (optional) ===
+  templateData?: Partial<NotificationData>;
 }
 
-interface NotificationResult {
+export interface NotificationResult {
   success: boolean;
   notificationId: number;
   recipientCount: number;
@@ -46,14 +49,14 @@ interface NotificationResult {
 // MAIN NOTIFICATION FUNCTION
 // ============================================================================
 
-async function createNotification(options: NotificationOptions): Promise<NotificationResult> {
+export async function createNotification(options: NotificationOptions): Promise<NotificationResult> {
   try {
-    // Validate that at least one recipient option is provided
+    // Validate recipients
     if (!options.userId && !options.userIds && !options.allUsers && !options.userFilter) {
       throw new Error("Must specify at least one recipient option: userId, userIds, allUsers, or userFilter");
     }
 
-    // Step 1: Determine recipient user IDs
+    // Determine recipients
     const recipientUserIds = await determineRecipients(options);
 
     if (recipientUserIds.length === 0) {
@@ -66,7 +69,7 @@ async function createNotification(options: NotificationOptions): Promise<Notific
       };
     }
 
-    // Step 2: Create the notification content (stored once)
+    // Create notification record
     const notification = await Notification.create({
       title: options.title,
       message: options.message,
@@ -78,7 +81,7 @@ async function createNotification(options: NotificationOptions): Promise<Notific
       createdById: options.createdById || null,
     });
 
-    // Step 3: Create user notification entries (one per recipient)
+    // Create user notification records
     const userNotifications = recipientUserIds.map(userId => ({
       notificationId: notification.id,
       userId: userId,
@@ -88,8 +91,13 @@ async function createNotification(options: NotificationOptions): Promise<Notific
 
     await UserNotification.bulkCreate(userNotifications);
 
+    // Handle email sending if channel is email
     if (options.channel === "email") {
-      await queueEmailNotifications(notification.id, recipientUserIds);
+      await queueEmailNotifications(
+        notification.id,
+        recipientUserIds,
+        options.templateData
+      );
     }
 
     return {
@@ -100,7 +108,7 @@ async function createNotification(options: NotificationOptions): Promise<Notific
     };
 
   } catch (error) {
-    console.error("Error creating notification:", error);
+    console.error("❌ Error creating notification:", error);
     return {
       success: false,
       notificationId: 0,
@@ -115,14 +123,17 @@ async function createNotification(options: NotificationOptions): Promise<Notific
 // HELPER FUNCTIONS
 // ============================================================================
 
+/**
+ * Determine recipients based on options
+ */
 async function determineRecipients(options: NotificationOptions): Promise<string[]> {
-  // Option 1: Single user
+  // Single user
   if (options.userId) {
     const user = await User.findByPk(options.userId, { attributes: ['id'] });
     return user ? [user.id] : [];
   }
 
-  // Option 2: Multiple specific users
+  // Multiple specific users
   if (options.userIds && options.userIds.length > 0) {
     const users = await User.findAll({
       attributes: ['id'],
@@ -135,11 +146,10 @@ async function determineRecipients(options: NotificationOptions): Promise<string
     return users.map(u => u.id);
   }
 
-  // Option 3: All users (with optional filter)
+  // All users or filtered users
   if (options.allUsers || options.userFilter) {
     const whereClause: any = {};
 
-    // Apply user filter if provided
     if (options.userFilter) {
       if (options.userFilter.role !== undefined) {
         whereClause.role = options.userFilter.role;
@@ -151,7 +161,7 @@ async function determineRecipients(options: NotificationOptions): Promise<string
         whereClause.banned = options.userFilter.banned;
       }
     } else {
-      // Default: exclude banned users when getting all users
+      // Default: exclude banned users when sending to all
       whereClause.banned = false;
     }
 
@@ -167,205 +177,257 @@ async function determineRecipients(options: NotificationOptions): Promise<string
 }
 
 /**
- * Send email notifications immediately (no queue)
- * Good for small batches (< 50 users)
+ * Queue or send email notifications
+ * Uses queue if available, otherwise sends directly
  */
-async function queueEmailNotifications(notificationId: number, userIds: string[]): Promise<void> {
-  try {
-    console.log(`Sending emails for notification ${notificationId} to ${userIds.length} users`);
+async function queueEmailNotifications(
+  notificationId: number,
+  userIds: string[],
+  templateData?: Partial<NotificationData>
+): Promise<void> {
+  const userCount = userIds.length;
+  const useQueue = isQueueAvailable();
 
-    // Get notification details
-    const notification = await Notification.findByPk(notificationId, {
-      include: [{
-        model: User,
-        as: 'creator',
-        attributes: ['name']
-      }]
-    });
+  console.log(`📧 Sending emails for notification ${notificationId} to ${userCount} user(s)`);
 
-    if (!notification) {
-      console.error(`Notification ${notificationId} not found`);
-      return;
+  // For large batches, use batch processing
+  if (userCount > 50) {
+    console.log(`📦 Using batch processing for ${userCount} emails`);
+
+    if (useQueue) {
+      // Queue batch job
+      await enqueueBatchEmail({
+        notificationId,
+        userIds,
+        templateData,
+        batchSize: 10
+      });
+    } else {
+      // Execute batch directly
+      await sendBatchEmailsDirect(notificationId, userIds, templateData);
     }
+    return;
+  }
 
-    // Get user details
+  // For small batches, process individually
+  if (useQueue) {
+    // Queue individual emails
+    for (const userId of userIds) {
+      await enqueueEmail({
+        notificationId,
+        userId,
+        templateData
+      });
+    }
+    console.log(`✅ Queued ${userCount} email job(s)`);
+  } else {
+    // Send emails directly
+    await sendEmailsDirect(notificationId, userIds, templateData);
+  }
+}
+
+/**
+ * Send emails directly (no queue)
+ * Used when Redis is not available
+ */
+async function sendEmailsDirect(
+  notificationId: number,
+  userIds: string[],
+  templateData?: Partial<NotificationData>
+): Promise<void> {
+  console.log(`⚡ Sending ${userIds.length} emails directly (no queue)`);
+
+  const notification = await Notification.findByPk(notificationId);
+  if (!notification) {
+    console.error(`Notification ${notificationId} not found`);
+    return;
+  }
+
+  const users = await User.findAll({
+    where: { id: userIds },
+    attributes: ['id', 'email', 'name']
+  });
+
+  for (const user of users) {
+    try {
+      if (!user.email) {
+        throw new Error('User has no email');
+      }
+
+      let emailHtml: string;
+
+      if (templateData) {
+        emailHtml = await generateTemplate({
+          ...templateData as NotificationData,
+          to: user.email
+        });
+      } else {
+        emailHtml = generateSimpleNotificationEmail(notification, user);
+      }
+
+      await sendEmail(user.email, notification.title, emailHtml);
+      await markEmailAsSent(notificationId, user.id, null);
+
+      console.log(`  ✅ Email sent to ${user.email}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`  ❌ Failed to send email to ${user.email}:`, errorMessage);
+      await markEmailAsSent(notificationId, user.id, errorMessage);
+    }
+  }
+
+  console.log(`✅ Completed sending ${users.length} emails directly`);
+}
+
+/**
+ * Send batch emails directly (no queue)
+ * Used when Redis is not available but batch is large
+ */
+async function sendBatchEmailsDirect(
+  notificationId: number,
+  userIds: string[],
+  templateData?: Partial<NotificationData>,
+  batchSize: number = 10
+): Promise<void> {
+  console.log(`📦 Processing ${userIds.length} emails in batches of ${batchSize}`);
+
+  const notification = await Notification.findByPk(notificationId);
+  if (!notification) {
+    console.error(`Notification ${notificationId} not found`);
+    return;
+  }
+
+  // Process in batches
+  for (let i = 0; i < userIds.length; i += batchSize) {
+    const batch = userIds.slice(i, i + batchSize);
     const users = await User.findAll({
-      where: { id: userIds },
+      where: { id: batch },
       attributes: ['id', 'email', 'name']
     });
 
-    // Send emails to each user
-    for (const user of users) {
-      try {
-        // Generate email HTML
-        const emailHtml = ''//generateNotificationEmail(notification, user);
-        const emailText = ''//generateNotificationEmailText(notification, user);
+    await Promise.allSettled(
+      users.map(async (user) => {
+        try {
+          if (!user.email) {
+            throw new Error('User has no email');
+          }
 
-        // Send email
-        await sendEmail(
-          user.email,
-          notification.title,
-          emailHtml,
-          emailText
-        );
+          let emailHtml: string;
 
-        // Mark email as sent
-        await markEmailAsSent(notificationId, user.id, null);
+          if (templateData) {
+            emailHtml = await generateTemplate({
+              ...templateData as NotificationData,
+              to: user.email
+            });
+          } else {
+            emailHtml = generateSimpleNotificationEmail(notification, user);
+          }
 
-        console.log(`✅ Email sent to ${user.email}`);
-      } catch (error) {
-        console.error(`❌ Failed to send email to ${user.email}:`, error);
+          await sendEmail(user.email, notification.title, emailHtml);
+          await markEmailAsSent(notificationId, user.id, null);
 
-        // Mark email as failed with error message
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        await markEmailAsSent(notificationId, user.id, errorMessage);
-      }
+          console.log(`  ✅ Email sent to ${user.email}`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`  ❌ Failed to send email to ${user.email}:`, errorMessage);
+          await markEmailAsSent(notificationId, user.id, errorMessage);
+        }
+      })
+    );
+
+    // Small delay between batches
+    if (i + batchSize < userIds.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
-    console.log(`Completed sending ${users.length} emails for notification ${notificationId}`);
-  } catch (error) {
-    console.error('Error in queueEmailNotifications:', error);
   }
+
+  console.log(`✅ Batch email processing complete`);
+}
+
+/**
+ * Generate simple HTML email (fallback)
+ */
+function generateSimpleNotificationEmail(
+  notification: Notification,
+  user: User
+): string {
+  const escapeHtml = (text: string) => {
+    const map: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  };
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(notification.title)}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 40px 40px 20px 40px;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">
+                ${escapeHtml(notification.title)}
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 40px 40px 40px;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #4a4a4a;">
+                Hi ${escapeHtml(user.name || 'there')},
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #4a4a4a;">
+                ${escapeHtml(notification.message)}
+              </p>
+              ${notification.actionUrl ? `
+              <table cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+                <tr>
+                  <td style="border-radius: 4px; background-color: #0066cc;">
+                    <a href="${notification.actionUrl}" 
+                       style="display: inline-block; padding: 12px 24px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none;">
+                      View Details
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 40px; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0; font-size: 12px; color: #999999;">
+                This is an automated notification. Please do not reply to this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
 }
 
 // ============================================================================
-// USAGE EXAMPLES
-// ============================================================================
-
-export async function notificationExamples() {
-
-  // Example 1: Notify single user - ticket assignment (email)
-  await createNotification({
-    title: "New Ticket Assigned",
-    message: "You have been assigned to ticket #12345",
-    userId: "user-abc-123",
-    type: "ticket",
-    channel: "email",
-    relatedEntityType: "ticket",
-    relatedEntityId: 12345,
-    actionUrl: "/tickets/12345",
-    createdById: "admin-xyz-789",
-  });
-
-  // Example 2: Notify multiple users - team notification (dashboard)
-  await createNotification({
-    title: "Team Meeting Tomorrow",
-    message: "Don't forget our sprint planning meeting at 10 AM",
-    userIds: ["user-1", "user-2", "user-3", "user-4"],
-    type: "info",
-    channel: "dashboard",
-    createdById: "manager-123"
-  });
-
-  // Example 3: Notify all users - system announcement (email)
-  await createNotification({
-    title: "Scheduled Maintenance",
-    message: "System will be down Sunday 2-4 AM for maintenance",
-    allUsers: true,
-    type: "warning",
-    channel: "email",
-    relatedEntityType: "system",
-  });
-
-  // Example 4: Notify users with filter - only admins (dashboard)
-  await createNotification({
-    title: "Admin: New Feature Available",
-    message: "Check out the new admin dashboard features",
-    userFilter: {
-      role: "admin",
-      banned: false
-    },
-    type: "success",
-    channel: "dashboard"
-  });
-
-  // Example 5: Notify verified users only (dashboard)
-  await createNotification({
-    title: "Complete Your Profile",
-    message: "Please update your profile information",
-    userFilter: {
-      emailVerified: true,
-      banned: false
-    },
-    type: "info",
-    channel: "dashboard"
-  });
-
-  // Example 6: Dashboard only notification (no email)
-  await createNotification({
-    title: "New Comment on Your Ticket",
-    message: "John Doe commented on ticket #98765",
-    userId: "user-abc-123",
-    type: "info",
-    channel: "dashboard", // Dashboard notification
-    relatedEntityType: "ticket",
-    relatedEntityId: 98765,
-    actionUrl: "/tickets/98765#comment-456"
-  });
-
-  // Example 7: Email only notification (no dashboard)
-  await createNotification({
-    title: "Weekly Report Ready",
-    message: "Your weekly ticket summary is attached",
-    userId: "user-abc-123",
-    type: "info",
-    channel: "email", // Email only
-  });
-
-  // Example 8: Urgent notification to all admins (email)
-  await createNotification({
-    title: "URGENT: System Error Detected",
-    message: "Critical error in payment processing system requires immediate attention",
-    userFilter: {
-      role: "admin",
-      banned: false
-    },
-    type: "error",
-    channel: "email",
-    relatedEntityType: "system",
-  });
-
-  // Example 9: Ticket status change notification (dashboard)
-  const ticketId = 12345;
-  const assignedUserId = "user-abc-123";
-  await createNotification({
-    title: "Ticket Resolved",
-    message: `Ticket #${ticketId} has been marked as resolved`,
-    userId: assignedUserId,
-    type: "success",
-    channel: "dashboard",
-    relatedEntityType: "ticket",
-    relatedEntityId: ticketId,
-    actionUrl: `/tickets/${ticketId}`,
-    createdById: "support-agent-456"
-  });
-
-  // Example 10: Bulk notification with result handling (email)
-  const result = await createNotification({
-    title: "New Policy Update",
-    message: "Please review the updated company policies",
-    allUsers: true,
-    type: "info",
-    channel: "email",
-    actionUrl: "/policies",
-  });
-
-  if (result.success) {
-    console.log(`✅ Notification sent to ${result.recipientCount} users`);
-    console.log(`Notification ID: ${result.notificationId}`);
-  } else {
-    console.error(`❌ Failed to send notification: ${result.error}`);
-  }
-}
-
-// ============================================================================
-// ADDITIONAL UTILITY FUNCTIONS
+// UTILITY FUNCTIONS
 // ============================================================================
 
 /**
  * Mark notification as read for a specific user
  */
-async function markNotificationAsRead(userId: string, notificationId: number): Promise<boolean> {
+export async function markNotificationAsRead(userId: string, notificationId: number): Promise<boolean> {
   try {
     const [updated] = await UserNotification.update(
       {
@@ -389,7 +451,7 @@ async function markNotificationAsRead(userId: string, notificationId: number): P
 /**
  * Mark all notifications as read for a user
  */
-async function markAllNotificationsAsRead(userId: string): Promise<number> {
+export async function markAllNotificationsAsRead(userId: string): Promise<number> {
   try {
     const [updated] = await UserNotification.update(
       {
@@ -413,7 +475,7 @@ async function markAllNotificationsAsRead(userId: string): Promise<number> {
 /**
  * Get unread notifications for a user
  */
-async function getUnreadNotifications(userId: string, limit: number = 50) {
+export async function getUnreadNotifications(userId: string, limit: number = 50) {
   try {
     return await UserNotification.findAll({
       where: {
@@ -441,7 +503,7 @@ async function getUnreadNotifications(userId: string, limit: number = 50) {
 /**
  * Get all notifications for a user (with pagination)
  */
-async function getUserNotifications(
+export async function getUserNotifications(
   userId: string,
   page: number = 1,
   limit: number = 20,
@@ -493,7 +555,7 @@ async function getUserNotifications(
 /**
  * Get notification count for a user
  */
-async function getNotificationCount(userId: string, unreadOnly: boolean = true) {
+export async function getNotificationCount(userId: string, unreadOnly: boolean = true) {
   try {
     const whereClause: any = { userId };
 
@@ -513,7 +575,7 @@ async function getNotificationCount(userId: string, unreadOnly: boolean = true) 
 /**
  * Delete notification for a specific user (soft delete)
  */
-async function deleteUserNotification(userId: string, notificationId: number): Promise<boolean> {
+export async function deleteUserNotification(userId: string, notificationId: number): Promise<boolean> {
   try {
     const deleted = await UserNotification.destroy({
       where: {
@@ -531,7 +593,7 @@ async function deleteUserNotification(userId: string, notificationId: number): P
 /**
  * Delete all read notifications for a user
  */
-async function deleteReadNotifications(userId: string): Promise<number> {
+export async function deleteReadNotifications(userId: string): Promise<number> {
   try {
     return await UserNotification.destroy({
       where: {
@@ -548,7 +610,7 @@ async function deleteReadNotifications(userId: string): Promise<number> {
 /**
  * Update email sent status
  */
-async function markEmailAsSent(
+export async function markEmailAsSent(
   notificationId: number,
   userId: string,
   error: string | null = null
@@ -577,7 +639,7 @@ async function markEmailAsSent(
 /**
  * Get users who haven't received email for a notification
  */
-async function getUsersWithPendingEmails(notificationId: number): Promise<string[]> {
+export async function getUsersWithPendingEmails(notificationId: number): Promise<string[]> {
   try {
     const notification = await Notification.findByPk(notificationId);
 
@@ -604,12 +666,11 @@ async function getUsersWithPendingEmails(notificationId: number): Promise<string
 /**
  * Resend notification to specific users
  */
-async function resendNotification(
+export async function resendNotification(
   notificationId: number,
   userIds: string[]
 ): Promise<NotificationResult> {
   try {
-    // Check if notification exists
     const notification = await Notification.findByPk(notificationId);
 
     if (!notification) {
@@ -632,7 +693,7 @@ async function resendNotification(
       }
     });
 
-    // Recreate user notifications
+    // Create new user notification records
     const userNotifications = userIds.map(userId => ({
       notificationId: notificationId,
       userId: userId,
@@ -642,7 +703,7 @@ async function resendNotification(
 
     await UserNotification.bulkCreate(userNotifications);
 
-    // Queue emails if email channel is enabled
+    // Queue emails if channel is email
     if (notification.channel === 'email') {
       await queueEmailNotifications(notificationId, userIds);
     }
@@ -664,23 +725,3 @@ async function resendNotification(
     };
   }
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export {
-  createNotification,
-  markNotificationAsRead,
-  markAllNotificationsAsRead,
-  getUnreadNotifications,
-  getUserNotifications,
-  getNotificationCount,
-  deleteUserNotification,
-  deleteReadNotifications,
-  markEmailAsSent,
-  getUsersWithPendingEmails,
-  resendNotification,
-  type NotificationOptions,
-  type NotificationResult
-};

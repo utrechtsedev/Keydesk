@@ -1,3 +1,4 @@
+export const userNotificationEmailTemplate = `
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -8,7 +9,7 @@
     <meta name="format-detection" content="telephone=no,address=no,email=no,date=no">
     <meta name="color-scheme" content="light">
     <meta name="supported-color-schemes" content="light">
-    <title>{{tickettitle}}</title>
+    <title>New Customer Response</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -68,28 +69,32 @@
         }
     </style>
 </head>
-
 <body style="margin: 0; padding: 0; background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
     <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; opacity: 0;">
-      New response on your support ticket {{ticketnumber}}
+      {{ticketactivity}} {{ticketnumber}}: {{ticketsubject}}
+        <!-- Customer responded to ticket #12345 - Issue with login functionality -->
     </div>
+
     <table role="presentation" style="width: 100%; background-color: #f8f9fa;" cellpadding="0" cellspacing="0" border="0">
         <tr>
             <td style="padding: 40px 20px;" align="center">
+                
                 <table role="presentation" style="width: 100%; max-width: 600px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);" cellpadding="0" cellspacing="0" border="0">
+                    
                     <tr>
                         <td style="padding: 32px 40px; border-bottom: 1px solid #e5e7eb;" class="mobile-padding">
                             <table role="presentation" style="width: 100%;" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td>
                                         <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #0f172a; letter-spacing: -0.025em;">
-                                          {{organizationname}}
+                                            YourCompany
                                         </h1>
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
+
                     <tr>
                         <td style="padding: 24px 40px 0;" class="mobile-padding">
                             <table role="presentation" style="border-radius: 6px; padding: 12px 16px;" cellpadding="0" cellspacing="0" border="0">
@@ -99,10 +104,20 @@
                                             Ticket
                                         </p>
                                         <p style="margin: 4px 0 0; font-size: 14px; font-weight: 600; color: #0f172a;">
-                                            #12345
+                                          {{ticketnumber}}
                                         </p>
                                     </td>
                                     <td style="padding-right: 24px;">
+                                        <p style="margin: 0; font-size: 12px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">
+                                            Priority
+                                        </p>
+                                        <p style="margin: 4px 0 0; font-size: 14px; font-weight: 600; color: #0f172a;">
+                                            <span style="display: inline-block; padding: 2px 8px; background-color: #fef3c7; color: #92400e; border-radius: 4px; font-size: 12px;">
+                                          {{priorityname}}
+                                            </span>
+                                        </p>
+                                    </td>
+                                    <td>
                                         <p style="margin: 0; font-size: 12px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">
                                             Status
                                         </p>
@@ -116,27 +131,37 @@
                             </table>
                         </td>
                     </tr>
+
                     <tr>
                         <td style="padding: 24px 40px 8px;" class="mobile-padding">
                             <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #0f172a; line-height: 1.4;">
-                                {{tickettitle}}
+                                Issue with login functionality
                             </h2>
                         </td>
                     </tr>
+
                     <tr>
-                        <td style="padding: 16px 40px;" class="mobile-padding">
+                        <td style="padding: 8px 40px 16px;" class="mobile-padding">
+                            <p style="margin: 0; font-size: 14px; color: #64748b;">
+                              <strong style="color: #0f172a;">Customer:</strong> {{requestername}} ({{requesteremail}})
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 40px 16px;" class="mobile-padding">
                             <table role="presentation" style="width: 100%; border-left: 3px solid #e5e7eb; background-color: #fafafa; padding: 16px 20px; border-radius: 4px;" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td>
                                         <p style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #0f172a;">
-                                          {{agentname}}
+                                           {{ticketmessagesendername}}
                                         </p>
                                         <p style="margin: 0 0 16px; font-size: 12px; color: #64748b;">
                                           Replied on {{replydate}}
                                         </p>
                                         <div style="font-size: 15px; line-height: 1.6; color: #334155;">
                                             <p style="margin: 0 0 12px;">
-                                              {{reply}}
+                                              {{ticketmessage}}
                                             </p>
                                         </div>
                                     </td>
@@ -144,44 +169,38 @@
                             </table>
                         </td>
                     </tr>
+
                     <tr>
                         <td style="padding: 24px 40px;" class="mobile-padding">
                             <table role="presentation" style="width: 100%;" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td align="center">
-                                        <a href="{{actionurl}}" target="_blank" style="display: inline-block; padding: 12px 32px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; letter-spacing: 0.01em;">
-                                            View Ticket & Reply
+                                      <a href="{{actionurl}}" style="display: inline-block; padding: 12px 32px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; letter-spacing: 0.01em;">
+                                            View Ticket
                                         </a>
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
-                    <tr>
-                        <td style="padding: 0 40px 32px;" class="mobile-padding">
-                            <p style="margin: 0; font-size: 13px; color: #64748b; text-align: center; line-height: 1.5;">
-                                You can also reply directly to this email to continue the conversation
-                            </p>
-                        </td>
-                    </tr>
+
+
                     <tr>
                         <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;" class="mobile-padding">
                             <table role="presentation" style="width: 100%;" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td style="padding-bottom: 16px;">
                                         <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.6;">
-                                          <strong style="color: #0f172a;">{{organizationname}}</strong><br>
-                                            {{organizationaddress}}<br>
-                                            {{organizationcity}} {{organizationzipcode}}
+                                            <strong style="color: #0f172a;">YourCompany Support</strong><br>
+                                            Agent Dashboard | Knowledge Base | Team Chat
                                         </p>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding-top: 16px; border-top: 1px solid #e5e7eb;">
                                         <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                                            You're receiving this email because you have an active support ticket with us.
-                                            <br>
-                                            <a href="{{unsubscribelink}}" style="color: #64748b; text-decoration: underline;">Notification preferences</a>
+                                            You're receiving this notification because you're assigned to this ticket.
+                                            <a href="#" style="color: #64748b; text-decoration: underline;">Notification settings</a>
                                         </p>
                                     </td>
                                 </tr>
@@ -194,3 +213,4 @@
     </table>
 </body>
 </html>
+`

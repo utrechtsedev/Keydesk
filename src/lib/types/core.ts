@@ -280,3 +280,5 @@ export interface TicketConfig {
   autoCreateRequesters: boolean,
   ticketPrefix: string,
 }
+
+
