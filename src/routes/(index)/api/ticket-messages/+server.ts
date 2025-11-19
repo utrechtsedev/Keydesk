@@ -1,11 +1,11 @@
-import { Config, Ticket, TicketAttachment, TicketMessage } from '$lib/server/db/models';
+import { Config, Requester, Status, Ticket, TicketAttachment, TicketMessage } from '$lib/server/db/models';
 import { uploadFile } from '$lib/server/file-upload';
 import type { Attachment, NotificationSettings } from '$lib/types';
 import { json, error, type RequestHandler } from '@sveltejs/kit';
 import { sequelize } from '$lib/server/db/instance';
 import { createNotification } from '$lib/server/notification';
+import { sendTicketResponse } from '$lib/server/email/send-requester-notification';
 
-// TODO: Sending email to requester after saving message
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
   const transaction = await sequelize.transaction();
 
@@ -30,22 +30,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       return error(400, { message: 'Valid ticket ID is required.' });
     }
 
-    if (!isPrivate) {
-      await transaction.rollback();
-      return error(400, { message: 'Privacy setting is required.' });
-    }
-
-    let isPrivateValue: boolean;
-    try {
-      isPrivateValue = JSON.parse(isPrivate);
-      if (typeof isPrivateValue !== 'boolean') {
-        await transaction.rollback();
-        return error(400, { message: 'Invalid privacy setting format.' });
-      }
-    } catch (err) {
-      await transaction.rollback();
-      return error(400, { message: 'Invalid privacy setting format.' });
-    }
+    let isPrivateValue: boolean = isPrivate === 'true';
 
     const attachmentOptions = await Config.findOne({ where: { key: 'attachments' } });
     if (!attachmentOptions) {
@@ -76,8 +61,8 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       message,
       isPrivate: isPrivateValue,
       channel: 'dashboard',
-      isFirstResponse: ticketMessages > 0,
-      hasAttachments: files.length > 0,
+      isFirstResponse: ticketMessages === 0,
+      hasAttachments: files.length !== 0,
     }, { transaction });
 
     for (const file of files) {
@@ -100,7 +85,37 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 
     await transaction.commit();
 
-    const ticket = await Ticket.findOne({ where: { id: ticketId } })
+    const ticket = await Ticket.findOne({
+      where: { id: ticketId }, include: [{
+        model: Requester,
+        as: 'requester'
+      },
+      {
+        model: Status,
+        as: 'status'
+      }]
+    })
+
+    const organization = await Config.findOne({ where: { key: 'organization' } })
+    if (!ticket || !organization) return json({ "error": "error" })
+
+
+    await sendTicketResponse({
+      ticketNumber: ticket.ticketNumber,
+      ticketTitle: ticket.subject,
+      statusName: ticket.status!.name,
+      agentName: locals.user.name,
+      replyDate: ticketMessage.createdAt,
+      reply: message,
+      actionUrl: '',
+      organizationName: organization.value.name,
+      organizationAddress: organization.value.name,
+      organizationCity: organization.value.name,
+      organizationZipcode: organization.value.name,
+      unsubscribeLink: organization.value.name,
+      to: ticket.requester!.email,
+
+    })
 
     const fetchNotificationConfig = await Config.findOne({ where: { key: 'notifications' } });
 
@@ -109,7 +124,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     }
 
     const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
-
 
     // if ticket message sender is not assignee of ticket, notify assignee
     if (ticket && ticket.assignedUserId && ticket.assignedUserId !== locals.user.id) {

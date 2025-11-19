@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
-import { models } from "./db/models";
-import { decrypt } from "./db/encrypt";
+import { models } from "../db/models";
+import { decrypt } from "../db/encrypt";
 import type { SMTP } from "$lib/types";
 
 let transporter: Transporter | null = null;
@@ -16,13 +16,13 @@ async function getEmailConfig(): Promise<SMTP | null> {
     return configCache;
   }
 
-  const request = await models.Config.findOne({ where: { key: 'email' } });
+  const request = await models.Config.findOne({ where: { key: 'smtp' } });
   if (!request) {
     console.error('Email SMTP settings not available');
     return null;
   }
 
-  const emailSettings: SMTP = JSON.parse(request.value);
+  const emailSettings: SMTP = request.value;
   emailSettings.password = decrypt(emailSettings.password);
 
   configCache = emailSettings;

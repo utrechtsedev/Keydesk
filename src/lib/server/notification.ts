@@ -1,6 +1,6 @@
 import { Notification, User, UserNotification } from "./db/models";
 import { Op } from "sequelize";
-import { sendEmail } from "./email";
+import { sendEmail } from "./email/email";
 
 // ============================================================================
 // TYPE DEFINITIONS
