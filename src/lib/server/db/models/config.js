@@ -255,5 +255,9 @@ let config = {
     "autoCreateRequesters": true,
     "ticketPrefix": "T",
   },
+
+  "requester-notification-email-template": 'htmlString',
+  "user-notification-email-template": 'htmlString',
+  "system-notification-email-template": 'htmlString',
 }
 

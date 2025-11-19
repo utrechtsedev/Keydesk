@@ -3,7 +3,7 @@ const { DATABASE_NAME, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_HOST } = p
 import { betterAuth, type User } from "better-auth";
 import { admin, magicLink } from "better-auth/plugins";
 import { createPool } from "mysql2/promise";
-import { sendEmail } from "./email-instance";
+import { sendEmail } from "./email/email";
 import { sveltekitCookies } from "better-auth/svelte-kit";
 import { getRequestEvent } from "$app/server";
 
