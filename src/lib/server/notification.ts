@@ -3,8 +3,8 @@ import { Notification, User, UserNotification } from "./db/models";
 import { Op } from "sequelize";
 import { enqueueEmail, enqueueBatchEmail, isQueueAvailable } from "./job-queue";
 import { sendEmail } from "./email/email";
-import { generateTemplate, type NotificationData } from "./email/template";
-
+import { generateTemplate } from "./email/template";
+import type { NotificationRequestData } from '$lib/types';
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -34,7 +34,7 @@ export interface NotificationOptions {
   createdById?: string | null;
 
   // === EMAIL TEMPLATE DATA (optional) ===
-  templateData?: Partial<NotificationData>;
+  templateData?: Partial<NotificationRequestData>;
 }
 
 export interface NotificationResult {
@@ -183,7 +183,7 @@ async function determineRecipients(options: NotificationOptions): Promise<string
 async function queueEmailNotifications(
   notificationId: number,
   userIds: string[],
-  templateData?: Partial<NotificationData>
+  templateData?: Partial<NotificationRequestData>
 ): Promise<void> {
   const userCount = userIds.length;
   const useQueue = isQueueAvailable();
@@ -233,7 +233,7 @@ async function queueEmailNotifications(
 async function sendEmailsDirect(
   notificationId: number,
   userIds: string[],
-  templateData?: Partial<NotificationData>
+  templateData?: Partial<NotificationRequestData>
 ): Promise<void> {
   console.log(`⚡ Sending ${userIds.length} emails directly (no queue)`);
 
@@ -258,7 +258,7 @@ async function sendEmailsDirect(
 
       if (templateData) {
         emailHtml = await generateTemplate({
-          ...templateData as NotificationData,
+          ...templateData as NotificationRequestData,
           to: user.email
         });
       } else {
@@ -286,7 +286,7 @@ async function sendEmailsDirect(
 async function sendBatchEmailsDirect(
   notificationId: number,
   userIds: string[],
-  templateData?: Partial<NotificationData>,
+  templateData?: Partial<NotificationRequestData>,
   batchSize: number = 10
 ): Promise<void> {
   console.log(`📦 Processing ${userIds.length} emails in batches of ${batchSize}`);
@@ -316,7 +316,7 @@ async function sendBatchEmailsDirect(
 
           if (templateData) {
             emailHtml = await generateTemplate({
-              ...templateData as NotificationData,
+              ...templateData as NotificationRequestData,
               to: user.email
             });
           } else {
