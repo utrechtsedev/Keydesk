@@ -110,6 +110,9 @@ export interface NotificationSettings {
 export interface Organization {
   name: string;
   domain: string;
+  address: string;
+  city: string;
+  zipCode: string;
   language: string;
   timezone: string;
 }
@@ -167,6 +170,8 @@ export interface Ticket {
   // timestamps
   createdAt: Date;
   updatedAt: Date;
+  // includes?
+  requester?: Requester
 }
 
 export interface Requester {
@@ -280,3 +285,5 @@ export interface TicketConfig {
   autoCreateRequesters: boolean,
   ticketPrefix: string,
 }
+
+

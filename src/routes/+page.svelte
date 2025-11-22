@@ -1,3 +1,5 @@
+<script>
+	export const requesterNotificationEmailTemplate = `
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -83,7 +85,7 @@
                                 <tr>
                                     <td>
                                         <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #0f172a; letter-spacing: -0.025em;">
-                                          {{organizationname}}
+                                          {{organization.name}}
                                         </h1>
                                     </td>
                                 </tr>
@@ -94,24 +96,27 @@
                         <td style="padding: 24px 40px 0;" class="mobile-padding">
                             <table role="presentation" style="border-radius: 6px; padding: 12px 16px;" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
+
                                     <td style="padding-right: 24px;">
                                         <p style="margin: 0; font-size: 12px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">
                                             Ticket
                                         </p>
                                         <p style="margin: 4px 0 0; font-size: 14px; font-weight: 600; color: #0f172a;">
-                                            #12345
+                                          {{ticket.ticketNumber}}
                                         </p>
                                     </td>
+                                    {{#if status}}
                                     <td style="padding-right: 24px;">
                                         <p style="margin: 0; font-size: 12px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">
                                             Status
                                         </p>
                                         <p style="margin: 4px 0 0; font-size: 14px; font-weight: 600; color: #0f172a;">
                                             <span style="display: inline-block; padding: 2px 8px; background-color: #dbeafe; color: #1e40af; border-radius: 4px; font-size: 12px;">
-                                              {{statusname}}
+                                              {{status.name}}
                                             </span>
                                         </p>
                                     </td>
+                                   {{/if}}
                                 </tr>
                             </table>
                         </td>
@@ -119,24 +124,25 @@
                     <tr>
                         <td style="padding: 24px 40px 8px;" class="mobile-padding">
                             <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #0f172a; line-height: 1.4;">
-                                {{tickettitle}}
+                                {{ticket.subject}}
                             </h2>
                         </td>
                     </tr>
+                    {{#if ticketMessage}}
                     <tr>
                         <td style="padding: 16px 40px;" class="mobile-padding">
                             <table role="presentation" style="width: 100%; border-left: 3px solid #e5e7eb; background-color: #fafafa; padding: 16px 20px; border-radius: 4px;" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td>
                                         <p style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #0f172a;">
-                                          {{agentname}}
+                                          {{ticketMessage.senderName}}
                                         </p>
                                         <p style="margin: 0 0 16px; font-size: 12px; color: #64748b;">
-                                          Replied on {{replydate}}
+                                          Replied on {{ticketMessage.createdAt}}
                                         </p>
                                         <div style="font-size: 15px; line-height: 1.6; color: #334155;">
                                             <p style="margin: 0 0 12px;">
-                                              {{reply}}
+                                              {{ticketMessage.message}}
                                             </p>
                                         </div>
                                     </td>
@@ -144,6 +150,8 @@
                             </table>
                         </td>
                     </tr>
+                    {{/if}}
+                    {{#if actionUrl}}
                     <tr>
                         <td style="padding: 24px 40px;" class="mobile-padding">
                             <table role="presentation" style="width: 100%;" cellpadding="0" cellspacing="0" border="0">
@@ -157,6 +165,7 @@
                             </table>
                         </td>
                     </tr>
+                    {{/if}}
                     <tr>
                         <td style="padding: 0 40px 32px;" class="mobile-padding">
                             <p style="margin: 0; font-size: 13px; color: #64748b; text-align: center; line-height: 1.5;">
@@ -170,9 +179,9 @@
                                 <tr>
                                     <td style="padding-bottom: 16px;">
                                         <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.6;">
-                                          <strong style="color: #0f172a;">{{organizationname}}</strong><br>
-                                            {{organizationaddress}}<br>
-                                            {{organizationcity}} {{organizationzipcode}}
+                                          <strong style="color: #0f172a;">{{organization.name}}</strong><br>
+                                            {{organization.address}}<br>
+                                            {{organization.city}} {{organization.zipcode}}
                                         </p>
                                     </td>
                                 </tr>
@@ -194,3 +203,9 @@
     </table>
 </body>
 </html>
+`;
+</script>
+
+<div>
+	{@html requesterNotificationEmailTemplate}
+</div>

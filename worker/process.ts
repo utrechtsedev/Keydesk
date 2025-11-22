@@ -1,5 +1,5 @@
 import { Config, Requester, Ticket, TicketAttachment, TicketMessage } from '../src/lib/server/db/models'
-import { createNotification } from '../src/lib/server/notification'
+import { sendNotification } from '../src/lib/server/job-queue'
 import { getFileExtension, generateRandomString } from '../src/lib/utils/string'
 import { getTicketPrefix, generateTicketNumber } from '../src/lib/server/ticket'
 import { NotificationSettings, type Attachment } from '../src/lib/types'
@@ -186,12 +186,6 @@ export async function processMessage(
               }
             }
 
-            console.log('Attachment found and validated:', {
-              filename: data.filename,
-              contentType: mimeType,
-              size: fileSize
-            });
-
             const fileId = generateRandomString(24);
             const extension = getFileExtension(path.basename(data.filename));
             const storedFilename = extension ? `${fileId}.${extension}` : fileId;
@@ -262,7 +256,7 @@ export async function processMessage(
 
       const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
       if (notificationConfig.dashboard.ticket.created.notifyAllUsers && createdTicket) {
-        createNotification({
+        await sendNotification({
           title: "New Ticket",
           message: `${ticket.ticketNumber}: ${ticket.subject}`,
           allUsers: true,
@@ -275,7 +269,7 @@ export async function processMessage(
       }
 
       if (notificationConfig.email.ticket.created.notifyAllUsers && createdTicket) {
-        createNotification({
+        await sendNotification({
           title: "New Ticket",
           message: `${ticket.ticketNumber}: ${ticket.subject}`,
           allUsers: true,
@@ -286,21 +280,21 @@ export async function processMessage(
           actionUrl: `/dashboard/tickets/${ticket.id}`,
         })
       }
-      // TODO: add portal link to email to requester if portal is enabled
+
       if (notificationConfig.email.ticket.created.notifyRequester && createdTicket) {
-        createNotification({
+        await sendNotification({
           title: "Your ticket #{ticketNumber} received",
           message: `We've received your request: ${ticket.subject}`,
-          allUsers: true,
           type: "ticket",
           channel: "email",
+          email: from.address,
           relatedEntityType: "ticket",
           relatedEntityId: ticket.id,
         })
       }
 
       if (notificationConfig.dashboard.ticket.updated.notifyUser && !createdTicket && ticket.assignedUserId) {
-        createNotification({
+        await sendNotification({
           title: "Ticket Updated",
           message: `Ticket ${ticket.id} has received a new response`,
           userId: ticket.assignedUserId,
