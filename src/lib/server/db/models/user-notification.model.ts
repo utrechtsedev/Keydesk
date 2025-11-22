@@ -47,7 +47,7 @@ UserNotification.init(
     },
     isRead: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
+      allowNull: true,
       defaultValue: false,
     },
     readAt: {

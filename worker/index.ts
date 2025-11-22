@@ -2,8 +2,10 @@ import { startEmailMonitoring } from "./monitor";
 import { registerAllHandlers } from "../src/lib/server/job-queue/handlers"
 import { startJobWorker } from "../src/lib/server/job-queue";
 
-startEmailMonitoring()
-registerAllHandlers();
+async function main() {
+  startEmailMonitoring();
+  registerAllHandlers();
+  await startJobWorker(); // Now async
+}
 
-// Start worker
-startJobWorker();
+main().catch(console.error);

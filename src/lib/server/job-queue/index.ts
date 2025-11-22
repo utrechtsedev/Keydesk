@@ -1,12 +1,13 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import { createClient } from 'redis';
+import type { NotificationOptions } from '$lib/server/job-queue/handlers/notification.handler';
 
 // ============================================================================
 // REDIS CONNECTION & DETECTION
 // ============================================================================
 
 const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
+  host: process.env.REDIS_HOST || '127.0.0.1',
   port: Number(process.env.REDIS_PORT) || 6379,
 };
 
@@ -28,7 +29,8 @@ async function checkRedisConnection(): Promise<boolean> {
 
     await client.connect();
     await client.ping();
-    await client.disconnect();
+    await client.quit();
+    isRedisAvailable = true
 
     console.log('✅ Redis connection successful - Queue mode enabled');
     return true;
@@ -133,9 +135,10 @@ export async function enqueue(
 /**
  * Start the worker (only if Redis is available)
  */
-export function startJobWorker(): Worker | null {
+export async function startJobWorker(): Promise<Worker | null> {
+  await checkRedisConnection()
   if (!isRedisAvailable) {
-    console.log('⚠️  Worker not started - Redis not available');
+    console.log('Worker not started - Redis not available');
     return null;
   }
 
@@ -177,34 +180,7 @@ export function startJobWorker(): Worker | null {
 /**
  * Enqueue notification job
  */
-export async function enqueueNotification(data: any, options?: EnqueueOptions): Promise<void> {
+export async function sendNotification(data: NotificationOptions, options?: EnqueueOptions): Promise<void> {
   await enqueue('send-notification', data, options);
 }
 
-/**
- * Enqueue email job
- */
-export async function enqueueEmail(data: any, options?: EnqueueOptions): Promise<void> {
-  await enqueue('send-email', data, options);
-}
-
-/**
- * Enqueue batch email job
- */
-export async function enqueueBatchEmail(data: any, options?: EnqueueOptions): Promise<void> {
-  await enqueue('send-batch-email', data, options);
-}
-
-/**
- * Check if queue is available
- */
-export function isQueueAvailable(): boolean {
-  return isRedisAvailable;
-}
-
-/**
- * Get queue instance (for admin/monitoring purposes)
- */
-export function getQueue(): Queue | null {
-  return queue;
-}
