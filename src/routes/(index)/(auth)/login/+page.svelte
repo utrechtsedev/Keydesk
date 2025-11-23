@@ -70,7 +70,11 @@
 		<div class="grid gap-3">
 			<div class="flex items-center">
 				<Label for="password">Wachtwoord</Label>
-				<button class="ml-auto text-sm underline-offset-4 hover:underline" onclick={resetPassword}>
+				<button
+					type="button"
+					class="ml-auto text-sm underline-offset-4 hover:underline"
+					onclick={resetPassword}
+				>
 					Forgot Password?
 				</button>
 			</div>
