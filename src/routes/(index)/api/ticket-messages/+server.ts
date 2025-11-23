@@ -3,8 +3,7 @@ import { uploadFile } from '$lib/server/file-upload';
 import type { Attachment, NotificationSettings } from '$lib/types';
 import { json, error, type RequestHandler } from '@sveltejs/kit';
 import { sequelize } from '$lib/server/db/instance';
-import { createNotification } from '$lib/server/notification';
-import { sendTicketResponse } from '$lib/server/email/template';
+import { sendNotification } from '$lib/server/job-queue';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
   const transaction = await sequelize.transaction();
@@ -96,26 +95,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       }]
     })
 
-    const organization = await Config.findOne({ where: { key: 'organization' } })
-    if (!ticket || !organization) return json({ "error": "error" })
-
-
-    await sendTicketResponse({
-      ticketNumber: ticket.ticketNumber,
-      ticketTitle: ticket.subject,
-      statusName: ticket.status!.name,
-      agentName: locals.user.name,
-      replyDate: ticketMessage.createdAt,
-      reply: message,
-      actionUrl: '',
-      organizationName: organization.value.name,
-      organizationAddress: organization.value.name,
-      organizationCity: organization.value.name,
-      organizationZipcode: organization.value.name,
-      unsubscribeLink: organization.value.name,
-      to: ticket.requester!.email,
-
-    })
 
     const fetchNotificationConfig = await Config.findOne({ where: { key: 'notifications' } });
 
@@ -128,7 +107,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     // if ticket message sender is not assignee of ticket, notify assignee
     if (ticket && ticket.assignedUserId && ticket.assignedUserId !== locals.user.id) {
       if (notificationConfig.dashboard.ticket.updated.notifyUser)
-        createNotification({
+        sendNotification({
           title: "Ticket updated",
           message: `Ticket ${ticket.id} updated by ${locals.user.name}`,
           type: "ticket",
@@ -140,7 +119,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
         })
 
       if (notificationConfig.email.ticket.updated.notifyUser)
-        createNotification({
+        sendNotification({
           title: "Ticket updated",
           message: `Ticket ${ticket.id} updated by ${locals.user.name}`,
           type: "ticket",
