@@ -24,7 +24,7 @@
     "@sveltejs/adapter-auto": "^6.0.0",
     "@sveltejs/kit": "^2.22.0",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
-    "@tailwindcss/vite": "^4.0.0",
+    "@tailwindcss/vite": "^4.1.17",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^22",
     "@types/nodemailer": "^7.0.2",
