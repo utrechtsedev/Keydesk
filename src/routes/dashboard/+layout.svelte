@@ -16,7 +16,6 @@
 			notifications: UserNotification[];
 		};
 	} = $props();
-	console.log(data);
 	let open = $state(browser ? JSON.parse(localStorage.getItem('sidebarOpen') ?? 'true') : true);
 </script>
 

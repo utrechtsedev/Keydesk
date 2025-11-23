@@ -144,7 +144,7 @@
 
 <div class="grid min-w-0 gap-4">
 	<div class="flex items-center gap-2">
-		<TicketIcon size={32} />
+		<TicketIcon />
 		<Rename.Root
 			this="span"
 			bind:value={ticket.subject}
