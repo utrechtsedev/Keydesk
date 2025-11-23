@@ -1,13 +1,8 @@
 <script>
-	const { size = 18 } = $props();
+	const { class: className = '' } = $props();
 </script>
 
-<svg
-	xmlns="http://www.w3.org/2000/svg"
-	width={size}
-	height={size}
-	viewBox="0 0 18 18"
-	class="dark:invert"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" class="dark:invert {className}"
 	><title>check-2</title><g
 		fill="none"
 		stroke-linecap="round"

@@ -10,12 +10,17 @@
 	import type { Organization } from '$lib/types';
 	import Upload4 from '$lib/icons/upload-4.svelte';
 	import Check2 from '$lib/icons/check-2.svelte';
+	import { CountrySelector } from '$lib/components/ui/country-select';
 
 	let organization: Organization = $state({
 		name: '',
 		domain: '',
 		language: '',
-		timezone: ''
+		timezone: '',
+		country: '',
+		address: '',
+		city: '',
+		zipCode: ''
 	});
 
 	let fileInput: HTMLInputElement | undefined = $state();
@@ -114,7 +119,7 @@
 		<div class="flex justify-between border-b px-4 py-3">
 			<Label for="language" class="text-md">Language</Label>
 			<Select.Root type="single" name="language">
-				<Select.Trigger class="!w-[40%] max-w-[40%] [&_[data-slot=select-value]]:max-w-full">
+				<Select.Trigger class="w-[40%]! **:data-[slot=select-value]:max-w-full">
 					{organization.language ?? 'Choose language'}
 				</Select.Trigger>
 				<Select.Content>
@@ -148,6 +153,35 @@
 				</Select.Content>
 			</Select.Root>
 		</div>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="country" class="text-md">Country</Label>
+			<CountrySelector bind:value={organization.country} class="w-[40%]" />
+		</div>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="city" class="text-md">City</Label>
+			<Input bind:value={organization.city} placeholder="Please enter your city" class="w-[40%]" />
+		</div>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="city" class="text-md">Address</Label>
+			<Input
+				bind:value={organization.address}
+				placeholder="Please enter your address"
+				class="w-[40%]"
+			/>
+		</div>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="city" class="text-md">Zipcode</Label>
+			<Input
+				bind:value={organization.zipCode}
+				placeholder="Please enter your Zipcode"
+				class="w-[40%]"
+			/>
+		</div>
+
 		<div class="flex justify-between px-4 py-3">
 			<Label for="logo" class="text-md">Logo (512x512)</Label>
 			{#if !previewUrl}
