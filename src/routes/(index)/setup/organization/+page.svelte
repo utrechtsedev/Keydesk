@@ -11,12 +11,17 @@
 	import { goto } from '$app/navigation';
 	import Upload4 from '$lib/icons/upload-4.svelte';
 	import Check2 from '$lib/icons/check-2.svelte';
+	import { CountrySelector } from '$lib/components/ui/country-select';
 
 	let organization: Organization = $state({
 		name: '',
 		domain: '',
 		language: '',
-		timezone: ''
+		timezone: '',
+		address: '',
+		zipCode: '',
+		city: '',
+		country: ''
 	});
 
 	let fileInput: HTMLInputElement | undefined = $state();
@@ -149,6 +154,35 @@
 				</Select.Content>
 			</Select.Root>
 		</div>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="country" class="text-md">Country</Label>
+			<CountrySelector bind:value={organization.country} class="w-[40%]" />
+		</div>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="city" class="text-md">City</Label>
+			<Input bind:value={organization.city} placeholder="Please enter your city" class="w-[40%]" />
+		</div>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="city" class="text-md">Address</Label>
+			<Input
+				bind:value={organization.address}
+				placeholder="Please enter your address"
+				class="w-[40%]"
+			/>
+		</div>
+
+		<div class="flex justify-between border-b px-4 py-3">
+			<Label for="city" class="text-md">Zipcode</Label>
+			<Input
+				bind:value={organization.zipCode}
+				placeholder="Please enter your Zipcode"
+				class="w-[40%]"
+			/>
+		</div>
+
 		<div class="flex justify-between px-4 py-3">
 			<Label for="logo" class="text-md">Logo (512x512)</Label>
 			{#if !previewUrl}

@@ -111,6 +111,7 @@ export interface Organization {
   name: string;
   domain: string;
   address: string;
+  country: string;
   city: string;
   zipCode: string;
   language: string;
