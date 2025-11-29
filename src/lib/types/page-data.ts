@@ -1,5 +1,5 @@
 import type { TicketList } from "./ticket-list";
-import type { Category, Priority, Status, Tag, User } from "./core";
+import type { Category, Priority, Status, Tag, Task, User } from "./core";
 
 export interface TicketPageData {
   tickets: TicketList[];
@@ -7,6 +7,15 @@ export interface TicketPageData {
   totalCount: number;
   users: User[];
   categories: Category[];
+  statuses: Status[];
+  priorities: Priority[];
+  tags: Tag[];
+}
+
+export interface TaskPageData {
+  tasks: Task[];
+  finishedTasks: Task[];
+  users: User[];
   statuses: Status[];
   priorities: Priority[];
   tags: Tag[];

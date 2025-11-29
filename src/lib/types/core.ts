@@ -287,4 +287,36 @@ export interface TicketConfig {
   ticketPrefix: string,
 }
 
-
+export interface Task {
+  id: number;
+  // Basic info
+  title: string;
+  description: string | null;
+  // Relationships
+  ticketId: number | null; // null = standalone task
+  parentTaskId: number | null; // null = root task
+  createdById: string; // User who created it
+  // Classification
+  statusId: number;
+  priorityId: number;
+  // Timing
+  dueDate: Date | null;
+  startDate: Date | null;
+  completedAt: Date | null;
+  // Tracking
+  estimatedMinutes: number | null; // Estimated time in minutes
+  actualMinutes: number | null; // Actual time spent
+  position: number; // For manual ordering
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  // includes?
+  assignees?: User[];
+  subtasks?: Task[];
+  parentTask?: Task;
+  ticket?: Ticket;
+  creator?: User;
+  status?: Status;
+  priority?: Priority;
+  tags?: Tag[];
+}

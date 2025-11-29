@@ -1,13 +1,13 @@
 <script>
-	const { size = 18 } = $props();
+	const { class: className = '' } = $props();
 </script>
 
 <svg
 	xmlns="http://www.w3.org/2000/svg"
-	width={size}
-	height={size}
+	width="18"
+	height="18"
 	viewBox="0 0 18 18"
-	class="dark:invert"
+	class="dark:invert {className}"
 	><title>clipboard-content</title><g fill="#212121"
 		><path
 			d="M5.25 2C3.73079 2 2.5 3.23079 2.5 4.75V14.25C2.5 15.7692 3.73079 17 5.25 17H12.75C14.2692 17 15.5 15.7692 15.5 14.25V4.75C15.5 3.23079 14.2692 2 12.75 2H5.25Z"

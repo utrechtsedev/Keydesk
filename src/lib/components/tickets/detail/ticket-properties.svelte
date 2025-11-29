@@ -3,6 +3,7 @@
 	import * as Command from '$lib/components/ui/command';
 	import * as Select from '$lib/components/ui/select';
 	import * as Card from '$lib/components/ui/card';
+	import * as Avatar from '$lib/components/ui/avatar';
 	import { Label } from '$lib/components/ui/label';
 	import { Button } from '$lib/components/ui/button';
 	import { TagsInput } from '$lib/components/ui/tags-input';
@@ -80,11 +81,20 @@
 								)}
 							>
 								{#if userId}
-									<img
-										src={users.find((user) => user.id === userId)?.image}
-										alt=""
-										class="h-6 w-6 rounded-xl"
-									/>
+									<Avatar.Root class="h-6 w-6">
+										<Avatar.Image
+											src={users.find((user) => user.id === userId)?.image}
+											alt={users.find((user) => user.id === userId)?.name}
+										/>
+										<Avatar.Fallback>
+											{users
+												.find((user) => user.id === userId)
+												?.name.split(' ')
+												.map((n: string) => n[0])
+												.join('')
+												.toUpperCase()}
+										</Avatar.Fallback>
+									</Avatar.Root>
 									{users.find((user) => user.id === userId)?.name}
 								{:else}
 									Select user
@@ -102,7 +112,17 @@
 							<Command.Group>
 								{#each users as user (user.id)}
 									<Command.Item value={user.name} onSelect={() => handleSelectAssignee(user.id)}>
-										<img src={user.image} class="h-8 w-8 rounded-xl" alt="user avatar" />
+										<Avatar.Root class="h-6 w-6">
+											<Avatar.Image src={user.image} alt={user.name} />
+											<Avatar.Fallback>
+												{user?.name
+													.split(' ')
+													.map((n: string) => n[0])
+													.join('')
+													.toUpperCase()}
+											</Avatar.Fallback>
+										</Avatar.Root>
+
 										{user.name}
 										<Check
 											class={cn('ml-auto', userId === user.id ? 'opacity-100' : 'opacity-0')}
