@@ -10,12 +10,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
   let hasRolledBack = false;
 
   try {
-    if (!locals.user) {
-      await transaction.rollback();
-      hasRolledBack = true;
-      return json({ success: false, message: 'User not authenticated.' }, { status: 401 });
-    }
-
     const formData = await request.formData();
 
     const subject = formData.get('subject') as string;

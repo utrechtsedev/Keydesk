@@ -3,11 +3,6 @@ import { error, json, type RequestHandler } from "@sveltejs/kit";
 
 export const PATCH: RequestHandler = async ({ request, locals }) => {
   try {
-
-    if (!locals.user) {
-      return error(401, 'Unauthorized');
-    }
-
     const { id, isRead } = await request.json() as { id: number; isRead?: boolean };
 
     if (!id || typeof id !== 'number') {

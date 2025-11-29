@@ -7,12 +7,7 @@ import { sendNotification } from '$lib/server/job-queue';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
   const transaction = await sequelize.transaction();
-
   try {
-    if (!locals.user) {
-      return error(401, { message: 'User not authenticated.' });
-    }
-
     const formData = await request.formData();
     const message = formData.get('message') as string;
     const isPrivate = formData.get('isPrivate') as string;
