@@ -14,6 +14,7 @@ import { Session } from "./session.model.js"
 import { Verification } from "./verification.model.js"
 import { Notification } from "./notification.model.js";
 import { UserNotification } from "./user-notification.model.js";
+import { Task } from './task.model.js'
 
 // ============================================================================
 // MODEL ASSOCIATIONS
@@ -146,24 +147,6 @@ Session.belongsTo(User, {
 // EXPORTS
 // ============================================================================
 
-const models = {
-  Requester,
-  Config,
-  Image,
-  User,
-  Account,
-  Ticket,
-  Status,
-  Priority,
-  Category,
-  TicketMessage,
-  TicketAttachment,
-  Tag,
-  Session,
-  Verification,
-  Notification,
-  UserNotification
-};
 //
 // Notification <-> User (creator) (many-to-one)
 User.hasMany(Notification, {
@@ -210,8 +193,106 @@ Notification.belongsTo(Ticket, {
   as: 'relatedTicket'
 });
 
+// Task <-> Ticket (many-to-one, optional)
+Ticket.hasMany(Task, {
+  foreignKey: 'ticketId',
+  as: 'tasks'
+});
+Task.belongsTo(Ticket, {
+  foreignKey: 'ticketId',
+  as: 'ticket'
+});
+
+// Task <-> Task (self-referencing for parent/child)
+Task.hasMany(Task, {
+  foreignKey: 'parentTaskId',
+  as: 'subtasks'
+});
+Task.belongsTo(Task, {
+  foreignKey: 'parentTaskId',
+  as: 'parentTask'
+});
+
+// Task <-> User (many-to-many for assignees)
+Task.belongsToMany(User, {
+  through: 'taskAssignee',
+  foreignKey: 'taskId',
+  otherKey: 'userId',
+  as: 'assignees'
+});
+User.belongsToMany(Task, {
+  through: 'taskAssignee',
+  foreignKey: 'userId',
+  otherKey: 'taskId',
+  as: 'assignedTasks'
+});
+
+// Task <-> User (creator)
+User.hasMany(Task, {
+  foreignKey: 'createdById',
+  as: 'createdTasks'
+});
+Task.belongsTo(User, {
+  foreignKey: 'createdById',
+  as: 'creator'
+});
+
+// Task <-> Status
+Status.hasMany(Task, {
+  foreignKey: 'statusId',
+  as: 'statusTasks'
+});
+Task.belongsTo(Status, {
+  foreignKey: 'statusId',
+  as: 'status'
+});
+
+// Task <-> Priority
+Priority.hasMany(Task, {
+  foreignKey: 'priorityId',
+  as: 'priorityTasks'
+});
+Task.belongsTo(Priority, {
+  foreignKey: 'priorityId',
+  as: 'priority'
+});
+
+// Task <-> Tags (many-to-many, reusing your Tag model)
+Task.belongsToMany(Tag, {
+  through: 'taskTag',
+  foreignKey: 'taskId',
+  otherKey: 'tagId',
+  as: 'tags'
+});
+Tag.belongsToMany(Task, {
+  through: 'taskTag',
+  foreignKey: 'tagId',
+  otherKey: 'taskId',
+  as: 'taggedTasks'
+});
+
+const models = {
+  Requester,
+  Config,
+  Image,
+  User,
+  Account,
+  Ticket,
+  Status,
+  Priority,
+  Category,
+  TicketMessage,
+  TicketAttachment,
+  Tag,
+  Session,
+  Verification,
+  Notification,
+  UserNotification,
+  Task
+};
+
 export { models };
-// Export individual models as well for convenience
+
 export {
   Requester,
   Config,
@@ -229,4 +310,5 @@ export {
   Verification,
   Notification,
   UserNotification,
+  Task,
 };

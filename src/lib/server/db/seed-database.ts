@@ -8,6 +8,7 @@ import type { Category } from "./models/category.model.js";
 import type { Tag } from "./models/tag.model.js";
 import type { Notification } from "./models/notification.model.js";
 import type { Ticket } from "./models/ticket.model.js";
+import type { Task } from "./models/task.model.js";
 
 /**
  * Advanced Database Seeder for Ticket System
@@ -22,6 +23,7 @@ import type { Ticket } from "./models/ticket.model.js";
  * --users=N: Number of users to create (default: 5)
  * --requesters=N: Number of requesters to create (default: 15)
  * --notifications=N: Number of additional system notifications to create (default: 10)
+ * --tasks=N: Number of tasks per user to create (default: 3)
  * --realistic: Use realistic time distributions and patterns
  * --quick: Skip attachments and use minimal messages
  */
@@ -32,6 +34,7 @@ interface SeederOptions {
   users?: number;
   requesters?: number;
   notifications?: number;
+  tasks?: number;
   realistic?: boolean;
   quick?: boolean;
   verbose?: boolean;
@@ -43,6 +46,7 @@ interface ProcessedOptions {
   userCount: number;
   requesterCount: number;
   notificationCount: number;
+  tasksPerUser: number;
   realistic: boolean;
   quick: boolean;
   verbose: boolean;
@@ -58,6 +62,7 @@ class DatabaseSeeder {
   private createdTags: Tag[] = [];
   private createdTickets: Ticket[] = [];
   private createdNotifications: Notification[] = [];
+  private createdTasks: Task[] = [];
 
   constructor(options: SeederOptions = {}) {
     this.options = {
@@ -66,6 +71,7 @@ class DatabaseSeeder {
       userCount: options.users || 5,
       requesterCount: options.requesters || 15,
       notificationCount: options.notifications || 10,
+      tasksPerUser: options.tasks || 3,
       realistic: options.realistic || false,
       quick: options.quick || false,
       verbose: options.verbose !== false,
@@ -153,6 +159,73 @@ class DatabaseSeeder {
         "Priority automatically escalated due to age.",
       ],
     };
+  }
+
+  private getSampleTaskTitles(): string[] {
+    return [
+      "Update API documentation",
+      "Review customer feedback from last sprint",
+      "Fix memory leak in notification service",
+      "Prepare Q4 performance report",
+      "Conduct security audit",
+      "Optimize database queries",
+      "Update dependencies to latest versions",
+      "Create user guide for new feature",
+      "Set up CI/CD pipeline",
+      "Refactor authentication module",
+      "Design new dashboard layout",
+      "Investigate slow page load times",
+      "Add unit tests for payment module",
+      "Configure monitoring alerts",
+      "Review and merge pending PRs",
+      "Update team wiki documentation",
+      "Schedule customer onboarding call",
+      "Analyze server logs for errors",
+      "Prepare demo for stakeholders",
+      "Research competitor features",
+      "Clean up technical debt in codebase",
+      "Configure backup automation",
+      "Update privacy policy documentation",
+      "Train new team member on system",
+      "Migrate legacy data to new format",
+      "Implement caching layer",
+      "Review accessibility compliance",
+      "Update error handling",
+      "Optimize image loading",
+      "Create API client library",
+    ];
+  }
+
+  private getSampleTaskDescriptions(): string[] {
+    return [
+      "This needs to be completed before the end of the sprint.",
+      "High priority - blocking other work.",
+      "Follow up on the discussion from yesterday's meeting.",
+      "Make sure to test thoroughly before deploying.",
+      "Coordinate with the backend team on this.",
+      "Should be straightforward, similar to what we did last month.",
+      "Need to review the requirements document first.",
+      "Low priority - can be deferred if needed.",
+      "This is part of the larger initiative we discussed.",
+      "Breaking this down into smaller subtasks would help.",
+    ];
+  }
+
+  private getSampleSubtaskTitles(): string[] {
+    return [
+      "Research approach",
+      "Create initial draft",
+      "Review with team",
+      "Implement feedback",
+      "Final testing",
+      "Update documentation",
+      "Deploy changes",
+      "Verify in production",
+      "Code review",
+      "Write tests",
+      "Update changelog",
+      "Notify stakeholders",
+    ];
   }
 
   private getNotificationTemplates(): {
@@ -248,6 +321,10 @@ class DatabaseSeeder {
       await models.Ticket.destroy({ where: {}, truncate: true, cascade: true });
       await models.Requester.destroy({ where: {}, truncate: true, cascade: true });
       await models.User.destroy({ where: {}, truncate: true, cascade: true });
+
+      if (models.Task) {
+        await models.Task.destroy({ where: {}, truncate: true, cascade: true });
+      }
 
       if (models.Tag) {
         await models.Tag.destroy({ where: {}, truncate: true, cascade: true });
@@ -734,6 +811,162 @@ class DatabaseSeeder {
     this.log(`✓ Created ${notificationsCreated} system notifications`);
   }
 
+  private async createTasks(): Promise<void> {
+    if (!models.Task) {
+      this.log("⚠ Task model not found, skipping task creation");
+      return;
+    }
+
+    this.log(`Creating tasks for users...`);
+
+    const titles = this.getSampleTaskTitles();
+    const descriptions = this.getSampleTaskDescriptions();
+    const subtaskTitles = this.getSampleSubtaskTitles();
+
+    const totalTasks = this.createdUsers.length * this.options.tasksPerUser;
+
+    let tasksCreated = 0;
+    const rootTasks: Task[] = [];
+
+    // Create main tasks
+    for (let i = 0; i < totalTasks; i++) {
+      const taskAge = this.options.realistic
+        ? Math.floor(Math.random() * 21)
+        : Math.floor(Math.random() * 7);
+
+      const createdAt = this.getRealisticDate(taskAge, 0.3);
+
+      // 30% of tasks are attached to tickets, 70% standalone
+      const ticket = Math.random() < 0.3 && this.createdTickets.length > 0
+        ? this.getRandomElement(this.createdTickets)
+        : null;
+
+      const creator = this.getRandomElement(this.createdUsers);
+      const status = this.getRandomElement(this.existingStatuses);
+      const priority = this.getRandomElement(this.existingPriorities);
+
+      const title = this.getRandomElement(titles);
+      const description = Math.random() > 0.3 ? this.getRandomElement(descriptions) : null;
+
+      // Due date: 1-14 days from creation
+      const dueDate = new Date(createdAt);
+      dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 14) + 1);
+
+      // Start date: sometimes set, sometimes null
+      const startDate = Math.random() > 0.4 ? new Date(createdAt) : null;
+      if (startDate && Math.random() > 0.5) {
+        startDate.setDate(startDate.getDate() + Math.floor(Math.random() * 3));
+      }
+
+      // Completed date for resolved/closed tasks
+      let completedAt = null;
+      if (["Resolved", "Closed"].includes(status.name)) {
+        completedAt = new Date(createdAt);
+        completedAt.setDate(completedAt.getDate() + Math.floor(Math.random() * 7) + 1);
+      }
+
+      const task = await models.Task.create({
+        title,
+        description,
+        ticketId: ticket?.id || null,
+        parentTaskId: null,
+        createdById: creator.id,
+        statusId: status.id,
+        priorityId: priority.id,
+        dueDate,
+        startDate,
+        completedAt,
+        position: i,
+        createdAt,
+        updatedAt: completedAt || createdAt,
+      });
+
+      this.createdTasks.push(task);
+      rootTasks.push(task);
+
+      // Assign 1-3 users to this task
+      const numAssignees = Math.random() > 0.6 ? Math.floor(Math.random() * 2) + 2 : 1;
+      const assignees = this.shuffleArray([...this.createdUsers]).slice(0, numAssignees);
+
+      await task.setAssignees(assignees);
+
+      // Add tags occasionally (40% chance)
+      if (Math.random() > 0.6 && this.createdTags.length > 0) {
+        const numTags = Math.floor(Math.random() * 3) + 1;
+        const tags = this.shuffleArray([...this.createdTags]).slice(0, numTags);
+        await task.setTags(tags);
+      }
+
+      tasksCreated++;
+
+      if (tasksCreated % 20 === 0) {
+        this.log(`  ${tasksCreated}/${totalTasks} tasks created...`);
+      }
+    }
+
+    this.log(`✓ Created ${tasksCreated} main tasks`);
+
+    // Create subtasks (20-30% of root tasks will have 1-3 subtasks)
+    const tasksWithSubtasks = Math.floor(rootTasks.length * 0.25);
+    let subtasksCreated = 0;
+
+    for (let i = 0; i < tasksWithSubtasks; i++) {
+      const parentTask = rootTasks[i];
+      const numSubtasks = Math.floor(Math.random() * 3) + 1;
+
+      for (let j = 0; j < numSubtasks; j++) {
+        const subtaskAge = Math.random() * 3;
+        const createdAt = new Date(parentTask.createdAt.getTime() + subtaskAge * 24 * 60 * 60 * 1000);
+
+        const status = this.getRandomElement(this.existingStatuses);
+        const priority = parentTask.priority || this.getRandomElement(this.existingPriorities);
+
+        const subtaskTitle = this.getRandomElement(subtaskTitles);
+
+        const dueDate = parentTask.dueDate
+          ? new Date(Math.min(
+            new Date(createdAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000).getTime(),
+            parentTask.dueDate.getTime()
+          ))
+          : new Date(createdAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000);
+
+        let completedAt = null;
+        if (["Resolved", "Closed"].includes(status.name)) {
+          completedAt = new Date(createdAt);
+          completedAt.setDate(completedAt.getDate() + Math.floor(Math.random() * 5) + 1);
+        }
+
+        const subtask = await models.Task.create({
+          title: subtaskTitle,
+          description: null,
+          ticketId: parentTask.ticketId,
+          parentTaskId: parentTask.id,
+          createdById: parentTask.createdById,
+          statusId: status.id,
+          priorityId: priority.id,
+          dueDate,
+          startDate: null,
+          completedAt,
+          position: j,
+          createdAt,
+          updatedAt: completedAt || createdAt,
+        });
+
+        this.createdTasks.push(subtask);
+
+        // Subtasks inherit parent assignees
+        const parentAssignees = await parentTask.getAssignees();
+        if (parentAssignees.length > 0) {
+          await subtask.setAssignees(parentAssignees);
+        }
+
+        subtasksCreated++;
+      }
+    }
+
+    this.log(`✓ Created ${subtasksCreated} subtasks`);
+  }
+
   private shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -762,6 +995,8 @@ class DatabaseSeeder {
 
       await this.createTickets();
 
+      await this.createTasks();
+
       await this.createSystemNotifications();
 
       console.log("\n✅ Database seeding completed successfully!");
@@ -773,6 +1008,7 @@ class DatabaseSeeder {
       console.log(`  - ${this.createdUsers.length} users`);
       console.log(`  - ${this.createdRequesters.length} requesters`);
       console.log(`  - ${this.createdTickets.length} tickets`);
+      console.log(`  - ${this.createdTasks.length} tasks (including subtasks)`);
       console.log(`  - ${this.createdNotifications.length} notifications`);
 
     } catch (error) {
