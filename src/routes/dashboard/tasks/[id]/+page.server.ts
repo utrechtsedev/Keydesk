@@ -1,8 +1,9 @@
-import { Priority, Status, Task, User } from "$lib/server/db/models";
+import { Priority, Status, Tag, Task, Ticket, User } from "$lib/server/db/models";
 import { Op, type WhereOptions } from "sequelize";
 import type { PageServerLoad } from "./$types";
+import { redirect } from "@sveltejs/kit";
 
-export const load: PageServerLoad = async ({ depends, locals, url }) => {
+export const load: PageServerLoad = async ({ depends, locals, url, params }) => {
   depends('app:tasks');
 
   const statusFilter = url.searchParams.get('status');
@@ -90,6 +91,73 @@ export const load: PageServerLoad = async ({ depends, locals, url }) => {
     ]
   });
 
+  const task = await Task.findOne({
+    where: { id: params.id },
+    include: [
+      {
+        model: User,
+        as: 'assignee',
+      },
+      {
+        model: User,
+        as: 'creator',
+      },
+      {
+        model: Status,
+        as: 'status'
+      },
+      {
+        model: Priority,
+        as: 'priority'
+      },
+      {
+        model: Ticket,
+        as: 'ticket',
+        required: false
+      },
+      {
+        model: Tag,
+        as: 'tags',
+        required: false
+      },
+      {
+        model: Task,
+        as: 'subtasks',
+        required: false,
+        include: [
+          {
+            model: User,
+            as: 'assignee',
+          },
+          {
+            model: User,
+            as: 'creator',
+          },
+          {
+            model: Status,
+            as: 'status'
+          },
+          {
+            model: Priority,
+            as: 'priority'
+          },
+          {
+            model: Ticket,
+            as: 'ticket',
+            required: false
+          },
+          {
+            model: Task,
+            as: 'parentTask',
+            required: false
+          }
+        ]
+      }
+    ]
+  });
+
+  if (!task) redirect(303, '/dashboard/tasks')
+
   const tasksList = tasks.map(t => t.toJSON());
 
   const finishedTasks = tasksList.filter(task => task.status?.isClosed === true);
@@ -98,7 +166,7 @@ export const load: PageServerLoad = async ({ depends, locals, url }) => {
   console.log(activeTasks.length)
   return {
     tasks: activeTasks,
+    task: task.toJSON(),
     finishedTasks,
-    activeTasks
   };
 };

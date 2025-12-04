@@ -87,6 +87,7 @@
 	let exportDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
 	let filterDialogOpen = $state(false);
+
 	let bulkActions = $state<{
 		title: string;
 		description: string;
@@ -397,9 +398,7 @@
 				</DropdownMenu.Content>
 			</DropdownMenu.Root>
 
-			<Button variant="outline" size="sm" onclick={() => (filterDialogOpen = true)}
-				><Gear3 class="" /></Button
-			>
+			<Button variant="outline" onclick={() => (filterDialogOpen = true)}><Gear3 /></Button>
 		</div>
 	</div>
 

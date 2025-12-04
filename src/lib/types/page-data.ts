@@ -14,6 +14,7 @@ export interface TicketPageData {
 
 export interface TaskPageData {
   tasks: Task[];
+  task?: Task;
   finishedTasks: Task[];
   users: User[];
   statuses: Status[];

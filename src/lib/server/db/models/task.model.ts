@@ -37,6 +37,7 @@ class Task extends Model {
   declare ticketId: number | null; // null = standalone task
   declare parentTaskId: number | null; // null = root task
   declare createdById: string; // User who created it
+  declare assigneeId: string; // User assigned to this task
 
   // Classification
   declare statusId: number;
@@ -53,17 +54,6 @@ class Task extends Model {
   // Timestamps
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
-
-  // Assignee association methods (many-to-many)
-  declare getAssignees: BelongsToManyGetAssociationsMixin<User>;
-  declare addAssignee: BelongsToManyAddAssociationMixin<User, string>;
-  declare addAssignees: BelongsToManyAddAssociationsMixin<User, string>;
-  declare setAssignees: BelongsToManySetAssociationsMixin<User, string>;
-  declare removeAssignee: BelongsToManyRemoveAssociationMixin<User, string>;
-  declare removeAssignees: BelongsToManyRemoveAssociationsMixin<User, string>;
-  declare hasAssignee: BelongsToManyHasAssociationMixin<User, string>;
-  declare hasAssignees: BelongsToManyHasAssociationsMixin<User, string>;
-  declare countAssignees: BelongsToManyCountAssociationsMixin;
 
   // Subtask association methods (one-to-many, self-referencing)
   declare getSubtasks: HasManyGetAssociationsMixin<Task>;
@@ -88,7 +78,7 @@ class Task extends Model {
   declare countTags: BelongsToManyCountAssociationsMixin;
 
   // Virtual associations
-  declare assignees?: NonAttribute<User[]>;
+  declare assignee?: NonAttribute<User>;
   declare subtasks?: NonAttribute<Task[]>;
   declare parentTask?: NonAttribute<Task>;
   declare ticket?: NonAttribute<Ticket>;
@@ -131,6 +121,14 @@ Task.init(
       },
     },
     createdById: {
+      type: DataTypes.STRING(36),
+      allowNull: false,
+      references: {
+        model: User,
+        key: 'id',
+      },
+    },
+    assigneeId: {
       type: DataTypes.STRING(36),
       allowNull: false,
       references: {

@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import type { Task as TaskType } from "$lib/types";
-import { Task, User, Status } from "$lib/server/db/models";
+import { Task, Status } from "$lib/server/db/models";
 
 export const PATCH: RequestHandler = async ({ request, locals }): Promise<Response> => {
   try {
@@ -11,8 +11,8 @@ export const PATCH: RequestHandler = async ({ request, locals }): Promise<Respon
       return json({ error: 'Task ID is required' }, { status: 400 });
     }
 
-    if (!task.assignees || task.assignees.length === 0) {
-      return json({ error: 'At least one assignee is required' }, { status: 400 });
+    if (!task.assigneeId) {
+      return json({ error: 'Assignee ID is required' }, { status: 400 });
     }
 
     const findTask = await Task.findByPk(task.id);
@@ -21,11 +21,31 @@ export const PATCH: RequestHandler = async ({ request, locals }): Promise<Respon
       return json({ error: 'Task not found' }, { status: 404 });
     }
 
+    if (task.parentTaskId) {
+      const parentTask = await Task.findByPk(task.parentTaskId);
+
+      // Check if the parent exists
+      if (!parentTask) {
+        return json({ error: 'Parent task not found.' }, { status: 404 });
+      }
+
+      // Check if the parent is itself a subtask (has a parent)
+      if (parentTask.parentTaskId) {
+        return json({ error: 'Task cannot be subtask of subtask.' }, { status: 400 });
+      }
+
+      // Prevent circular reference (task cannot be its own parent)
+      if (parentTask.id === findTask.id) {
+        return json({ error: 'Task cannot be its own parent.' }, { status: 400 });
+      }
+    }
+
     await findTask.update({
       title: task.title,
       description: task.description,
+      assigneeId: task.assigneeId,
       ticketId: task.ticketId,
-      parentTaskId: task.parentTaskId,
+      parentTaskId: task.parentTaskId || null,
       statusId: task.statusId,
       priorityId: task.priorityId,
       dueDate: task.dueDate,
@@ -43,17 +63,6 @@ export const PATCH: RequestHandler = async ({ request, locals }): Promise<Respon
         }
       );
     }
-
-    const assigneeIds = task.assignees.map(a => a.id);
-    const assignees = await User.findAll({
-      where: { id: assigneeIds }
-    });
-
-    if (assignees.length === 0) {
-      return json({ error: 'No valid assignees found' }, { status: 400 });
-    }
-
-    await findTask.setAssignees(assignees);
 
     return json({ success: true, task: findTask.toJSON() });
 

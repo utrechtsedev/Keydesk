@@ -865,12 +865,16 @@ class DatabaseSeeder {
         completedAt.setDate(completedAt.getDate() + Math.floor(Math.random() * 7) + 1);
       }
 
+      // Assign a single user (mandatory)
+      const assignee = this.getRandomElement(this.createdUsers);
+
       const task = await models.Task.create({
         title,
         description,
         ticketId: ticket?.id || null,
         parentTaskId: null,
         createdById: creator.id,
+        assigneeId: assignee.id,
         statusId: status.id,
         priorityId: priority.id,
         dueDate,
@@ -883,12 +887,6 @@ class DatabaseSeeder {
 
       this.createdTasks.push(task);
       rootTasks.push(task);
-
-      // Assign 1-3 users to this task
-      const numAssignees = Math.random() > 0.6 ? Math.floor(Math.random() * 2) + 2 : 1;
-      const assignees = this.shuffleArray([...this.createdUsers]).slice(0, numAssignees);
-
-      await task.setAssignees(assignees);
 
       // Add tags occasionally (40% chance)
       if (Math.random() > 0.6 && this.createdTags.length > 0) {
@@ -936,12 +934,16 @@ class DatabaseSeeder {
           completedAt.setDate(completedAt.getDate() + Math.floor(Math.random() * 5) + 1);
         }
 
+        // Subtasks inherit parent assignee (mandatory)
+        const assignee = parentTask.assigneeId;
+
         const subtask = await models.Task.create({
           title: subtaskTitle,
           description: null,
           ticketId: parentTask.ticketId,
           parentTaskId: parentTask.id,
           createdById: parentTask.createdById,
+          assigneeId: assignee,
           statusId: status.id,
           priorityId: priority.id,
           dueDate,
@@ -953,13 +955,6 @@ class DatabaseSeeder {
         });
 
         this.createdTasks.push(subtask);
-
-        // Subtasks inherit parent assignees
-        const parentAssignees = await parentTask.getAssignees();
-        if (parentAssignees.length > 0) {
-          await subtask.setAssignees(parentAssignees);
-        }
-
         subtasksCreated++;
       }
     }

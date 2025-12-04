@@ -294,6 +294,7 @@ export interface Task {
   description: string | null;
   // Relationships
   ticketId: number | null; // null = standalone task
+  assigneeId: string;
   parentTaskId: number | null; // null = root task
   createdById: string; // User who created it
   // Classification
@@ -311,7 +312,7 @@ export interface Task {
   createdAt: Date;
   updatedAt: Date;
   // includes?
-  assignees?: User[];
+  assignee?: User;
   subtasks?: Task[];
   parentTask?: Task;
   ticket?: Ticket;

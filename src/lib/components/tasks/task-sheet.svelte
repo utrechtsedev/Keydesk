@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as Sheet from '$lib/components/ui/sheet';
-	import * as Avatar from '$lib/components/ui/avatar';
 	import * as Rename from '$lib/components/ui/rename';
 	import * as Select from '$lib/components/ui/select';
 	import { Badge } from '$lib/components/ui/badge';
@@ -16,9 +15,7 @@
 	import type { Priority, Status, Task, User } from '$lib/types';
 	import { formatDate, formatRelativeDate } from '$lib/utils/date';
 	import { goto, invalidate } from '$app/navigation';
-	import TaskAssignedUsers from './task-assigned-users.svelte';
 	import CalendarDays from '$lib/icons/calendar-days.svelte';
-	import Users from '$lib/icons/users.svelte';
 	import Ticket from '$lib/icons/ticket.svelte';
 	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
@@ -29,7 +26,7 @@
 	import MediaRecord from '$lib/icons/media-record.svelte';
 
 	let {
-		task,
+		task = $bindable(),
 		parentTasks,
 		open = $bindable(false),
 		statuses,
@@ -45,15 +42,15 @@
 	} = $props();
 
 	let editableTask = $state<Task>();
-	$inspect(editableTask);
 	let statusIdString = $state('');
 	let priorityIdString = $state('');
-	let userIds = $state<string[]>([]);
+	let assigneeIdString = $state('');
 	let editDescription = $state<boolean>(false);
 	let editTags = $state<boolean>(false);
 	let editableTags = $derived<string[] | undefined>(editableTask?.tags?.map((t) => t.name));
 	const selectedStatus = $derived(statuses.find((s) => s.id === Number(statusIdString)));
 	const selectedPriority = $derived(priorities.find((p) => p.id === Number(priorityIdString)));
+	const selectedUser = $derived(users.find((u) => u.id === assigneeIdString));
 
 	async function handleSaveTags() {
 		try {
@@ -108,7 +105,7 @@
 			editableTask = JSON.parse(JSON.stringify(task));
 			statusIdString = editableTask!.statusId.toString();
 			priorityIdString = editableTask!.priorityId.toString();
-			userIds = editableTask!.assignees?.map((u) => u.id) ?? [];
+			assigneeIdString = editableTask!.assigneeId;
 		}
 		if (!open) {
 			editableTask = undefined;
@@ -118,17 +115,24 @@
 		if (editableTask && priorityIdString) {
 			editableTask.priorityId = Number(priorityIdString);
 		}
-		if (editableTask && userIds) {
-			editableTask.assignees = users.filter((u) => userIds.includes(u.id));
-		}
 		// Sync changes back to editableTask
 		if (editableTask && statusIdString) {
 			editableTask.statusId = Number(statusIdString);
 		}
+		if (editableTask && assigneeIdString) {
+			editableTask.assigneeId = assigneeIdString; // Add this
+		}
 	});
 </script>
 
-<Sheet.Root bind:open>
+<Sheet.Root
+	bind:open
+	onOpenChangeComplete={(v) => {
+		if (v === false) {
+			goto('/dashboard/tasks');
+		}
+	}}
+>
 	<Sheet.Content class="w-full overflow-y-auto sm:max-w-[600px]">
 		{#if editableTask}
 			<Sheet.Header>
@@ -143,7 +147,7 @@
 				</div>
 				<Sheet.Description class="flex items-center gap-2">
 					{#if editableTask.parentTaskId}
-						<Badge>Subticket</Badge>
+						<Badge>Subtask</Badge>
 					{/if}
 					<p>
 						Created {formatRelativeDate(editableTask.createdAt)} by {editableTask.creator?.name ||
@@ -188,8 +192,19 @@
 				</div>
 
 				<div class="space-y-1 px-4">
-					<Label>Assignees</Label>
-					<TaskAssignedUsers {users} bind:userIds />
+					<Label>Assignee</Label>
+					<Select.Root type="single" bind:value={assigneeIdString}>
+						<Select.Trigger class="w-full">
+							{selectedUser?.name ?? 'Select a user'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each users as user (user.id)}
+								<Select.Item value={user.id}>
+									{user.name}
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 
 				<Separator />
@@ -260,37 +275,6 @@
 
 				<Separator />
 
-				<!-- Assignees -->
-				<div class="px-4">
-					<Label class="mb-3 flex items-center">
-						<Users class="h-4 w-4" />
-						Assignees
-					</Label>
-					{#if editableTask.assignees && editableTask.assignees.length > 0}
-						<div class="flex flex-wrap gap-3">
-							{#each editableTask.assignees as assignee}
-								<div class="flex items-center gap-2">
-									<Avatar.Root class="h-8 w-8">
-										<Avatar.Image src={assignee.image} alt={assignee.name} />
-										<Avatar.Fallback>
-											{assignee.name
-												.split(' ')
-												.map((n) => n[0])
-												.join('')
-												.toUpperCase()}
-										</Avatar.Fallback>
-									</Avatar.Root>
-									<span class="text-sm">{assignee.name}</span>
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<p class="text-sm text-muted-foreground italic">No assignees</p>
-					{/if}
-				</div>
-
-				<Separator />
-
 				<!-- Tags -->
 				<div class="space-y-2 px-4">
 					<div class="flex items-center justify-between">
@@ -319,28 +303,6 @@
 
 				<Separator />
 
-				<!-- Linked Ticket -->
-				{#if editableTask.ticket}
-					<div class="px-4">
-						<Label class="mb-3 flex items-center gap-1">
-							<Ticket class="h-4 w-4" />
-							Linked Ticket
-						</Label>
-						<Button
-							variant="outline"
-							class="w-full justify-between"
-							size="sm"
-							onclick={() => goto(`/dashboard/tickets/${editableTask!.ticket!.id}`)}
-						>
-							<span class="text-sm">
-								{editableTask.ticket.ticketNumber}: {editableTask.ticket.subject}
-							</span>
-							<ChevronRight class="h-4 w-4" />
-						</Button>
-					</div>
-					<Separator />
-				{/if}
-
 				<!-- Parent Task Selector -->
 				<div class="px-4">
 					<Label class="mb-3 flex items-center gap-1">
@@ -363,9 +325,9 @@
 								: 'None'}
 						</Select.Trigger>
 						<Select.Content>
-							<Select.Item value="none">None (Standalone task)</Select.Item>
+							<Select.Item value="">None (Standalone task)</Select.Item>
 							<Select.Separator />
-							{#each parentTasks.filter((t) => t.id !== editableTask!.id && !editableTask!.subtasks?.some((st) => st.id === t.id)) as task}
+							{#each parentTasks.filter((t) => t.id !== editableTask!.id) as task}
 								<Select.Item value={task.id.toString()}>
 									{task.title}
 								</Select.Item>
@@ -374,6 +336,29 @@
 					</Select.Root>
 				</div>
 				<Separator />
+
+				<!-- Linked Ticket -->
+				{#if editableTask.ticket && editableTask.ticketId}
+					<div class="px-4">
+						<Label class="mb-3 flex items-center gap-1">
+							<Ticket class="h-4 w-4" />
+							Linked Ticket
+						</Label>
+						<Button
+							variant="outline"
+							class="w-full justify-between"
+							size="sm"
+							onclick={() => goto(`/dashboard/tickets/${editableTask!.ticket!.id}`)}
+						>
+							<span class="text-sm">
+								{editableTask.ticket.ticketNumber}: {editableTask.ticket.subject}
+							</span>
+							<ChevronRight class="h-4 w-4" />
+						</Button>
+					</div>
+					<Separator />
+				{/if}
+
 				<!-- Subtasks -->
 				{#if editableTask.subtasks && editableTask.subtasks.length > 0}
 					<div class="px-4">
