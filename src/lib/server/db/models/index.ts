@@ -213,18 +213,14 @@ Task.belongsTo(Task, {
   as: 'parentTask'
 });
 
-// Task <-> User (many-to-many for assignees)
-Task.belongsToMany(User, {
-  through: 'taskAssignee',
-  foreignKey: 'taskId',
-  otherKey: 'userId',
-  as: 'assignees'
-});
-User.belongsToMany(Task, {
-  through: 'taskAssignee',
-  foreignKey: 'userId',
-  otherKey: 'taskId',
+// Task <-> User (assignee - one-to-many)
+User.hasMany(Task, {
+  foreignKey: 'assigneeId',
   as: 'assignedTasks'
+});
+Task.belongsTo(User, {
+  foreignKey: 'assigneeId',
+  as: 'assignee'
 });
 
 // Task <-> User (creator)
