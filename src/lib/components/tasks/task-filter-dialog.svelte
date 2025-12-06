@@ -144,7 +144,6 @@
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="all">All Assignees</Select.Item>
-						<Select.Item value="unassigned">Unassigned</Select.Item>
 						{#each users as user (user.id)}
 							<Select.Item value={String(user.id)}>
 								{user.name}

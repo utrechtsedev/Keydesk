@@ -6,26 +6,27 @@
 	import { formatRelativeDate } from '$lib/utils/date';
 	import TaskSheet from './task-sheet.svelte';
 	import ChevronDown from '$lib/icons/chevron-down.svelte';
-	import { onMount } from 'svelte';
-	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
-	import TaskBulkActionsDialog from './task-bulk-actions-dialog.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import CircleInfo from '$lib/icons/circle-info.svelte';
 	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
+	import TaskFinishDialog from './task-finish-dialog.svelte';
+	import axios from 'axios';
+	import { toast } from 'svelte-sonner';
+	import { invalidate } from '$app/navigation';
+	import { ToastComponent } from '../ui/toast';
 
 	const {
 		tasks,
-		task,
 		users,
 		priorities,
+		parentTasks,
 		statuses
 	}: {
 		tasks: Task[];
-		task?: Task;
 		users: User[];
 		statuses: Status[];
+		parentTasks: Task[];
 		priorities: Priority[];
 	} = $props();
 
@@ -34,40 +35,59 @@
 		task: null as Task | null
 	});
 
-	// Filter only parent tasks
-	const parentTasks = $derived(tasks.filter((t) => !t.parentTaskId));
-
 	let expandedTasks = $state<Record<number, boolean>>({});
+
+	let openFinishDialog = $state(false);
+	let finishDialogTask = $state<Task>();
+	let closedStatuses = $state<Status[]>(statuses.filter((s) => s.isClosed));
+
+	async function handleMarkFinished(task: Task) {
+		finishDialogTask = task;
+		if (closedStatuses && closedStatuses.length > 1) {
+			openFinishDialog = true;
+			return;
+		}
+		try {
+			const response = await axios.patch('/api/tasks', {
+				task: { ...task, statusId: closedStatuses[0].id }
+			});
+
+			if (response.status === 200) {
+				toast.success(`Succesfully marked task as ${closedStatuses[0].name}`);
+				invalidate('app:tasks');
+				return;
+			}
+			return toast.error(ToastComponent, {
+				componentProps: {
+					title: response.data.message || 'Connection failed',
+					body: response.data.error || 'Unknown error'
+				}
+			});
+		} catch (error) {
+			if (axios.isAxiosError(error) && error.response) {
+				return toast.error(ToastComponent, {
+					componentProps: {
+						title: error.response.data.message || 'Connection failed',
+						body: error.response.data.error || 'Unknown error'
+					}
+				});
+			}
+
+			return toast.error(ToastComponent, {
+				componentProps: {
+					title: 'Request failed',
+					body: error instanceof Error ? error.message : 'Unknown error'
+				}
+			});
+		}
+	}
 
 	let showAllTasks = $state<boolean>(false);
 	const displayedTasks = $derived(showAllTasks ? parentTasks : parentTasks.slice(0, 8));
-
-	let bulkActions = $state<{
-		title: string;
-		description: string;
-		ids: number[];
-		open: boolean;
-		items: User[] | Status[] | Priority[] | Tag[];
-		itemType: 'user' | 'category' | 'status' | 'priority' | 'tag';
-	}>({
-		title: '',
-		description: '',
-		ids: [],
-		open: false,
-		items: [],
-		itemType: 'user'
-	});
-
 	function toggleExpand(taskId: number, event: MouseEvent) {
 		event.stopPropagation();
 		expandedTasks[taskId] = !expandedTasks[taskId];
 	}
-
-	onMount(() => {
-		if (!page.params.id || !task) return;
-
-		currentTask = { open: true, task };
-	});
 </script>
 
 <div class="w-full overflow-hidden">
@@ -85,8 +105,7 @@
 			</Table.Header>
 			<Table.Body>
 				{#each displayedTasks as task}
-					<!-- Parent task row -->
-					<Table.Row class="cursor-pointer">
+					<Table.Row>
 						<Table.Cell class="max-w-[300px] min-w-[300px] truncate">{task.title}</Table.Cell>
 						{#if task.assignee}
 							<Table.Cell class="max-w-[200px] min-w-[200px] truncate font-light">
@@ -114,22 +133,26 @@
 						</Table.Cell>
 
 						<Table.Cell>
-							<Tooltip.Root
-								><Tooltip.Trigger>
+							<Tooltip.Root>
+								<Tooltip.Trigger>
 									<Button
 										size="sm"
 										variant="outline"
 										class="group transition-all duration-500 hover:bg-blue-600!"
-										onclick={() => goto(`/dashboard/tasks/${task.id}`)}><CircleInfo /></Button
+										onclick={() => (currentTask = { open: true, task: task })}
 									>
-								</Tooltip.Trigger><Tooltip.Content>Details</Tooltip.Content></Tooltip.Root
-							>
-							<Tooltip.Root
-								><Tooltip.Trigger>
+										<CircleInfo />
+									</Button>
+								</Tooltip.Trigger>
+								<Tooltip.Content>Details</Tooltip.Content>
+							</Tooltip.Root>
+							<Tooltip.Root>
+								<Tooltip.Trigger>
 									<Button
 										size="sm"
 										variant="outline"
 										class="group transition-all duration-500 hover:bg-green-600!"
+										onclick={() => handleMarkFinished(task)}
 									>
 										<CircleCheck3 />
 									</Button>
@@ -148,13 +171,9 @@
 						</Table.Cell>
 					</Table.Row>
 
-					<!-- Subtasks rows (when expanded) -->
 					{#if expandedTasks[task.id] && task.subtasks}
 						{#each task.subtasks as subtask}
-							<Table.Row
-								class="cursor-pointer bg-muted/20"
-								onclick={() => goto(`/dashboard/tasks/${subtask.id}`)}
-							>
+							<Table.Row class="bg-muted/20">
 								<Table.Cell>
 									<span class="text-muted-foreground">└─</span>
 									{subtask.title}
@@ -185,7 +204,34 @@
 								>
 									{subtask.dueDate ? formatRelativeDate(subtask.dueDate) : ''}
 								</Table.Cell>
-								<Table.Cell></Table.Cell>
+								<Table.Cell>
+									<Tooltip.Root>
+										<Tooltip.Trigger>
+											<Button
+												size="sm"
+												variant="outline"
+												class="group transition-all duration-500 hover:bg-blue-600!"
+												onclick={() => (currentTask = { open: true, task: subtask })}
+											>
+												<CircleInfo />
+											</Button>
+										</Tooltip.Trigger>
+										<Tooltip.Content>Details</Tooltip.Content>
+									</Tooltip.Root>
+									<Tooltip.Root>
+										<Tooltip.Trigger>
+											<Button
+												size="sm"
+												variant="outline"
+												class="group transition-all duration-500 hover:bg-green-600!"
+												onclick={() => handleMarkFinished(subtask)}
+											>
+												<CircleCheck3 />
+											</Button>
+										</Tooltip.Trigger>
+										<Tooltip.Content>Mark Finished</Tooltip.Content>
+									</Tooltip.Root>
+								</Table.Cell>
 							</Table.Row>
 						{/each}
 					{/if}
@@ -223,12 +269,4 @@
 	{priorities}
 	{users}
 />
-
-<TaskBulkActionsDialog
-	title={bulkActions.title}
-	description={bulkActions.description}
-	items={bulkActions.items}
-	bind:open={bulkActions.open}
-	ids={bulkActions.ids}
-	itemType={bulkActions.itemType}
-/>
+<TaskFinishDialog bind:open={openFinishDialog} statuses={closedStatuses} task={finishDialogTask} />
