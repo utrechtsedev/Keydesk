@@ -24,6 +24,7 @@
 	import Subtitles2 from '$lib/icons/subtitles-2.svelte';
 	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
 	import MediaRecord from '$lib/icons/media-record.svelte';
+	import { Provider } from '../ui/tooltip';
 
 	let {
 		task = $bindable(),
@@ -41,6 +42,8 @@
 		users: User[];
 	} = $props();
 
+	let renameMode = $state<'edit' | 'view'>('view');
+	let highlightTitle = $state<boolean>(false);
 	let editableTask = $state<Task>();
 	let statusIdString = $state('');
 	let priorityIdString = $state('');
@@ -51,6 +54,7 @@
 	const selectedStatus = $derived(statuses.find((s) => s.id === Number(statusIdString)));
 	const selectedPriority = $derived(priorities.find((p) => p.id === Number(priorityIdString)));
 	const selectedUser = $derived(users.find((u) => u.id === assigneeIdString));
+	const isNewTask = $derived(!task?.id);
 
 	async function handleSaveTags() {
 		try {
@@ -80,19 +84,36 @@
 
 	async function handleSave() {
 		try {
-			const response = await axios.patch('/api/tasks', { task: editableTask });
+			if (!editableTask?.title?.trim()) {
+				toast.error('Task title is required');
+				highlightTitle = true;
+				return;
+			}
+
+			let response;
+
+			if (isNewTask) {
+				response = await axios.post('/api/tasks', { task: editableTask });
+				toast.success('Successfully created task.');
+			} else {
+				response = await axios.patch('/api/tasks', { task: editableTask });
+				toast.success('Successfully saved task.');
+			}
 
 			if (response.data.success) {
 				invalidate('app:tasks');
+
+				if (isNewTask && response.data.task) {
+					task = response.data.task;
+				}
+
 				open = false;
 			}
-
-			toast.success('Succesfully saved task.');
 		} catch (err) {
 			if (axios.isAxiosError(err) && err.response) {
 				toast.error(ToastComponent, {
 					componentProps: {
-						title: 'Failed saving Task',
+						title: isNewTask ? 'Failed creating Task' : 'Failed saving Task',
 						body: err.message
 					}
 				});
@@ -101,51 +122,68 @@
 	}
 
 	$effect(() => {
-		if (task && open && !editableTask) {
-			editableTask = JSON.parse(JSON.stringify(task));
-			statusIdString = editableTask!.statusId.toString();
-			priorityIdString = editableTask!.priorityId.toString();
-			assigneeIdString = editableTask!.assigneeId;
+		if (open && !editableTask) {
+			if (task) {
+				editableTask = JSON.parse(JSON.stringify(task));
+				statusIdString = editableTask!.statusId.toString();
+				priorityIdString = editableTask!.priorityId.toString();
+				assigneeIdString = editableTask!.assigneeId;
+			} else {
+				const defaultStatus = statuses[0];
+				const defaultPriority = priorities[0];
+				const defaultUser = users[0];
+
+				editableTask = {
+					title: '',
+					description: null,
+					ticketId: null,
+					assigneeId: defaultUser?.id || '',
+					parentTaskId: null,
+					createdById: '', // Will be set by backend
+					statusId: defaultStatus?.id || 1,
+					priorityId: defaultPriority?.id || 1,
+					dueDate: null,
+					startDate: null,
+					completedAt: null,
+					estimatedMinutes: null,
+					actualMinutes: null,
+					position: 0,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				} as Task;
+
+				statusIdString = editableTask.statusId.toString();
+				priorityIdString = editableTask.priorityId.toString();
+				assigneeIdString = editableTask.assigneeId;
+				editDescription = true;
+			}
 		}
+
 		if (!open) {
 			editableTask = undefined;
 			editDescription = false;
 			editTags = false;
 		}
+
 		if (editableTask && priorityIdString) {
 			editableTask.priorityId = Number(priorityIdString);
 		}
-		// Sync changes back to editableTask
 		if (editableTask && statusIdString) {
 			editableTask.statusId = Number(statusIdString);
 		}
 		if (editableTask && assigneeIdString) {
-			editableTask.assigneeId = assigneeIdString; // Add this
+			editableTask.assigneeId = assigneeIdString;
 		}
 	});
 </script>
 
-<Sheet.Root
-	bind:open
-	onOpenChangeComplete={(v) => {
-		if (v === false) {
-			goto('/dashboard/tasks');
-		}
-	}}
->
+<Sheet.Root bind:open>
 	<Sheet.Content class="w-full overflow-y-auto sm:max-w-[600px]">
 		{#if editableTask}
-			<Sheet.Header>
-				<div class="flex items-center gap-1">
-					<ClipboardContent class="h-6 w-6" />
-					<Rename.Root
-						this="span"
-						class="w-10/12 rounded-lg p-1 text-2xl font-semibold hover:bg-muted"
-						validate={(value) => value.length > 0}
-						bind:value={editableTask.title}
-					/>
-				</div>
-				<Sheet.Description class="flex items-center gap-2">
+			<Sheet.Description class="flex items-center gap-2 px-4 pt-4">
+				{#if isNewTask}
+					<Badge>New Task</Badge>
+				{:else}
 					{#if editableTask.parentTaskId}
 						<Badge>Subtask</Badge>
 					{/if}
@@ -153,10 +191,20 @@
 						Created {formatRelativeDate(editableTask.createdAt)} by {editableTask.creator?.name ||
 							'Unknown'}
 					</p>
-				</Sheet.Description>
-			</Sheet.Header>
+				{/if}
+			</Sheet.Description>
 
 			<div class="space-y-6 py-6">
+				<div class="flex gap-4 px-4">
+					<div class="flex-1 space-y-1">
+						<div class="flex gap-1">
+							<ClipboardContent class="" />
+							<Label>Title</Label>
+						</div>
+						<Input bind:value={editableTask.title} placeholder="Please enter a Task title..." />
+					</div>
+				</div>
+
 				<!-- Status and Priority -->
 				<div class="flex gap-4 px-4">
 					<div class="flex-1 space-y-1">
@@ -216,12 +264,17 @@
 							<Subtitles2 class="h-4 w-4" />
 							Description
 						</Label>
-						<Button size="sm" onclick={() => (editDescription = !editDescription)}>
-							{editDescription ? 'Save' : 'Edit'}
-						</Button>
+						{#if !isNewTask}
+							<Button size="sm" onclick={() => (editDescription = !editDescription)}>
+								{editDescription ? 'Save' : 'Edit'}
+							</Button>
+						{/if}
 					</div>
-					{#if editDescription}
-						<Textarea bind:value={editableTask.description} />
+					{#if editDescription || isNewTask}
+						<Textarea
+							bind:value={editableTask.description}
+							placeholder="Enter task description..."
+						/>
 					{:else}
 						<p class="font-light whitespace-pre-wrap {editableTask.description ? '' : 'text-sm'}">
 							{editableTask.description || 'No description'}
@@ -276,32 +329,34 @@
 				<Separator />
 
 				<!-- Tags -->
-				<div class="space-y-2 px-4">
-					<div class="flex items-center justify-between">
-						<Label class="mb-3 flex items-center gap-1">
-							<Tags class="h-4 w-4" />
-							Tags
-						</Label>
+				{#if !isNewTask}
+					<div class="space-y-2 px-4">
+						<div class="flex items-center justify-between">
+							<Label class="mb-3 flex items-center gap-1">
+								<Tags class="h-4 w-4" />
+								Tags
+							</Label>
+							{#if editTags}
+								<Button size="sm" onclick={handleSaveTags}>Save</Button>
+							{:else}
+								<Button size="sm" onclick={() => (editTags = true)}>Edit</Button>
+							{/if}
+						</div>
 						{#if editTags}
-							<Button size="sm" onclick={handleSaveTags}>Save</Button>
+							<TagsInput bind:value={editableTags} />
+						{:else if editableTask.tags && editableTask.tags.length > 0}
+							<div class="flex flex-wrap gap-2">
+								{#each editableTask.tags as tag}
+									<Badge variant="outline">{tag.name}</Badge>
+								{/each}
+							</div>
 						{:else}
-							<Button size="sm" onclick={() => (editTags = true)}>Edit</Button>
+							<p class="text-sm font-light">No tags</p>
 						{/if}
 					</div>
-					{#if editTags}
-						<TagsInput bind:value={editableTags} />
-					{:else if editableTask.tags && editableTask.tags.length > 0}
-						<div class="flex flex-wrap gap-2">
-							{#each editableTask.tags as tag}
-								<Badge variant="outline">{tag.name}</Badge>
-							{/each}
-						</div>
-					{:else}
-						<p class="text-sm font-light">No tags</p>
-					{/if}
-				</div>
 
-				<Separator />
+					<Separator />
+				{/if}
 
 				<!-- Parent Task Selector -->
 				<div class="px-4">
@@ -325,9 +380,9 @@
 								: 'None'}
 						</Select.Trigger>
 						<Select.Content>
-							<Select.Item value="">None (Standalone task)</Select.Item>
+							<Select.Item value="none">None (Standalone task)</Select.Item>
 							<Select.Separator />
-							{#each parentTasks.filter((t) => t.id !== editableTask!.id) as task}
+							{#each parentTasks.filter( (t) => (!isNewTask ? t.id !== editableTask!.id : true) ) as task}
 								<Select.Item value={task.id.toString()}>
 									{task.title}
 								</Select.Item>
@@ -338,7 +393,7 @@
 				<Separator />
 
 				<!-- Linked Ticket -->
-				{#if editableTask.ticket && editableTask.ticketId}
+				{#if editableTask.ticket && editableTask.ticketId && !isNewTask}
 					<div class="px-4">
 						<Label class="mb-3 flex items-center gap-1">
 							<Ticket class="h-4 w-4" />
@@ -360,7 +415,7 @@
 				{/if}
 
 				<!-- Subtasks -->
-				{#if editableTask.subtasks && editableTask.subtasks.length > 0}
+				{#if editableTask.subtasks && editableTask.subtasks.length > 0 && !isNewTask}
 					<div class="px-4">
 						<Label class="mb-3 block text-xs text-muted-foreground">
 							Subtasks ({editableTask.subtasks.filter((st) => st.status?.isClosed)
@@ -403,18 +458,22 @@
 				{/if}
 
 				<!-- Metadata -->
-				<div class="space-y-1 px-4 text-xs text-muted-foreground">
-					<p>Created: {formatDate(new Date(editableTask.createdAt))}</p>
-					<p>Updated: {formatDate(new Date(editableTask.updatedAt))}</p>
-					{#if editableTask.completedAt}
-						<p>Completed: {formatDate(new Date(editableTask.completedAt))}</p>
-					{/if}
-				</div>
+				{#if !isNewTask}
+					<div class="space-y-1 px-4 text-xs text-muted-foreground">
+						<p>Created: {formatDate(new Date(editableTask.createdAt))}</p>
+						<p>Updated: {formatDate(new Date(editableTask.updatedAt))}</p>
+						{#if editableTask.completedAt}
+							<p>Completed: {formatDate(new Date(editableTask.completedAt))}</p>
+						{/if}
+					</div>
+				{/if}
 			</div>
 
 			<Sheet.Footer class="flex flex-row justify-between">
-				<Button variant="outline" onclick={() => (open = false)}>Close</Button>
-				<Button onclick={handleSave}>Save Changes</Button>
+				<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
+				<Button onclick={handleSave}>
+					{isNewTask ? 'Create Task' : 'Save Changes'}
+				</Button>
 			</Sheet.Footer>
 		{/if}
 	</Sheet.Content>

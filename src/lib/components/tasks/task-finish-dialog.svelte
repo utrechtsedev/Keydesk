@@ -5,40 +5,51 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { ToastComponent } from '$lib/components/ui/toast';
-	import type { Category, Priority, Status, Tag, User } from '$lib/types';
+	import type { Status, Task } from '$lib/types';
 	import axios from 'axios';
+	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
 	const uid = $props.id();
 	let {
-		title,
-		description,
-		ids = [],
 		open = $bindable(false),
-		items,
-		itemType
+		task,
+		statuses
 	}: {
-		title: string;
-		description: string;
-		ids: number[];
 		open: boolean;
-		items: User[] | Category[] | Status[] | Priority[] | Tag[];
-		itemType: 'user' | 'category' | 'status' | 'priority' | 'tag';
+		task?: Task;
+		statuses: Status[];
 	} = $props();
+
+	onMount(() => {
+		if (!task) return (open = false);
+	});
 
 	let value = $state('-1');
 
-	const selected = $derived(items.find((i) => String(i.id) === value));
+	const selectedStatus = $derived(statuses.find((s) => String(s.id) === value));
 	async function handleSave() {
 		try {
-			await axios.patch('/api/tickets/bulk', {
-				ids,
-				itemId: value,
-				itemType
+			if (!selectedStatus) {
+				toast.error('Please select a status first.');
+				return;
+			}
+			const response = await axios.patch('/api/tasks', {
+				task: { ...task, statusId: selectedStatus.id }
 			});
-			invalidate('app:tickets');
-			open = false;
-			return toast.success('Succesfully updated ticket(s).');
+
+			if (response.status === 200) {
+				toast.success(`Succesfully marked task as ${selectedStatus.name}`);
+				invalidate('app:tasks');
+				open = false;
+				return;
+			}
+			return toast.error(ToastComponent, {
+				componentProps: {
+					title: response.data.message || 'Connection failed',
+					body: response.data.error || 'Unknown error'
+				}
+			});
 		} catch (error) {
 			if (axios.isAxiosError(error) && error.response) {
 				return toast.error(ToastComponent, {
@@ -62,19 +73,19 @@
 <Dialog.Root bind:open>
 	<Dialog.Content class="sm:max-w-[425px]">
 		<Dialog.Header>
-			<Dialog.Title>{title}</Dialog.Title>
-			<Dialog.Description>{description}. Updating {ids.length} ticket(s).</Dialog.Description>
+			<Dialog.Title>Mark Task as Finished</Dialog.Title>
+			<Dialog.Description>...</Dialog.Description>
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<Label for={uid}>Select with placeholder</Label>
 			<Select.Root type="single" bind:value>
 				<Select.Trigger id={uid} class="w-full">
-					{selected?.name ?? 'Select an option'}
+					{selectedStatus?.name ?? 'Select an option'}
 				</Select.Trigger>
 				<Select.Content>
-					{#each items as item (item.id)}
-						<Select.Item value={String(item.id)}>
-							{item.name}
+					{#each statuses as status (status.id)}
+						<Select.Item value={String(status.id)}>
+							{status.name}
 						</Select.Item>
 					{/each}
 				</Select.Content>
