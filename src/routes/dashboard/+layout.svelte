@@ -2,9 +2,8 @@
 	import AppSidebar from '$lib/components/sidebar/app-sidebar.svelte';
 	import TopNavbar from '$lib/components/sidebar/top-navbar.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import { browser } from '$app/environment';
 	import type { User, UserNotification } from '$lib/types';
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 
 	let {
 		children,
@@ -16,7 +15,12 @@
 			notifications: UserNotification[];
 		};
 	} = $props();
-	let open = $state(browser ? JSON.parse(localStorage.getItem('sidebarOpen') ?? 'true') : true);
+
+	let open = $state(true);
+
+	onMount(() => {
+		open = JSON.parse(localStorage.getItem('sidebarOpen') ?? 'true');
+	});
 </script>
 
 <Sidebar.Provider bind:open>
