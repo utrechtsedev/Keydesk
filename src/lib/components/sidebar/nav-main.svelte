@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { ChevronRightIcon } from '@lucide/svelte';
@@ -9,6 +10,10 @@
 	import ViewAll from '$lib/icons/view-all.svelte';
 	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
 	import Slider from '$lib/icons/slider.svelte';
+	import Toggles from '$lib/icons/toggles.svelte';
+	import { onMount } from 'svelte';
+	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte.js';
+	const sidebar = useSidebar();
 
 	let {
 		user
@@ -16,25 +21,22 @@
 		user: User;
 	} = $props();
 
-	let openItem = $state(browser ? (localStorage.getItem('openSidebarItem') ?? '') : '');
+	let openItem: string = $state('');
+	onMount(() => {
+		openItem = localStorage.getItem('openSidebarItem') ?? '';
+	});
 </script>
 
 <Sidebar.Group>
 	<Sidebar.GroupLabel>Platform</Sidebar.GroupLabel>
 	<Sidebar.Menu>
-		<!-- Dashboard -->
-		<Collapsible.Root>
-			{#snippet child({ props })}
-				<Sidebar.MenuItem {...props}>
-					<Sidebar.MenuButton tooltipContent="Dashboard" onclick={() => goto('/dashboard')}>
-						<ViewAll />
-						<span>Dashboard</span>
-					</Sidebar.MenuButton>
-				</Sidebar.MenuItem>
-			{/snippet}
-		</Collapsible.Root>
-
-		<!-- Tickets -->
+		<Sidebar.MenuItem>
+			<Sidebar.MenuButton tooltipContent="Dashboard" onclick={() => goto('/dashboard')}>
+				<ViewAll />
+				<span>Dashboard</span>
+			</Sidebar.MenuButton>
+		</Sidebar.MenuItem>
+		<!---->
 		<Collapsible.Root
 			open={openItem === 'Tickets'}
 			onOpenChange={(isOpen) => {
@@ -45,23 +47,52 @@
 		>
 			{#snippet child({ props })}
 				<Sidebar.MenuItem {...props}>
-					<Sidebar.MenuButton tooltipContent="Tickets" onclick={() => goto('/dashboard/tickets')}>
-						<Ticket />
-						<span>Tickets</span>
-						<Collapsible.Trigger
-							class="ml-auto p-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden"
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props: tooltipProps })}
+								<div
+									{...tooltipProps}
+									class="grid h-8 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md p-2 transition-[width,height,padding] duration-200 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:place-items-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-2 hover:bg-sidebar-accent"
+								>
+									<Ticket class="size-4 shrink-0" />
+									<button
+										class="min-w-0 truncate text-left group-data-[collapsible=icon]:hidden"
+										onclick={() => goto('/dashboard/tickets')}
+									>
+										<span class="truncate">Tickets</span>
+									</button>
+									<button
+										type="button"
+										class="shrink-0 p-0 group-data-[collapsible=icon]:hidden"
+										onclick={(e) => {
+											e.stopPropagation();
+											openItem = openItem === 'Tickets' ? '' : 'Tickets';
+											if (browser) localStorage.setItem('openSidebarItem', openItem);
+										}}
+									>
+										<ChevronRightIcon
+											class="h-4 w-4 transition-transform duration-200 {openItem === 'Tickets'
+												? 'rotate-90'
+												: ''}"
+										/>
+									</button>
+								</div>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content
+							side="right"
+							align="center"
+							hidden={sidebar.state !== 'collapsed' || sidebar.isMobile}
 						>
-							<ChevronRightIcon
-								class="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-							/>
-						</Collapsible.Trigger>
-					</Sidebar.MenuButton>
+							Tickets
+						</Tooltip.Content>
+					</Tooltip.Root>
 					<Collapsible.Content>
 						<Sidebar.MenuSub>
 							<Sidebar.MenuSubItem>
 								<Sidebar.MenuSubButton>
 									{#snippet child({ props })}
-										<a href="/dashboard/tickets/my-tickets" {...props}>
+										<a href="/dashboard/tickets?assignee={user.id}" {...props}>
 											<span>My Tickets</span>
 										</a>
 									{/snippet}
@@ -82,7 +113,6 @@
 			{/snippet}
 		</Collapsible.Root>
 
-		<!-- Task List -->
 		<Collapsible.Root
 			open={openItem === 'Task List'}
 			onOpenChange={(isOpen) => {
@@ -93,23 +123,52 @@
 		>
 			{#snippet child({ props })}
 				<Sidebar.MenuItem {...props}>
-					<Sidebar.MenuButton tooltipContent="Task List" onclick={() => goto('/dashboard/tasks')}>
-						<ClipboardContent />
-						<span>Task List</span>
-						<Collapsible.Trigger
-							class="ml-auto p-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden"
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props: tooltipProps })}
+								<div
+									{...tooltipProps}
+									class="grid h-8 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md p-2 transition-[width,height,padding] duration-200 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:place-items-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-2 hover:bg-sidebar-accent"
+								>
+									<ClipboardContent class="size-4 shrink-0" />
+									<button
+										class="min-w-0 truncate text-left group-data-[collapsible=icon]:hidden"
+										onclick={() => goto('/dashboard/tasks')}
+									>
+										<span class="truncate">Task List</span>
+									</button>
+									<button
+										type="button"
+										class="shrink-0 p-0 group-data-[collapsible=icon]:hidden"
+										onclick={(e) => {
+											e.stopPropagation();
+											openItem = openItem === 'Task List' ? '' : 'Task List';
+											if (browser) localStorage.setItem('openSidebarItem', openItem);
+										}}
+									>
+										<ChevronRightIcon
+											class="h-4 w-4 transition-transform duration-200 {openItem === 'Task List'
+												? 'rotate-90'
+												: ''}"
+										/>
+									</button>
+								</div>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content
+							side="right"
+							align="center"
+							hidden={sidebar.state !== 'collapsed' || sidebar.isMobile}
 						>
-							<ChevronRightIcon
-								class="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-							/>
-						</Collapsible.Trigger>
-					</Sidebar.MenuButton>
+							Task List
+						</Tooltip.Content>
+					</Tooltip.Root>
 					<Collapsible.Content>
 						<Sidebar.MenuSub>
 							<Sidebar.MenuSubItem>
 								<Sidebar.MenuSubButton>
 									{#snippet child({ props })}
-										<a href="/dashboard/tasks/my-tasks" {...props}>
+										<a href="/dashboard/tasks?assignee={user.id}" {...props}>
 											<span>My Tasks</span>
 										</a>
 									{/snippet}
@@ -118,25 +177,7 @@
 							<Sidebar.MenuSubItem>
 								<Sidebar.MenuSubButton>
 									{#snippet child({ props })}
-										<a href="#" {...props}>
-											<span>All Due Tasks</span>
-										</a>
-									{/snippet}
-								</Sidebar.MenuSubButton>
-							</Sidebar.MenuSubItem>
-							<Sidebar.MenuSubItem>
-								<Sidebar.MenuSubButton>
-									{#snippet child({ props })}
-										<a href="#" {...props}>
-											<span>Unassigned Tasks</span>
-										</a>
-									{/snippet}
-								</Sidebar.MenuSubButton>
-							</Sidebar.MenuSubItem>
-							<Sidebar.MenuSubItem>
-								<Sidebar.MenuSubButton>
-									{#snippet child({ props })}
-										<a href="#" {...props}>
+										<a href="/dashboard/tasks" {...props}>
 											<span>Deleted Tasks</span>
 										</a>
 									{/snippet}
@@ -147,8 +188,7 @@
 				</Sidebar.MenuItem>
 			{/snippet}
 		</Collapsible.Root>
-
-		<!-- Settings -->
+		<!---->
 		{#if user.role === 'admin'}
 			<Collapsible.Root>
 				{#snippet child({ props })}
