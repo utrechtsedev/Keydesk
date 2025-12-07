@@ -238,6 +238,7 @@ export interface User {
   banReason?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  notificationPreferences: NotificationPreferences;
 }
 
 export interface Notification {
@@ -320,4 +321,20 @@ export interface Task {
   status?: Status;
   priority?: Priority;
   tags?: Tag[];
+}
+
+export interface NotificationPreferences {
+  dashboard: {
+    ticketCreated: boolean,
+    itemAssigned: boolean,
+    itemUpdated: boolean,
+    itemClosed: boolean
+  },
+  email: {
+    ticketCreated: boolean,
+    itemAssigned: boolean,
+    itemUpdated: boolean,
+    itemClosed: boolean
+  }
+
 }
