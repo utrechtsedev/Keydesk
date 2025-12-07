@@ -36,7 +36,6 @@
 				<span>Dashboard</span>
 			</Sidebar.MenuButton>
 		</Sidebar.MenuItem>
-		<!---->
 		<Collapsible.Root
 			open={openItem === 'Tickets'}
 			onOpenChange={(isOpen) => {
@@ -188,21 +187,22 @@
 				</Sidebar.MenuItem>
 			{/snippet}
 		</Collapsible.Root>
-		<!---->
+		<Sidebar.MenuItem>
+			<Sidebar.MenuButton
+				tooltipContent="Preferences"
+				onclick={() => goto('/dashboard/preferences')}
+			>
+				<Toggles />
+				<span>Preferences</span>
+			</Sidebar.MenuButton>
+		</Sidebar.MenuItem>
 		{#if user.role === 'admin'}
-			<Collapsible.Root>
-				{#snippet child({ props })}
-					<Sidebar.MenuItem {...props}>
-						<Sidebar.MenuButton
-							tooltipContent="Settings"
-							onclick={() => goto('/dashboard/settings')}
-						>
-							<Slider />
-							<span>Settings</span>
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-				{/snippet}
-			</Collapsible.Root>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton tooltipContent="Settings" onclick={() => goto('/dashboard/settings')}>
+					<Slider />
+					<span>Settings</span>
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
 		{/if}
 	</Sidebar.Menu>
 </Sidebar.Group>
