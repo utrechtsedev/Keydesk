@@ -1,5 +1,6 @@
 import { Model, DataTypes, type CreationOptional } from "sequelize";
 import { sequelize } from "../instance.js";
+import type { NotificationPreferences } from "$lib/types/core.js";
 
 class User extends Model {
   declare id: string;
@@ -13,6 +14,7 @@ class User extends Model {
   declare banExpires: CreationOptional<Date | null>
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare notificationPreferences: CreationOptional<NotificationPreferences | null>
 }
 
 User.init(
@@ -54,6 +56,10 @@ User.init(
     banExpires: {
       type: DataTypes.DATE,
       allowNull: true,
+    },
+    notificationPreferences: {
+      type: DataTypes.JSON,
+      allowNull: true
     }
   },
   {

@@ -4,26 +4,49 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import { Separator } from '$lib/components/ui/separator';
-	import type { Notification, NotificationPreferences, User } from '$lib/types';
+	import { ToastComponent } from '$lib/components/ui/toast';
+	import type { User } from '$lib/types';
+	import axios from 'axios';
+	import { toast } from 'svelte-sonner';
 
-	const { data }: { data: { user: User; notifications: Notification } } = $props();
+	const { data }: { data: { user: User } } = $props();
 
 	let user = $state(data.user);
 
-	let notificationPreferences = $state<NotificationPreferences>({
-		dashboard: {
-			ticketCreated: true,
-			itemAssigned: true,
-			itemUpdated: true,
-			itemClosed: true
-		},
-		email: {
-			ticketCreated: false,
-			itemAssigned: true,
-			itemUpdated: false,
-			itemClosed: true
+	async function handleSave() {
+		try {
+			const response = await axios.patch('/api/preferences', { user });
+
+			if (response.status === 200) {
+				toast.success('Succesfully updated preferences.');
+				user = response.data.user;
+				return;
+			}
+
+			toast.error(ToastComponent, {
+				componentProps: {
+					title: response.data.message || 'Connection failed',
+					body: response.data.error || 'Unknown error'
+				}
+			});
+		} catch (error) {
+			if (axios.isAxiosError(error) && error.response) {
+				return toast.error(ToastComponent, {
+					componentProps: {
+						title: error.response.data.message || 'Connection failed',
+						body: error.response.data.error || 'Unknown error'
+					}
+				});
+			}
+
+			return toast.error(ToastComponent, {
+				componentProps: {
+					title: 'Request failed',
+					body: error instanceof Error ? error.message : 'Unknown error'
+				}
+			});
 		}
-	});
+	}
 </script>
 
 <div class="flex items-center justify-center p-10">
@@ -58,6 +81,7 @@
 								name="email"
 								placeholder="emma@company.com"
 								value={user.email}
+								disabled
 							/>
 						</Field.Set>
 					</div>
@@ -94,28 +118,28 @@
 							role="button"
 							tabindex="0"
 							onclick={() =>
-								(notificationPreferences.dashboard.ticketCreated =
-									!notificationPreferences.dashboard.ticketCreated)}
+								(user.notificationPreferences.dashboard.ticketCreated =
+									!user.notificationPreferences.dashboard.ticketCreated)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									notificationPreferences.dashboard.ticketCreated =
-										!notificationPreferences.dashboard.ticketCreated;
+									user.notificationPreferences.dashboard.ticketCreated =
+										!user.notificationPreferences.dashboard.ticketCreated;
 								}
 							}}
 						>
 							<Checkbox
 								id="new-ticket-dashboard"
 								name="new-ticket-dashboard"
-								bind:checked={notificationPreferences.dashboard.ticketCreated}
+								bind:checked={user.notificationPreferences.dashboard.ticketCreated}
 								onclick={() =>
-									(notificationPreferences.dashboard.ticketCreated =
-										!notificationPreferences.dashboard.ticketCreated)}
+									(user.notificationPreferences.dashboard.ticketCreated =
+										!user.notificationPreferences.dashboard.ticketCreated)}
 								onkeydown={(e) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										notificationPreferences.dashboard.ticketCreated =
-											!notificationPreferences.dashboard.ticketCreated;
+										user.notificationPreferences.dashboard.ticketCreated =
+											!user.notificationPreferences.dashboard.ticketCreated;
 									}
 								}}
 							/>
@@ -126,28 +150,28 @@
 							role="button"
 							tabindex="0"
 							onclick={() =>
-								(notificationPreferences.dashboard.itemAssigned =
-									!notificationPreferences.dashboard.itemAssigned)}
+								(user.notificationPreferences.dashboard.itemAssigned =
+									!user.notificationPreferences.dashboard.itemAssigned)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									notificationPreferences.dashboard.itemAssigned =
-										!notificationPreferences.dashboard.itemAssigned;
+									user.notificationPreferences.dashboard.itemAssigned =
+										!user.notificationPreferences.dashboard.itemAssigned;
 								}
 							}}
 						>
 							<Checkbox
 								id="item-assigned-dashboard"
 								name="item-assigned-dashboard"
-								bind:checked={notificationPreferences.dashboard.itemAssigned}
+								bind:checked={user.notificationPreferences.dashboard.itemAssigned}
 								onclick={() =>
-									(notificationPreferences.dashboard.itemAssigned =
-										!notificationPreferences.dashboard.itemAssigned)}
+									(user.notificationPreferences.dashboard.itemAssigned =
+										!user.notificationPreferences.dashboard.itemAssigned)}
 								onkeydown={(e) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										notificationPreferences.dashboard.itemAssigned =
-											!notificationPreferences.dashboard.itemAssigned;
+										user.notificationPreferences.dashboard.itemAssigned =
+											!user.notificationPreferences.dashboard.itemAssigned;
 									}
 								}}
 							/>
@@ -158,28 +182,28 @@
 							role="button"
 							tabindex="0"
 							onclick={() =>
-								(notificationPreferences.dashboard.itemUpdated =
-									!notificationPreferences.dashboard.itemUpdated)}
+								(user.notificationPreferences.dashboard.itemUpdated =
+									!user.notificationPreferences.dashboard.itemUpdated)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									notificationPreferences.dashboard.itemUpdated =
-										!notificationPreferences.dashboard.itemUpdated;
+									user.notificationPreferences.dashboard.itemUpdated =
+										!user.notificationPreferences.dashboard.itemUpdated;
 								}
 							}}
 						>
 							<Checkbox
 								id="item-updated-dashboard"
 								name="item-updated-dashboard"
-								bind:checked={notificationPreferences.dashboard.itemUpdated}
+								bind:checked={user.notificationPreferences.dashboard.itemUpdated}
 								onclick={() =>
-									(notificationPreferences.dashboard.itemUpdated =
-										!notificationPreferences.dashboard.itemUpdated)}
+									(user.notificationPreferences.dashboard.itemUpdated =
+										!user.notificationPreferences.dashboard.itemUpdated)}
 								onkeydown={(e) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										notificationPreferences.dashboard.itemUpdated =
-											!notificationPreferences.dashboard.itemUpdated;
+										user.notificationPreferences.dashboard.itemUpdated =
+											!user.notificationPreferences.dashboard.itemUpdated;
 									}
 								}}
 							/>
@@ -190,28 +214,28 @@
 							role="button"
 							tabindex="0"
 							onclick={() =>
-								(notificationPreferences.dashboard.itemClosed =
-									!notificationPreferences.dashboard.itemClosed)}
+								(user.notificationPreferences.dashboard.itemClosed =
+									!user.notificationPreferences.dashboard.itemClosed)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									notificationPreferences.dashboard.itemClosed =
-										!notificationPreferences.dashboard.itemClosed;
+									user.notificationPreferences.dashboard.itemClosed =
+										!user.notificationPreferences.dashboard.itemClosed;
 								}
 							}}
 						>
 							<Checkbox
 								id="item-closed-dashboard"
 								name="item-closed-dashboard"
-								bind:checked={notificationPreferences.dashboard.itemClosed}
+								bind:checked={user.notificationPreferences.dashboard.itemClosed}
 								onclick={() =>
-									(notificationPreferences.dashboard.itemClosed =
-										!notificationPreferences.dashboard.itemClosed)}
+									(user.notificationPreferences.dashboard.itemClosed =
+										!user.notificationPreferences.dashboard.itemClosed)}
 								onkeydown={(e) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										notificationPreferences.dashboard.itemClosed =
-											!notificationPreferences.dashboard.itemClosed;
+										user.notificationPreferences.dashboard.itemClosed =
+											!user.notificationPreferences.dashboard.itemClosed;
 									}
 								}}
 							/>
@@ -233,28 +257,28 @@
 							role="button"
 							tabindex="0"
 							onclick={() =>
-								(notificationPreferences.email.ticketCreated =
-									!notificationPreferences.email.ticketCreated)}
+								(user.notificationPreferences.email.ticketCreated =
+									!user.notificationPreferences.email.ticketCreated)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									notificationPreferences.email.ticketCreated =
-										!notificationPreferences.email.ticketCreated;
+									user.notificationPreferences.email.ticketCreated =
+										!user.notificationPreferences.email.ticketCreated;
 								}
 							}}
 						>
 							<Checkbox
 								id="new-ticket-email"
 								name="new-ticket-email"
-								bind:checked={notificationPreferences.email.ticketCreated}
+								bind:checked={user.notificationPreferences.email.ticketCreated}
 								onclick={() =>
-									(notificationPreferences.email.ticketCreated =
-										!notificationPreferences.email.ticketCreated)}
+									(user.notificationPreferences.email.ticketCreated =
+										!user.notificationPreferences.email.ticketCreated)}
 								onkeydown={(e) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										notificationPreferences.email.ticketCreated =
-											!notificationPreferences.email.ticketCreated;
+										user.notificationPreferences.email.ticketCreated =
+											!user.notificationPreferences.email.ticketCreated;
 									}
 								}}
 							/>
@@ -265,28 +289,28 @@
 							role="button"
 							tabindex="0"
 							onclick={() =>
-								(notificationPreferences.email.itemAssigned =
-									!notificationPreferences.email.itemAssigned)}
+								(user.notificationPreferences.email.itemAssigned =
+									!user.notificationPreferences.email.itemAssigned)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									notificationPreferences.email.itemAssigned =
-										!notificationPreferences.email.itemAssigned;
+									user.notificationPreferences.email.itemAssigned =
+										!user.notificationPreferences.email.itemAssigned;
 								}
 							}}
 						>
 							<Checkbox
 								id="item-assigned-email"
 								name="item-assigned-email"
-								bind:checked={notificationPreferences.email.itemAssigned}
+								bind:checked={user.notificationPreferences.email.itemAssigned}
 								onclick={() =>
-									(notificationPreferences.email.itemAssigned =
-										!notificationPreferences.email.itemAssigned)}
+									(user.notificationPreferences.email.itemAssigned =
+										!user.notificationPreferences.email.itemAssigned)}
 								onkeydown={(e) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										notificationPreferences.email.itemAssigned =
-											!notificationPreferences.email.itemAssigned;
+										user.notificationPreferences.email.itemAssigned =
+											!user.notificationPreferences.email.itemAssigned;
 									}
 								}}
 							/>
@@ -297,28 +321,28 @@
 							role="button"
 							tabindex="0"
 							onclick={() =>
-								(notificationPreferences.email.itemUpdated =
-									!notificationPreferences.email.itemUpdated)}
+								(user.notificationPreferences.email.itemUpdated =
+									!user.notificationPreferences.email.itemUpdated)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									notificationPreferences.email.itemUpdated =
-										!notificationPreferences.email.itemUpdated;
+									user.notificationPreferences.email.itemUpdated =
+										!user.notificationPreferences.email.itemUpdated;
 								}
 							}}
 						>
 							<Checkbox
 								id="item-updated-email"
 								name="item-updated-email"
-								bind:checked={notificationPreferences.email.itemUpdated}
+								bind:checked={user.notificationPreferences.email.itemUpdated}
 								onclick={() =>
-									(notificationPreferences.email.itemUpdated =
-										!notificationPreferences.email.itemUpdated)}
+									(user.notificationPreferences.email.itemUpdated =
+										!user.notificationPreferences.email.itemUpdated)}
 								onkeydown={(e) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										notificationPreferences.email.itemUpdated =
-											!notificationPreferences.email.itemUpdated;
+										user.notificationPreferences.email.itemUpdated =
+											!user.notificationPreferences.email.itemUpdated;
 									}
 								}}
 							/>
@@ -329,28 +353,28 @@
 							role="button"
 							tabindex="0"
 							onclick={() =>
-								(notificationPreferences.email.itemClosed =
-									!notificationPreferences.email.itemClosed)}
+								(user.notificationPreferences.email.itemClosed =
+									!user.notificationPreferences.email.itemClosed)}
 							onkeydown={(e) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									notificationPreferences.email.itemClosed =
-										!notificationPreferences.email.itemClosed;
+									user.notificationPreferences.email.itemClosed =
+										!user.notificationPreferences.email.itemClosed;
 								}
 							}}
 						>
 							<Checkbox
 								id="item-closed-email"
 								name="item-closed-email"
-								bind:checked={notificationPreferences.email.itemClosed}
+								bind:checked={user.notificationPreferences.email.itemClosed}
 								onclick={() =>
-									(notificationPreferences.email.itemClosed =
-										!notificationPreferences.email.itemClosed)}
+									(user.notificationPreferences.email.itemClosed =
+										!user.notificationPreferences.email.itemClosed)}
 								onkeydown={(e) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										notificationPreferences.email.itemClosed =
-											!notificationPreferences.email.itemClosed;
+										user.notificationPreferences.email.itemClosed =
+											!user.notificationPreferences.email.itemClosed;
 									}
 								}}
 							/>
@@ -365,7 +389,7 @@
 		<Separator class="my-8" />
 		<div class="flex items-center justify-end space-x-4">
 			<Button type="button" variant="outline" class="whitespace-nowrap">Go back</Button>
-			<Button type="submit" class="whitespace-nowrap">Save settings</Button>
+			<Button type="submit" class="whitespace-nowrap" onclick={handleSave}>Save settings</Button>
 		</div>
 	</form>
 </div>

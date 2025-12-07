@@ -35,4 +35,12 @@ export const auth = betterAuth({
       sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`)
     },
   },
+  user: {
+    additionalFields: {
+      notificationPreferences: {
+        type: "json",
+        required: false,
+      }
+    }
+  }
 })
