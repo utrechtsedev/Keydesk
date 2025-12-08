@@ -1,6 +1,5 @@
 <script>
 	import * as Card from '$lib/components/ui/card';
-	import * as Item from '$lib/components/ui/item';
 	import { page } from '$app/state';
 	import Organization from '$lib/icons/organization.svelte';
 	import Email from '$lib/icons/email.svelte';
@@ -14,7 +13,9 @@
 	import PriorityMedium2 from '$lib/icons/priority-medium-2.svelte';
 	import Wip from '$lib/icons/wip.svelte';
 	import Ticket from '$lib/icons/ticket.svelte';
+
 	const { children } = $props();
+
 	const routes = [
 		{
 			path: '/dashboard/settings/organization',
@@ -42,14 +43,14 @@
 			icon: GridSquareCirclePlus
 		},
 		{
-			path: '/dashboard/settings/holidays',
-			name: 'Holidays',
-			icon: UmbrellaBeach
-		},
-		{
 			path: '/dashboard/settings/attachments',
 			name: 'Attachments',
 			icon: FileClip
+		},
+		{
+			path: '/dashboard/settings/notifications',
+			name: 'Notifications',
+			icon: BellDot
 		},
 		{
 			path: '/dashboard/settings/business-hours',
@@ -57,14 +58,9 @@
 			icon: SuitcaseClock
 		},
 		{
-			path: '/dashboard/settings/categories',
-			name: 'Categories',
-			icon: Grid2
-		},
-		{
-			path: '/dashboard/settings/notifications',
-			name: 'Notifications',
-			icon: BellDot
+			path: '/dashboard/settings/holidays',
+			name: 'Holidays',
+			icon: UmbrellaBeach
 		},
 		{
 			path: '/dashboard/settings/priorities',
@@ -75,43 +71,38 @@
 			path: '/dashboard/settings/statuses',
 			name: 'Statuses',
 			icon: Wip
+		},
+		{
+			path: '/dashboard/settings/categories',
+			name: 'Categories',
+			icon: Grid2
 		}
 	];
 </script>
 
 <div class="flex flex-col gap-4 md:flex-row">
-	<Card.Root class="w-full self-start p-0 md:w-auto md:max-w-[300px] md:min-w-[250px]">
-		<Card.Content class="flex h-full p-0">
-			<div class="w-full space-y-2 py-4">
+	<Card.Root class="w-full self-start md:w-auto md:max-w-[300px] md:min-w-[250px]">
+		<Card.Content class="px-3">
+			<nav class="space-y-1">
 				{#each routes as route}
-					<a href={route.path}>
-						<Item.Root
-							class="mx-4 rounded-2xl px-1 py-2 {page.url.pathname === route.path
-								? 'bg-muted'
-								: ''}"
-							variant={page.url.pathname === route.path ? 'outline' : 'default'}
-						>
-							<Item.Media
-								class="ml-1 {page.url.pathname === route.path
-									? 'rounded-md border bg-input shadow-xl'
-									: ''} p-2"
-							>
-								<route.icon />
-							</Item.Media>
-							<Item.Content>
-								<Item.Title>{route.name}</Item.Title>
-							</Item.Content>
-						</Item.Root>
+					{@const isActive = page.url.pathname === route.path}
+					<a
+						href={route.path}
+						class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground {isActive
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground'}"
+					>
+						<route.icon class="h-5 w-5" />
+						<span class="font-bold">{route.name}</span>
 					</a>
 				{/each}
-			</div>
+			</nav>
 		</Card.Content>
 	</Card.Root>
-	<Card.Root class="w-full flex-1 py-4">
+
+	<Card.Root class="w-full flex-1">
 		<Card.Content class="p-0">
-			<div class="overflow-y-auto">
-				{@render children()}
-			</div>
+			{@render children()}
 		</Card.Content>
 	</Card.Root>
 </div>

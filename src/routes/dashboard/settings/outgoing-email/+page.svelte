@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
+	import { Separator } from '$lib/components/ui/separator';
 	import { toast } from 'svelte-sonner';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
@@ -93,101 +94,174 @@
 	});
 </script>
 
-<div class="flex flex-col">
-	<div class="flex justify-between px-4 pb-3">
-		<div>
-			<h1 class="text-2xl font-bold">Email Configuration</h1>
-			<p class="text-sm text-muted-foreground">Set your SMTP configuration</p>
+<div class="flex items-center justify-center p-10">
+	<form>
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Sender Information</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Configure the sender name and email address for outgoing emails.
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+					<div class="col-span-full sm:col-span-3">
+						<Field.Set class="gap-2">
+							<Field.Label>SMTP Sender Name</Field.Label>
+							<Input
+								id="smtp-name"
+								type="text"
+								placeholder="Acme Inc."
+								required
+								bind:value={smtp.senderName}
+							/>
+							<Field.Description>
+								The name that appears in the "From" field of emails
+							</Field.Description>
+						</Field.Set>
+					</div>
+					<div class="col-span-full sm:col-span-3">
+						<Field.Set class="gap-2">
+							<Field.Label>SMTP Sender Email</Field.Label>
+							<Input
+								id="smtp-sender"
+								type="email"
+								placeholder="user@example.com"
+								required
+								bind:value={smtp.senderEmail}
+							/>
+							<Field.Description>The email address used in the "From" field</Field.Description>
+						</Field.Set>
+					</div>
+				</div>
+			</div>
 		</div>
-		<div class="flex items-start gap-2">
-			<Button onclick={testConfiguration}>
-				Test
+
+		<Separator class="my-8" />
+
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">SMTP Server Settings</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Configure your SMTP server connection details.
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+					<div class="col-span-full sm:col-span-4">
+						<Field.Set class="gap-2">
+							<Field.Label>SMTP Host</Field.Label>
+							<Input
+								id="smtp-host"
+								type="text"
+								placeholder="localhost"
+								required
+								bind:value={smtp.host}
+							/>
+							<Field.Description>The hostname or IP address of your SMTP server</Field.Description>
+						</Field.Set>
+					</div>
+					<div class="col-span-full sm:col-span-2">
+						<Field.Set class="gap-2">
+							<Field.Label>SMTP Port</Field.Label>
+							<Input
+								id="smtp-port"
+								type="number"
+								placeholder="587"
+								required
+								bind:value={smtp.port}
+							/>
+							<Field.Description>Common ports: 587 (TLS), 465 (SSL)</Field.Description>
+						</Field.Set>
+					</div>
+					<div class="col-span-full">
+						<Field.Set class="gap-2">
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<Field.Label>Enable SSL</Field.Label>
+									<Field.Description>
+										Use SSL/TLS encryption for secure email transmission
+									</Field.Description>
+								</div>
+								<Switch id="smtp-ssl" bind:checked={smtp.SSL} />
+							</div>
+						</Field.Set>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<Separator class="my-8" />
+
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Authentication</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Configure SMTP authentication credentials if required by your server.
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+					<div class="col-span-full">
+						<Field.Set class="gap-2">
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<Field.Label>Enable Authentication</Field.Label>
+									<Field.Description>
+										Require username and password to connect to the SMTP server
+									</Field.Description>
+								</div>
+								<Switch id="smtp-authentication" bind:checked={smtp.enableAuthentication} />
+							</div>
+						</Field.Set>
+					</div>
+					<div class="col-span-full sm:col-span-3">
+						<Field.Set class="gap-2">
+							<Field.Label>SMTP Username</Field.Label>
+							<Input
+								id="smtp-username"
+								type="text"
+								placeholder="user@example.com"
+								required
+								bind:value={smtp.username}
+								disabled={!smtp.enableAuthentication}
+							/>
+							<Field.Description>Username for SMTP authentication</Field.Description>
+						</Field.Set>
+					</div>
+					<div class="col-span-full sm:col-span-3">
+						<Field.Set class="gap-2">
+							<Field.Label>SMTP Password</Field.Label>
+							<Input
+								id="smtp-password"
+								type="password"
+								placeholder="*********"
+								required
+								bind:value={smtp.password}
+								disabled={!smtp.enableAuthentication}
+							/>
+							<Field.Description>Password for SMTP authentication</Field.Description>
+						</Field.Set>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<Separator class="my-8" />
+
+		<div class="flex items-center justify-end space-x-4">
+			<Button
+				type="button"
+				variant="secondary"
+				class="whitespace-nowrap"
+				onclick={testConfiguration}
+			>
+				Test Connection
 				<Spinner class={testLoading} />
 			</Button>
-			<Button disabled={saveDisabled} onclick={handleNext}>Save</Button>
+			<Button type="button" class="whitespace-nowrap" disabled={saveDisabled} onclick={handleNext}>
+				Save settings
+			</Button>
 		</div>
-	</div>
-
-	<div class="grid">
-		<div class="flex justify-between border-y px-4 py-3">
-			<Label for="smtp-name" class="text-md">SMTP Sender Name</Label>
-			<Input
-				id="smtp-name"
-				type="text"
-				placeholder="Acme Inc."
-				required
-				bind:value={smtp.senderName}
-				class="w-[40%]"
-			/>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="smtp-sender" class="text-md">SMTP Sender Email</Label>
-			<Input
-				id="smtp-sender"
-				type="email"
-				placeholder="user@example.com"
-				required
-				bind:value={smtp.senderEmail}
-				class="w-[40%]"
-			/>
-		</div>
-
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="smtp-host" class="text-md">SMTP Host</Label>
-			<Input
-				id="smtp-host"
-				type="text"
-				placeholder="localhost"
-				required
-				bind:value={smtp.host}
-				class="w-[40%]"
-			/>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="smtp-port" class="text-md">SMTP Port</Label>
-			<Input
-				id="smtp-port"
-				type="number"
-				placeholder="587"
-				required
-				class="w-[15%]"
-				bind:value={smtp.port}
-			/>
-		</div>
-
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="smtp-ssl" class="text-md">Enable SSL</Label>
-			<Switch id="smtp-ssl" bind:checked={smtp.SSL} />
-		</div>
-
-		<div class="flex justify-between {smtp.enableAuthentication ? 'border-b' : ''} px-4 py-3">
-			<Label for="smtp-authentication" class="text-md">Enable Authentication</Label>
-			<Switch id="smtp-authentication" bind:checked={smtp.enableAuthentication} />
-		</div>
-
-		{#if smtp.enableAuthentication}
-			<div class="flex justify-between border-b px-4 py-3">
-				<Label for="smtp-username" class="text-md">SMTP Username</Label>
-				<Input
-					id="smtp-username"
-					type="text"
-					placeholder="user@example.com"
-					required
-					bind:value={smtp.username}
-					class="w-[40%]"
-				/>
-			</div>
-			<div class="flex justify-between px-4 py-3">
-				<Label for="smtp-password" class="text-md">SMTP Password</Label>
-				<Input
-					id="smtp-password"
-					type="password"
-					placeholder="*********"
-					required
-					bind:value={smtp.password}
-					class="w-[40%]"
-				/>
-			</div>
-		{/if}
-	</div>
+	</form>
 </div>

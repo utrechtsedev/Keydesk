@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
+	import { Separator } from '$lib/components/ui/separator';
 	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
@@ -50,12 +51,10 @@
 
 	async function handleSave() {
 		const response = await axios.post('/api/settings/business-hours', { businessHours });
-
 		if (response.status < 300) {
 			toast.success('Successfully saved business hours.');
 			return;
 		}
-
 		console.log(response.status, response.statusText);
 		return toast.error('Error saving configuration. Check browser console.');
 	}
@@ -66,34 +65,57 @@
 	});
 </script>
 
-<div class="flex flex-col">
-	<div class="flex justify-between px-4 pb-3">
-		<div>
-			<h1 class="text-2xl font-bold">Business Hours</h1>
-			<p class="text-sm text-muted-foreground">Set your support availability</p>
-		</div>
-		<Button onclick={handleSave}>Save</Button>
-	</div>
-
-	<div class="grid">
-		{#each Object.entries(businessHours.schedule) as [day, hours], index}
-			{@const isFirst = index === 0}
-			<div class="flex justify-between {isFirst ? 'border-y' : 'border-b'} px-4 py-3">
-				<div class="flex items-center gap-3">
-					<Label class="text-md w-24 font-medium capitalize">{day}</Label>
-					<Switch bind:checked={hours.enabled} />
-				</div>
-
-				{#if hours.enabled}
-					<div class="flex items-center gap-2">
-						<Input type="time" bind:value={hours.start} class="w-32" />
-						<span class="text-sm text-muted-foreground">to</span>
-						<Input type="time" bind:value={hours.end} class="w-32" />
-					</div>
-				{:else}
-					<span class="text-sm text-muted-foreground">Closed</span>
-				{/if}
+<div class="flex items-center justify-center p-10">
+	<form>
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Weekly Schedule</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Configure your support team's availability throughout the week. These hours will be used
+					for SLA calculations and customer expectations.
+				</p>
 			</div>
-		{/each}
-	</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="space-y-3">
+					{#each Object.entries(businessHours.schedule) as [day, hours]}
+						<div
+							class="flex min-h-[60px] items-center justify-between rounded-lg border bg-card p-4"
+						>
+							<div class="flex items-center gap-4">
+								<Field.Label class="w-28 text-base font-medium capitalize">{day}</Field.Label>
+								<div class="flex items-center gap-2">
+									<Switch bind:checked={hours.enabled} id="switch-{day}" />
+									<span class="text-sm text-muted-foreground">
+										{hours.enabled ? 'Open' : 'Closed'}
+									</span>
+								</div>
+							</div>
+							<div class="flex h-10 items-center">
+								{#if hours.enabled}
+									<div class="flex items-center gap-2">
+										<Input type="time" bind:value={hours.start} class="w-32" id="start-{day}" />
+										<span class="text-sm text-muted-foreground">to</span>
+										<Input type="time" bind:value={hours.end} class="w-32" id="end-{day}" />
+									</div>
+								{:else}
+									<span class="text-sm text-muted-foreground">Not available</span>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+				<Field.Description class="pt-2">
+					Times are displayed in your organization's timezone. Toggle each day to enable or disable
+					support hours.
+				</Field.Description>
+			</div>
+		</div>
+
+		<Separator class="my-8" />
+
+		<div class="flex items-center justify-end space-x-4">
+			<Button type="button" variant="outline" class="whitespace-nowrap">Cancel</Button>
+			<Button type="button" class="whitespace-nowrap" onclick={handleSave}>Save settings</Button>
+		</div>
+	</form>
 </div>
