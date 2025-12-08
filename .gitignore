@@ -25,3 +25,4 @@ vite.config.ts.timestamp-*
 #custom
 /uploads
 .DS_Store
+TODO.md

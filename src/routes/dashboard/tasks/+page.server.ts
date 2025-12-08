@@ -1,4 +1,4 @@
-import { Priority, Status, Task, User } from "$lib/server/db/models";
+import { Priority, Tag, Status, Task, User, Ticket } from "$lib/server/db/models";
 import { Op, type WhereOptions } from "sequelize";
 import type { PageServerLoad } from "./$types";
 
@@ -69,6 +69,18 @@ export const load: PageServerLoad = async ({ depends, locals, url }) => {
         as: 'priority'
       },
       {
+        model: Tag,
+        as: 'tags'
+      },
+      {
+        model: User,
+        as: 'creator'
+      },
+      {
+        model: Ticket,
+        as: 'ticket'
+      },
+      {
         model: Task,
         as: 'subtasks',
         required: false,
@@ -84,7 +96,19 @@ export const load: PageServerLoad = async ({ depends, locals, url }) => {
           {
             model: Priority,
             as: 'priority'
-          }
+          },
+          {
+            model: Tag,
+            as: 'tags'
+          },
+          {
+            model: User,
+            as: 'creator'
+          },
+          {
+            model: Ticket,
+            as: 'ticket'
+          },
         ]
       }
     ]
