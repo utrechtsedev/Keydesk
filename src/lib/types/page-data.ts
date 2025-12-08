@@ -1,7 +1,12 @@
 import type { TicketList } from "./ticket-list";
-import type { Category, Priority, Status, Tag, Task, User } from "./core";
+import type { Category, Priority, Status, Tag, Task, User, UserNotification } from "./core";
 
-export interface TicketPageData {
+export interface PageData {
+  user: User;
+  notifications: UserNotification[]
+}
+
+export interface TicketPageData extends PageData {
   tickets: TicketList[];
   pageCount: number;
   totalCount: number;
@@ -12,7 +17,7 @@ export interface TicketPageData {
   tags: Tag[];
 }
 
-export interface TaskPageData {
+export interface TaskPageData extends PageData {
   tasks: Task[];
   task?: Task;
   finishedTasks: Task[];

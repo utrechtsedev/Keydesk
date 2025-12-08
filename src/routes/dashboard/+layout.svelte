@@ -2,7 +2,7 @@
 	import AppSidebar from '$lib/components/sidebar/app-sidebar.svelte';
 	import TopNavbar from '$lib/components/sidebar/top-navbar.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import type { User, UserNotification } from '$lib/types';
+	import type { PageData } from '$lib/types';
 	import { onMount, type Snippet } from 'svelte';
 
 	let {
@@ -10,10 +10,7 @@
 		data
 	}: {
 		children: Snippet;
-		data: {
-			user: User;
-			notifications: UserNotification[];
-		};
+		data: PageData;
 	} = $props();
 
 	let open = $state(true);
