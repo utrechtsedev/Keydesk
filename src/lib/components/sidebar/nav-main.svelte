@@ -58,7 +58,7 @@
 										class="min-w-0 truncate text-left group-data-[collapsible=icon]:hidden"
 										onclick={() => goto('/dashboard/tickets')}
 									>
-										<span class="truncate">Tickets</span>
+										<span class="truncate text-sm">Tickets</span>
 									</button>
 									<button
 										type="button"
@@ -134,7 +134,7 @@
 										class="min-w-0 truncate text-left group-data-[collapsible=icon]:hidden"
 										onclick={() => goto('/dashboard/tasks')}
 									>
-										<span class="truncate">Task List</span>
+										<span class="truncate text-sm">Task List</span>
 									</button>
 									<button
 										type="button"
