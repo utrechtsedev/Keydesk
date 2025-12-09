@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field';
 	import { Switch } from '$lib/components/ui/switch';
+	import { Separator } from '$lib/components/ui/separator';
 	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
@@ -23,38 +24,117 @@
 		console.log(response.status, response.statusText);
 		return toast.error('Error saving configuration. Check browser console.');
 	}
+
 	onMount(async () => {
 		const { data } = await axios.get('/api/settings/portal');
-
 		if (data.data) portal = data.data;
 	});
 </script>
 
-<div class="flex flex-col">
-	<div class="flex justify-between px-4 pb-3">
-		<div>
-			<h1 class="text-2xl font-bold">Portal Settings</h1>
-			<p class="text-sm text-muted-foreground">Set your public portal configuration</p>
+<div class="flex items-center justify-center p-10">
+	<form>
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Portal Access</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Control access to your customer-facing support portal.
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+					<div class="col-span-full">
+						<Field.Set class="gap-2">
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<Field.Label>Enable Portal</Field.Label>
+									<Field.Description>
+										Allow customers to access the support portal and submit tickets
+									</Field.Description>
+								</div>
+								<Switch id="enable-portal" bind:checked={portal.enabled} />
+							</div>
+						</Field.Set>
+					</div>
+					<div class="col-span-full">
+						<Field.Set class="gap-2">
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<Field.Label>Enable Guest Tickets</Field.Label>
+									<Field.Description>
+										Allow users to submit tickets without creating an account
+									</Field.Description>
+								</div>
+								<Switch id="allow-guest-tickets" bind:checked={portal.allowGuestTickets} />
+							</div>
+						</Field.Set>
+					</div>
+				</div>
+			</div>
 		</div>
-		<Button onclick={handleNext}>Save</Button>
-	</div>
 
-	<div class="grid">
-		<div class="flex justify-between border-y px-4 py-3">
-			<Label for="enable-portal" class="text-md">Enable Portal:</Label>
-			<Switch id="enable-portal" bind:checked={portal.enabled} />
+		<Separator class="my-8" />
+
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Security</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Configure security and verification requirements for portal users.
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+					<div class="col-span-full">
+						<Field.Set class="gap-2">
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<Field.Label>Require Email Verification</Field.Label>
+									<Field.Description>
+										Users must verify their email address before accessing the portal
+									</Field.Description>
+								</div>
+								<Switch
+									id="require-email-verification"
+									bind:checked={portal.requireEmailVerification}
+								/>
+							</div>
+						</Field.Set>
+					</div>
+				</div>
+			</div>
 		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="allow-guest-tickets" class="text-md">Enable Guest Tickets:</Label>
-			<Switch id="allow-guest-tickets" bind:checked={portal.allowGuestTickets} />
+
+		<Separator class="my-8" />
+
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Features</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Enable or disable additional portal features for your customers.
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+					<div class="col-span-full">
+						<Field.Set class="gap-2">
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<Field.Label>Show Knowledge Base</Field.Label>
+									<Field.Description>
+										Display the knowledge base in the portal for self-service support
+									</Field.Description>
+								</div>
+								<Switch id="show-knowledge-base" bind:checked={portal.showKnowledgeBase} />
+							</div>
+						</Field.Set>
+					</div>
+				</div>
+			</div>
 		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="require-email-verification" class="text-md">Require Email Verification:</Label>
-			<Switch id="require-email-verification" bind:checked={portal.requireEmailVerification} />
+
+		<Separator class="my-8" />
+
+		<div class="flex items-center justify-end space-x-4">
+			<Button type="button" class="whitespace-nowrap" onclick={handleNext}>Save settings</Button>
 		</div>
-		<div class="flex justify-between px-4 py-3">
-			<Label for="show-knowlegde-base" class="text-md">Show Knowledge Base:</Label>
-			<Switch id="show-knowlegde-base" bind:checked={portal.showKnowledgeBase} />
-		</div>
-	</div>
+	</form>
 </div>

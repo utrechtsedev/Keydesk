@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
+	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
+	import { Separator } from '$lib/components/ui/separator';
 	import { toast } from 'svelte-sonner';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
@@ -17,7 +18,6 @@
 		password: '',
 		SSL: true
 	});
-
 	let saveDisabled = $state(true);
 	let testLoading = $state('hidden');
 
@@ -25,13 +25,11 @@
 		testLoading = '';
 		try {
 			const response = await axios.post('/api/settings/incoming-email/test', { imap });
-
 			if (response.data.success) {
 				saveDisabled = false;
 				testLoading = 'hidden';
 				return toast.success(response.data.message);
 			}
-
 			return toast.error(ToastComponent, {
 				componentProps: {
 					title: 'Test failed',
@@ -48,7 +46,6 @@
 					}
 				});
 			}
-
 			return toast.error(ToastComponent, {
 				componentProps: {
 					title: 'Request failed',
@@ -62,7 +59,6 @@
 		if (!imap.host || !imap.port || !imap.username || !imap.password) {
 			return toast.error('Please enter IMAP details.');
 		}
-
 		const response = await axios.post('/api/settings/incoming-email', { imap });
 		if (response.status < 300) {
 			toast.success('Succesfully saved IMAP settings.');
@@ -78,68 +74,116 @@
 	});
 </script>
 
-<div class="flex flex-col">
-	<div class="flex justify-between px-4 pb-3">
-		<div>
-			<h1 class="text-2xl font-bold">Email Configuration</h1>
-			<p class="text-sm text-muted-foreground">Set your IMAP configuration</p>
+<div class="flex items-center justify-center p-10">
+	<form>
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">IMAP Server Settings</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Configure your IMAP server connection to receive incoming emails.
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+					<div class="col-span-full sm:col-span-4">
+						<Field.Set class="gap-2">
+							<Field.Label>IMAP Host</Field.Label>
+							<Input
+								id="imap-host"
+								type="text"
+								placeholder="localhost"
+								required
+								bind:value={imap.host}
+							/>
+							<Field.Description>The hostname or IP address of your IMAP server</Field.Description>
+						</Field.Set>
+					</div>
+					<div class="col-span-full sm:col-span-2">
+						<Field.Set class="gap-2">
+							<Field.Label>IMAP Port</Field.Label>
+							<Input
+								id="imap-port"
+								type="number"
+								placeholder="993"
+								required
+								bind:value={imap.port}
+							/>
+							<Field.Description>Common ports: 993 (SSL), 143 (non-SSL)</Field.Description>
+						</Field.Set>
+					</div>
+					<div class="col-span-full">
+						<Field.Set class="gap-2">
+							<div class="flex items-center justify-between">
+								<div class="space-y-0.5">
+									<Field.Label>Enable SSL</Field.Label>
+									<Field.Description>
+										Use SSL/TLS encryption for secure email retrieval
+									</Field.Description>
+								</div>
+								<Switch id="imap-ssl" bind:checked={imap.SSL} />
+							</div>
+						</Field.Set>
+					</div>
+				</div>
+			</div>
 		</div>
-		<div class="flex items-start gap-2">
-			<Button onclick={testConfiguration}>
-				Test
+
+		<Separator class="my-8" />
+
+		<div class="grid grid-cols-1 gap-10 md:grid-cols-3">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Authentication</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Provide credentials to authenticate with your IMAP server.
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+					<div class="col-span-full sm:col-span-3">
+						<Field.Set class="gap-2">
+							<Field.Label>IMAP Username</Field.Label>
+							<Input
+								id="imap-username"
+								type="text"
+								placeholder="user@example.com"
+								required
+								bind:value={imap.username}
+							/>
+							<Field.Description>Username for IMAP authentication</Field.Description>
+						</Field.Set>
+					</div>
+					<div class="col-span-full sm:col-span-3">
+						<Field.Set class="gap-2">
+							<Field.Label>IMAP Password</Field.Label>
+							<Input
+								id="imap-password"
+								type="password"
+								placeholder="*********"
+								required
+								bind:value={imap.password}
+							/>
+							<Field.Description>Password for IMAP authentication</Field.Description>
+						</Field.Set>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<Separator class="my-8" />
+
+		<div class="flex items-center justify-end space-x-4">
+			<Button
+				type="button"
+				variant="secondary"
+				class="whitespace-nowrap"
+				onclick={testConfiguration}
+			>
+				Test Connection
 				<Spinner class={testLoading} />
 			</Button>
-			<Button disabled={saveDisabled} onclick={handleNext}>Save</Button>
+			<Button type="button" class="whitespace-nowrap" disabled={saveDisabled} onclick={handleNext}>
+				Save settings
+			</Button>
 		</div>
-	</div>
-	<div class="grid">
-		<div class="flex justify-between border-y px-4 py-3">
-			<Label for="IMAP-host" class="text-md">IMAP Host</Label>
-			<Input
-				id="imap-host"
-				type="text"
-				placeholder="localhost"
-				required
-				bind:value={imap.host}
-				class="w-[40%]"
-			/>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="imap-port" class="text-md">IMAP Port</Label>
-			<Input
-				id="imap-port"
-				type="number"
-				placeholder="993"
-				required
-				class="w-[15%]"
-				bind:value={imap.port}
-			/>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="imap-username" class="text-md">IMAP Username</Label>
-			<Input
-				id="imap-username"
-				type="text"
-				placeholder="user@example.com"
-				required
-				bind:value={imap.username}
-				class="w-[40%]"
-			/>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label for="imap-password" class="text-md">IMAP Password</Label>
-			<Input
-				id="imap-password"
-				type="password"
-				placeholder="*********"
-				required
-				bind:value={imap.password}
-				class="w-[40%]"
-			/>
-		</div>
-		<div class="flex justify-between px-4 py-3">
-			<Label for="imap-ssl" class="text-md">Enable SSL</Label>
-			<Switch id="imap-ssl" bind:checked={imap.SSL} />
-		</div>
-	</div>
+	</form>
 </div>

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
-	import { Switch } from '$lib/components/ui/switch';
+	import * as Field from '$lib/components/ui/field';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Separator } from '$lib/components/ui/separator';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -10,186 +11,213 @@
 	let notifications: NotificationSettings = $state({
 		dashboard: {
 			ticket: {
-				created: {
-					notifyAllUsers: true
-				},
-				assigned: {
-					notifyUser: true
-				},
-				updated: {
-					notifyUser: true
-				},
-				resolved: {
-					notifyUser: true
-				},
-				closed: {
-					notifyUser: true
-				}
+				created: { notifyAllUsers: true },
+				assigned: { notifyUser: true },
+				updated: { notifyUser: true },
+				resolved: { notifyUser: true },
+				closed: { notifyUser: true }
 			}
 		},
 		email: {
 			ticket: {
-				created: {
-					notifyAllUsers: true,
-					notifyRequester: true
-				},
-				assigned: {
-					notifyUser: true,
-					notifyRequester: true
-				},
-				updated: {
-					notifyUser: true,
-					notifyRequester: true
-				},
-				resolved: {
-					notifyUser: true,
-					notifyRequester: true
-				},
-				closed: {
-					notifyUser: true,
-					notifyRequester: true
-				}
+				created: { notifyAllUsers: true, notifyRequester: true },
+				assigned: { notifyUser: true, notifyRequester: true },
+				updated: { notifyUser: true, notifyRequester: true },
+				resolved: { notifyUser: true, notifyRequester: true },
+				closed: { notifyUser: true, notifyRequester: true }
 			}
 		}
 	});
 
+	type DashboardEventKey = 'created' | 'assigned' | 'updated' | 'resolved' | 'closed';
+	type DashboardOptionKey = 'notifyAllUsers' | 'notifyUser';
+	type EmailEventKey = 'created' | 'assigned' | 'updated' | 'resolved' | 'closed';
+	type EmailOptionKey = 'notifyRequester' | 'notifyAllUsers' | 'notifyUser';
+
+	const dashboardEvents: {
+		key: DashboardEventKey;
+		title: string;
+		options: { key: DashboardOptionKey; label: string }[];
+	}[] = [
+		{
+			key: 'created',
+			title: 'Ticket Created',
+			options: [{ key: 'notifyAllUsers', label: 'Notify all agents' }]
+		},
+		{
+			key: 'assigned',
+			title: 'Ticket Assigned',
+			options: [{ key: 'notifyUser', label: 'Notify assigned agent' }]
+		},
+		{
+			key: 'updated',
+			title: 'Ticket Updated',
+			options: [{ key: 'notifyUser', label: 'Notify assigned agent' }]
+		},
+		{
+			key: 'resolved',
+			title: 'Ticket Resolved',
+			options: [{ key: 'notifyUser', label: 'Notify assigned agent' }]
+		},
+		{
+			key: 'closed',
+			title: 'Ticket Closed',
+			options: [{ key: 'notifyUser', label: 'Notify assigned agent' }]
+		}
+	];
+
+	const emailEvents: {
+		key: EmailEventKey;
+		title: string;
+		options: { key: EmailOptionKey; label: string }[];
+	}[] = [
+		{
+			key: 'created',
+			title: 'Ticket Created',
+			options: [
+				{ key: 'notifyRequester', label: 'Notify customer' },
+				{ key: 'notifyAllUsers', label: 'Notify all agents' }
+			]
+		},
+		{
+			key: 'assigned',
+			title: 'Ticket Assigned',
+			options: [
+				{ key: 'notifyRequester', label: 'Notify customer' },
+				{ key: 'notifyUser', label: 'Notify assigned agent' }
+			]
+		},
+		{
+			key: 'updated',
+			title: 'Ticket Updated',
+			options: [
+				{ key: 'notifyRequester', label: 'Notify customer' },
+				{ key: 'notifyUser', label: 'Notify assigned agent' }
+			]
+		},
+		{
+			key: 'resolved',
+			title: 'Ticket Resolved',
+			options: [
+				{ key: 'notifyRequester', label: 'Notify customer' },
+				{ key: 'notifyUser', label: 'Notify assigned agent' }
+			]
+		},
+		{
+			key: 'closed',
+			title: 'Ticket Closed',
+			options: [
+				{ key: 'notifyRequester', label: 'Notify customer' },
+				{ key: 'notifyUser', label: 'Notify assigned agent' }
+			]
+		}
+	];
+
 	async function handleSave() {
 		const response = await axios.post('/api/settings/notifications', { notifications });
-
 		if (response.status < 300) {
 			toast.success('Successfully saved notification settings.');
 			return;
 		}
-
 		console.log(response.status, response.statusText);
 		return toast.error('Error saving configuration. Check browser console.');
 	}
 
 	onMount(async () => {
 		const { data } = await axios.get('/api/settings/notifications');
-
 		if (data.data) notifications = data.data;
 	});
 </script>
 
-<div class="flex flex-col">
-	<div class="flex justify-between px-4 pb-3">
-		<div>
-			<h1 class="text-2xl font-bold">Notification Settings</h1>
-			<p class="text-sm text-muted-foreground">Configure notification preferences</p>
-		</div>
-		<Button onclick={handleSave}>Save</Button>
-	</div>
-
-	<div class="grid">
-		<div class="border-y bg-primary/10 px-4 py-3">
-			<h2 class="text-lg font-bold">Dashboard Notifications</h2>
-			<p class="text-xs text-muted-foreground">In-app notifications for agents</p>
-		</div>
-
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Created</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify All Agents</Label>
-			<Switch bind:checked={notifications.dashboard.ticket.created.notifyAllUsers} />
-		</div>
-
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Assigned</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent</Label>
-			<Switch bind:checked={notifications.dashboard.ticket.assigned.notifyUser} />
-		</div>
-
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Updated</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent</Label>
-			<Switch bind:checked={notifications.dashboard.ticket.updated.notifyUser} />
-		</div>
-
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Resolved</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent</Label>
-			<Switch bind:checked={notifications.dashboard.ticket.resolved.notifyUser} />
+<div class="flex items-center justify-center p-4 sm:p-10">
+	<form class="w-full">
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-10">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Dashboard Notifications</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					In-app notifications for agents
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="space-y-3">
+					{#each dashboardEvents as event}
+						<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+							<span class="text-sm font-medium">{event.title}</span>
+							<div class="flex w-full items-center gap-4 sm:w-[190px] sm:gap-6">
+								{#each event.options as option}
+									<div class="flex shrink-0 items-center gap-2">
+										<Checkbox
+											id="dashboard-{event.key}-{option.key}"
+											bind:checked={
+												notifications.dashboard.ticket[event.key][
+													option.key as keyof (typeof notifications.dashboard.ticket)[typeof event.key]
+												]
+											}
+										/>
+										<Field.Label
+											for="dashboard-{event.key}-{option.key}"
+											class="font-normal whitespace-nowrap"
+										>
+											{option.label}
+										</Field.Label>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
 		</div>
 
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Closed</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent</Label>
-			<Switch bind:checked={notifications.dashboard.ticket.closed.notifyUser} />
+		<Separator class="my-6 sm:my-8" />
+
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-10">
+			<div>
+				<h2 class="font-semibold text-foreground dark:text-foreground">Email Notifications</h2>
+				<p class="mt-1 text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
+					Email alerts for agents and customers
+				</p>
+			</div>
+			<div class="sm:max-w-3xl md:col-span-2">
+				<div class="space-y-3">
+					{#each emailEvents as event}
+						<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+							<span class="text-sm font-medium">{event.title}</span>
+							<div class="flex w-full flex-wrap items-center gap-4 sm:w-[340px] sm:gap-6">
+								{#each event.options as option}
+									<div class="flex shrink-0 items-center gap-2">
+										<Checkbox
+											id="email-{event.key}-{option.key}"
+											bind:checked={
+												notifications.email.ticket[event.key][
+													option.key as keyof (typeof notifications.email.ticket)[typeof event.key]
+												]
+											}
+										/>
+										<Field.Label
+											for="email-{event.key}-{option.key}"
+											class="font-normal whitespace-nowrap"
+										>
+											{option.label}
+										</Field.Label>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
 		</div>
 
-		<div class="border-y bg-primary/10 px-4 py-3">
-			<h2 class="text-lg font-bold">Email Notifications</h2>
-			<p class="text-xs text-muted-foreground">Email alerts for agents and customers</p>
-		</div>
+		<Separator class="my-6 sm:my-8" />
 
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Created</span>
+		<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end sm:space-x-4">
+			<Button type="button" variant="outline" class="w-full whitespace-nowrap sm:w-auto">
+				Cancel
+			</Button>
+			<Button type="button" class="w-full whitespace-nowrap sm:w-auto" onclick={handleSave}>
+				Save settings
+			</Button>
 		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer</Label>
-			<Switch bind:checked={notifications.email.ticket.created.notifyRequester} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify All Agents</Label>
-			<Switch bind:checked={notifications.email.ticket.created.notifyAllUsers} />
-		</div>
-
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Assigned</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer</Label>
-			<Switch bind:checked={notifications.email.ticket.assigned.notifyRequester} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent</Label>
-			<Switch bind:checked={notifications.email.ticket.assigned.notifyUser} />
-		</div>
-
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Updated</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer</Label>
-			<Switch bind:checked={notifications.email.ticket.updated.notifyRequester} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent</Label>
-			<Switch bind:checked={notifications.email.ticket.updated.notifyUser} />
-		</div>
-
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Resolved</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer</Label>
-			<Switch bind:checked={notifications.email.ticket.resolved.notifyRequester} />
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent</Label>
-			<Switch bind:checked={notifications.email.ticket.resolved.notifyUser} />
-		</div>
-
-		<div class="border-b bg-muted/50 px-4 py-2">
-			<span class="text-sm font-semibold">When Ticket is Closed</span>
-		</div>
-		<div class="flex justify-between border-b px-4 py-3">
-			<Label class="text-md font-normal">Notify Customer</Label>
-			<Switch bind:checked={notifications.email.ticket.closed.notifyRequester} />
-		</div>
-		<div class="flex justify-between px-4 py-3">
-			<Label class="text-md font-normal">Notify Assigned Agent</Label>
-			<Switch bind:checked={notifications.email.ticket.closed.notifyUser} />
-		</div>
-	</div>
+	</form>
 </div>
