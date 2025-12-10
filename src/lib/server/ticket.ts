@@ -1,48 +1,66 @@
-import type { Transaction } from "sequelize";
-import { sequelize } from "$lib/server/db/instance";
-import { Config, Ticket } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import type { TicketConfig } from "$lib/types";
+import { eq, desc } from "drizzle-orm";
+import type { PgTransaction } from "drizzle-orm/pg-core";
+import type { PostgresJsQueryResultHKT } from "drizzle-orm/postgres-js";
+
+type DrizzleTransaction = PgTransaction<
+  PostgresJsQueryResultHKT,
+  typeof schema,
+  any
+>;
 
 export async function getTicketPrefix(): Promise<string> {
-  const ticketPrefix = await Config.findOne({ where: { key: 'tickets' } })
+  const [ticketConfig] = await db
+    .select()
+    .from(schema.config)
+    .where(eq(schema.config.key, 'tickets'));
 
-  if (!ticketPrefix) return 'TKT-'
+  if (!ticketConfig) return 'TKT-';
 
-  return ticketPrefix.value.ticketPrefix
+  const configValue = ticketConfig.value as TicketConfig;
+  return configValue.ticketPrefix;
 }
 
-export async function generateTicketNumber(transaction?: Transaction): Promise<string> {
-  const t = transaction || await sequelize.transaction();
-  const shouldCommit = !transaction;
+export async function generateTicketNumber(tx?: DrizzleTransaction): Promise<string> {
+  const database = tx || db;
 
   try {
-    const lastTicket = await Ticket.findOne({
-      attributes: ['ticketNumber'],
-      order: [['id', 'DESC']],
-      lock: t.LOCK.UPDATE,
-      transaction: t,
-    });
+    // Get the last ticket with row locking
+    const [lastTicket] = await database
+      .select({ ticketNumber: schema.ticket.ticketNumber })
+      .from(schema.ticket)
+      .orderBy(desc(schema.ticket.id))
+      .limit(1)
+      .for('update');
 
     let nextNumber: number;
-    const startTicketingAt = await Config.findOne({ where: { key: "tickets" } })
+
+    // Get starting ticket number from config
+    const [startTicketingAt] = await database
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, "tickets"));
 
     if (!startTicketingAt) {
-      nextNumber = 1
+      nextNumber = 1;
     } else {
-      nextNumber = startTicketingAt.value.nextTicketNumber
+      const configValue = startTicketingAt.value as TicketConfig;
+      nextNumber = configValue.nextTicketNumber;
     }
 
+    // Extract number from last ticket if it exists
     if (lastTicket?.ticketNumber) {
       const match = lastTicket.ticketNumber.match(/\d+/);
       if (match) nextNumber = parseInt(match[0]) + 1;
     }
 
-    const ticketNumber = `${await getTicketPrefix()}${String(nextNumber).padStart(5, '0')}`;
+    const prefix = await getTicketPrefix();
+    const ticketNumber = `${prefix}${String(nextNumber).padStart(5, '0')}`;
 
-    if (shouldCommit) await t.commit();
     return ticketNumber;
   } catch (error) {
-    if (shouldCommit) await t.rollback();
     throw error;
   }
 }
-
