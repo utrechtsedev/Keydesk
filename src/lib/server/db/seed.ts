@@ -1,17 +1,20 @@
-import { models } from "./models/index.js";
-import { v4 as uuidv4 } from "uuid";
-import type { User } from "./models/user.model.js";
-import type { Requester } from "./models/requester.model.js";
-import type { Status } from "./models/status.model.js";
-import type { Priority } from "./models/priority.model.js";
-import type { Category } from "./models/category.model.js";
-import type { Tag } from "./models/tag.model.js";
-import type { Notification } from "./models/notification.model.js";
-import type { Ticket } from "./models/ticket.model.js";
-import type { Task } from "./models/task.model.js";
+import { db } from "./database.js";
+import { sql } from "drizzle-orm";
+import * as schema from "./schema/index.js";
+import type {
+  User,
+  Requester,
+  Status,
+  Priority,
+  Category,
+  Tag,
+  Notification,
+  Ticket,
+  Task,
+} from "./schema/index.js";
 
 /**
- * Advanced Database Seeder for Ticket System
+ * Advanced Database Seeder for Ticket System with Drizzle ORM
  * 
  * Usage:
  * - Default: tsx seed-database.ts
@@ -314,21 +317,17 @@ class DatabaseSeeder {
     this.log("Cleaning user data from database...");
 
     try {
-      await models.UserNotification.destroy({ where: {}, truncate: true, cascade: true });
-      await models.Notification.destroy({ where: {}, truncate: true, cascade: true });
-      await models.TicketAttachment.destroy({ where: {}, truncate: true, cascade: true });
-      await models.TicketMessage.destroy({ where: {}, truncate: true, cascade: true });
-      await models.Ticket.destroy({ where: {}, truncate: true, cascade: true });
-      await models.Requester.destroy({ where: {}, truncate: true, cascade: true });
-      await models.User.destroy({ where: {}, truncate: true, cascade: true });
-
-      if (models.Task) {
-        await models.Task.destroy({ where: {}, truncate: true, cascade: true });
-      }
-
-      if (models.Tag) {
-        await models.Tag.destroy({ where: {}, truncate: true, cascade: true });
-      }
+      await db.delete(schema.userNotification);
+      await db.delete(schema.notification);
+      await db.delete(schema.ticketAttachment);
+      await db.delete(schema.ticketMessage);
+      await db.delete(schema.taskTag);
+      await db.delete(schema.ticketTag);
+      await db.delete(schema.task);
+      await db.delete(schema.ticket);
+      await db.delete(schema.tag);
+      await db.delete(schema.requester);
+      await db.delete(schema.user);
 
       this.log("✓ User data cleaned successfully");
     } catch (error) {
@@ -341,18 +340,18 @@ class DatabaseSeeder {
     this.log("Fetching existing statuses, priorities, and categories...");
 
     try {
-      this.existingStatuses = await models.Status.findAll();
-      this.existingPriorities = await models.Priority.findAll();
-      this.existingCategories = await models.Category.findAll();
+      this.existingStatuses = await db.select().from(schema.status);
+      this.existingPriorities = await db.select().from(schema.priority);
+      this.existingCategories = await db.select().from(schema.category);
 
       if (this.existingStatuses.length === 0) {
-        throw new Error("No statuses found in database. Please create statuses first.");
+        throw new Error("No statuses found in database. Please run 'tsx seed-base-data.ts' first to create base data.");
       }
       if (this.existingPriorities.length === 0) {
-        throw new Error("No priorities found in database. Please create priorities first.");
+        throw new Error("No priorities found in database. Please run 'tsx seed-base-data.ts' first to create base data.");
       }
       if (this.existingCategories.length === 0) {
-        throw new Error("No categories found in database. Please create categories first.");
+        throw new Error("No categories found in database. Please run 'tsx seed-base-data.ts' first to create base data.");
       }
 
       this.log(`✓ Found ${this.existingStatuses.length} statuses, ${this.existingPriorities.length} priorities, ${this.existingCategories.length} categories`);
@@ -371,23 +370,21 @@ class DatabaseSeeder {
       "integration", "performance", "security", "documentation",
     ];
 
-    if (models.Tag) {
-      for (const tagName of tags) {
-        const created = await models.Tag.create({
-          name: tagName,
-        });
-        this.createdTags.push(created);
-      }
+    for (const tagName of tags) {
+      const [created] = await db.insert(schema.tag).values({
+        name: tagName,
+      }).returning();
 
-      this.log(`✓ Created ${this.createdTags.length} tags`);
+      this.createdTags.push(created);
     }
+
+    this.log(`✓ Created ${this.createdTags.length} tags`);
   }
 
   private async createUsers(): Promise<void> {
     this.log(`Creating ${this.options.userCount} users...`);
 
     const { firstNames, lastNames } = this.getDutchNames();
-    const departments = ["Technical Support", "Billing", "Product", "Customer Success"];
 
     for (let i = 0; i < this.options.userCount; i++) {
       const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
@@ -395,18 +392,16 @@ class DatabaseSeeder {
       const name = `${firstName} ${lastName}`;
       const email = `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/\s/g, '')}@company.nl`;
 
-      const user = await models.User.create({
-        id: uuidv4(),
+      const [user] = await db.insert(schema.user).values({
         name,
         email,
         emailVerified: true,
         image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
-        department: departments[Math.floor(Math.random() * departments.length)],
         role: i === 0 ? "admin" : "user",
         banned: false,
         banReason: null,
         banExpires: null,
-      });
+      }).returning();
 
       this.createdUsers.push(user);
     }
@@ -428,11 +423,11 @@ class DatabaseSeeder {
       const email = `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/\s/g, '')}@${company}`;
       const hasPhone = Math.random() > 0.3;
 
-      const requester = await models.Requester.create({
+      const [requester] = await db.insert(schema.requester).values({
         name,
         email,
         phone: hasPhone ? `+31 ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 9000000 + 1000000)}` : null,
-      });
+      }).returning();
 
       this.createdRequesters.push(requester);
     }
@@ -463,7 +458,7 @@ class DatabaseSeeder {
     const subjects = this.getSampleSubjects();
     const descriptions = this.getSampleDescriptions();
     const messages = this.getSampleMessages();
-    const ticketChannels: ("email" | "portal" | "user")[] = ["email", "portal", "user"];
+    const ticketChannels: ("email" | "portal" | "user" | "dashboard")[] = ["email", "portal", "user", "dashboard"];
     const messageChannels: ("email" | "portal" | "system" | "api" | "dashboard")[] = ["email", "portal", "dashboard"];
 
     let ticketsCreated = 0;
@@ -495,7 +490,7 @@ class DatabaseSeeder {
           priority.name === "Medium" ? 24 : 48;
       targetDate.setHours(targetDate.getHours() + hoursToAdd);
 
-      const ticket = await models.Ticket.create({
+      const [ticket] = await db.insert(schema.ticket).values({
         ticketNumber: `TKT-${String(i + 1).padStart(4, '0')}`,
         requesterId: requester.id,
         assignedUserId: assignedUser?.id || null,
@@ -508,12 +503,12 @@ class DatabaseSeeder {
         responseCount: 1,
         createdAt,
         updatedAt: createdAt,
-      });
+      }).returning();
 
       this.createdTickets.push(ticket);
 
       let messageCount = 0;
-      const firstMessage = await models.TicketMessage.create({
+      const [firstMessage] = await db.insert(schema.ticketMessage).values({
         ticketId: ticket.id,
         senderType: "requester",
         requesterId: requester.id,
@@ -527,7 +522,7 @@ class DatabaseSeeder {
         hasAttachments: !this.options.quick && Math.random() > 0.7,
         createdAt,
         updatedAt: createdAt,
-      });
+      }).returning();
       messageCount++;
 
       if (firstMessage.hasAttachments && !this.options.quick) {
@@ -546,6 +541,19 @@ class DatabaseSeeder {
         );
       }
 
+      // Add tags to ticket (30% chance)
+      if (Math.random() > 0.7 && this.createdTags.length > 0) {
+        const numTags = Math.floor(Math.random() * 3) + 1;
+        const tags = this.shuffleArray([...this.createdTags]).slice(0, numTags);
+
+        await db.insert(schema.ticketTag).values(
+          tags.map(tag => ({
+            ticketId: ticket.id,
+            tagId: tag.id,
+          }))
+        );
+      }
+
       if (status.name !== "New" && !this.options.quick) {
         const numMessages = Math.floor(Math.random() * 5) + 2;
         let currentDate = new Date(createdAt);
@@ -556,7 +564,7 @@ class DatabaseSeeder {
           currentDate = new Date(currentDate.getTime() + (Math.random() * 4 + 1) * 60 * 60 * 1000);
 
           if (isUser && assignedUser) {
-            const userMessage = await models.TicketMessage.create({
+            const [userMessage] = await db.insert(schema.ticketMessage).values({
               ticketId: ticket.id,
               senderType: "user",
               requesterId: null,
@@ -570,21 +578,25 @@ class DatabaseSeeder {
               hasAttachments: Math.random() > 0.9,
               createdAt: currentDate,
               updatedAt: currentDate,
-            });
+            }).returning();
 
             if (isFirstResponse) {
               isFirstResponse = false;
-              await ticket.update({ firstResponseAt: currentDate });
+              await db.update(schema.ticket)
+                .set({ firstResponseAt: currentDate })
+                .where(sql`${schema.ticket.id} = ${ticket.id}`);
             }
 
-            await ticket.update({ lastUserResponseAt: currentDate });
+            await db.update(schema.ticket)
+              .set({ lastUserResponseAt: currentDate })
+              .where(sql`${schema.ticket.id} = ${ticket.id}`);
             messageCount++;
 
             if (userMessage.hasAttachments) {
               await this.createAttachments(ticket.id, userMessage.id, assignedUser, "user", currentDate);
             }
           } else {
-            const requesterMessage = await models.TicketMessage.create({
+            await db.insert(schema.ticketMessage).values({
               ticketId: ticket.id,
               senderType: "requester",
               requesterId: requester.id,
@@ -598,9 +610,11 @@ class DatabaseSeeder {
               hasAttachments: false,
               createdAt: currentDate,
               updatedAt: currentDate,
-            });
+            }).returning();
 
-            await ticket.update({ lastRequesterResponseAt: currentDate });
+            await db.update(schema.ticket)
+              .set({ lastRequesterResponseAt: currentDate })
+              .where(sql`${schema.ticket.id} = ${ticket.id}`);
             messageCount++;
 
             if (assignedUser && Math.random() > 0.5) {
@@ -617,16 +631,20 @@ class DatabaseSeeder {
           }
         }
 
-        await ticket.update({
-          responseCount: messageCount,
-          updatedAt: currentDate,
-        });
+        await db.update(schema.ticket)
+          .set({
+            responseCount: messageCount,
+            updatedAt: currentDate,
+          })
+          .where(sql`${schema.ticket.id} = ${ticket.id}`);
 
         if (["Resolved", "Closed"].includes(status.name)) {
-          await ticket.update({
-            resolvedAt: currentDate,
-            closedAt: status.name === "Closed" ? currentDate : null,
-          });
+          await db.update(schema.ticket)
+            .set({
+              resolvedAt: currentDate,
+              closedAt: status.name === "Closed" ? currentDate : null,
+            })
+            .where(sql`${schema.ticket.id} = ${ticket.id}`);
 
           if (assignedUser) {
             await this.createTicketNotification(
@@ -689,10 +707,10 @@ class DatabaseSeeder {
     for (let i = 0; i < numAttachments; i++) {
       const fileType = this.getRandomElement(fileTypes);
       const fileName = this.getRandomElement(fileNames);
-      const hashedName = uuidv4().replace(/-/g, '');
+      const hashedName = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       const fileSize = Math.floor(Math.random() * (fileType.maxSize - fileType.minSize)) + fileType.minSize;
 
-      await models.TicketAttachment.create({
+      await db.insert(schema.ticketAttachment).values({
         ticketId: ticketId,
         messageId: messageId,
         fileName: `${hashedName}.${fileType.ext}`,
@@ -701,7 +719,7 @@ class DatabaseSeeder {
         fileSize: fileSize,
         mimeType: fileType.mime,
         uploadedByType: uploaderType,
-        uploadedById: String(uploader.id),
+        uploadedById: uploader.id,
         uploadedByName: uploader.name || "Unknown",
         downloadCount: Math.floor(Math.random() * 5),
         createdAt,
@@ -719,7 +737,7 @@ class DatabaseSeeder {
     recipients: User[],
     createdAt: Date
   ): Promise<void> {
-    const notification = await models.Notification.create({
+    const [notification] = await db.insert(schema.notification).values({
       title,
       message,
       type,
@@ -730,7 +748,7 @@ class DatabaseSeeder {
       createdById: null,
       createdAt,
       updatedAt: createdAt,
-    });
+    }).returning();
 
     this.createdNotifications.push(notification);
 
@@ -738,7 +756,7 @@ class DatabaseSeeder {
       const shouldSendEmail = channel === "email";
       const emailSent = shouldSendEmail && Math.random() > 0.1;
 
-      await models.UserNotification.create({
+      await db.insert(schema.userNotification).values({
         notificationId: notification.id,
         userId: user.id,
         isRead: Math.random() > 0.6,
@@ -770,7 +788,7 @@ class DatabaseSeeder {
       message = message.replace("{feature}", ["Advanced Search", "Bulk Actions", "Custom Fields", "Email Templates"][Math.floor(Math.random() * 4)]);
       message = message.replace("{count}", String(Math.floor(Math.random() * 20) + 5));
 
-      const notification = await models.Notification.create({
+      const [notification] = await db.insert(schema.notification).values({
         title: template.title,
         message,
         type: template.type,
@@ -781,7 +799,7 @@ class DatabaseSeeder {
         createdById: null,
         createdAt,
         updatedAt: createdAt,
-      });
+      }).returning();
 
       this.createdNotifications.push(notification);
 
@@ -792,7 +810,7 @@ class DatabaseSeeder {
         const shouldSendEmail = template.channel === "email";
         const emailSent = shouldSendEmail && Math.random() > 0.05;
 
-        await models.UserNotification.create({
+        await db.insert(schema.userNotification).values({
           notificationId: notification.id,
           userId: user.id,
           isRead: Math.random() > 0.5,
@@ -812,11 +830,6 @@ class DatabaseSeeder {
   }
 
   private async createTasks(): Promise<void> {
-    if (!models.Task) {
-      this.log("⚠ Task model not found, skipping task creation");
-      return;
-    }
-
     this.log(`Creating tasks for users...`);
 
     const titles = this.getSampleTaskTitles();
@@ -868,7 +881,7 @@ class DatabaseSeeder {
       // Assign a single user (mandatory)
       const assignee = this.getRandomElement(this.createdUsers);
 
-      const task = await models.Task.create({
+      const [task] = await db.insert(schema.task).values({
         title,
         description,
         ticketId: ticket?.id || null,
@@ -883,7 +896,7 @@ class DatabaseSeeder {
         position: i,
         createdAt,
         updatedAt: completedAt || createdAt,
-      });
+      }).returning();
 
       this.createdTasks.push(task);
       rootTasks.push(task);
@@ -892,7 +905,13 @@ class DatabaseSeeder {
       if (Math.random() > 0.6 && this.createdTags.length > 0) {
         const numTags = Math.floor(Math.random() * 3) + 1;
         const tags = this.shuffleArray([...this.createdTags]).slice(0, numTags);
-        await task.setTags(tags);
+
+        await db.insert(schema.taskTag).values(
+          tags.map(tag => ({
+            taskId: task.id,
+            tagId: tag.id,
+          }))
+        );
       }
 
       tasksCreated++;
@@ -917,7 +936,7 @@ class DatabaseSeeder {
         const createdAt = new Date(parentTask.createdAt.getTime() + subtaskAge * 24 * 60 * 60 * 1000);
 
         const status = this.getRandomElement(this.existingStatuses);
-        const priority = parentTask.priority || this.getRandomElement(this.existingPriorities);
+        const priority = this.getRandomElement(this.existingPriorities);
 
         const subtaskTitle = this.getRandomElement(subtaskTitles);
 
@@ -934,16 +953,13 @@ class DatabaseSeeder {
           completedAt.setDate(completedAt.getDate() + Math.floor(Math.random() * 5) + 1);
         }
 
-        // Subtasks inherit parent assignee (mandatory)
-        const assignee = parentTask.assigneeId;
-
-        const subtask = await models.Task.create({
+        const [subtask] = await db.insert(schema.task).values({
           title: subtaskTitle,
           description: null,
           ticketId: parentTask.ticketId,
           parentTaskId: parentTask.id,
           createdById: parentTask.createdById,
-          assigneeId: assignee,
+          assigneeId: parentTask.assigneeId,
           statusId: status.id,
           priorityId: priority.id,
           dueDate,
@@ -952,7 +968,7 @@ class DatabaseSeeder {
           position: j,
           createdAt,
           updatedAt: completedAt || createdAt,
-        });
+        }).returning();
 
         this.createdTasks.push(subtask);
         subtasksCreated++;
