@@ -25,7 +25,6 @@
 	});
 
 	let fileInput: HTMLInputElement | undefined = $state();
-	let previewUrl = $state<string | null>(null);
 	let uploading = $state(false);
 
 	async function handleFileSelect(event: Event) {
@@ -44,8 +43,7 @@
 						'Content-Type': 'multipart/form-data'
 					}
 				});
-
-				previewUrl = `/logo?t=${Date.now()}`;
+				await checkLogo();
 			} catch (error) {
 				console.error('Failed to upload image:', error);
 				alert('Image too large');
@@ -76,13 +74,21 @@
 		return toast.error('Error saving configuration. Check browser console.');
 	}
 
+	let hasLogo = $state(false);
+	async function checkLogo() {
+		const response = await axios.get('/logo');
+		if (response.status === 200) {
+			hasLogo = true;
+		}
+	}
 	onMount(async () => {
 		let { data } = await axios.get('');
 
 		if (data.data) {
 			organization = data.data;
-			previewUrl = `/logo`;
 		}
+
+		await checkLogo();
 	});
 </script>
 
@@ -120,7 +126,7 @@
 		<div class="flex justify-between border-b px-4 py-3">
 			<Label for="language" class="text-md">Language</Label>
 			<Select.Root type="single" name="language">
-				<Select.Trigger class="!w-[40%] max-w-[40%] [&_[data-slot=select-value]]:max-w-full">
+				<Select.Trigger class="w-[40%]! max-w-[40%] **:data-[slot=select-value]:max-w-full">
 					{organization.language ?? 'Choose language'}
 				</Select.Trigger>
 				<Select.Content>
@@ -185,7 +191,7 @@
 
 		<div class="flex justify-between px-4 py-3">
 			<Label for="logo" class="text-md">Logo (512x512)</Label>
-			{#if !previewUrl}
+			{#if !hasLogo}
 				<Button
 					type="button"
 					onclick={() => fileInput?.click()}
