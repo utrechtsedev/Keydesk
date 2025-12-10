@@ -173,6 +173,7 @@ export interface Ticket {
   updatedAt: Date;
   // includes?
   requester?: Requester
+  status?: Status
 }
 
 export interface Requester {
@@ -228,7 +229,7 @@ export interface TicketAttachment {
 }
 
 export interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
   emailVerified: boolean;
@@ -295,14 +296,14 @@ export interface Task {
   description: string | null;
   // Relationships
   ticketId: number | null; // null = standalone task
-  assigneeId: string;
+  assigneeId: number;
   parentTaskId: number | null; // null = root task
   createdById: string; // User who created it
   // Classification
   statusId: number;
   priorityId: number;
   // Timing
-  dueDate: Date | null;
+  dueDate: Date;
   startDate: Date | null;
   completedAt: Date | null;
   // Tracking
