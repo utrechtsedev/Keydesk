@@ -1,6 +1,7 @@
-import { Requester } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import { json, error, type RequestHandler } from "@sveltejs/kit";
-import { Op } from "sequelize";
+import { or, ilike, asc } from "drizzle-orm";
 
 export const GET: RequestHandler = async ({ url }) => {
   try {
@@ -15,32 +16,30 @@ export const GET: RequestHandler = async ({ url }) => {
       return error(400, { message: 'Search query is too long' });
     }
 
-    const whereClause = search ? {
-      [Op.or]: [
-        { name: { [Op.like]: `%${search}%` } },
-        { email: { [Op.like]: `%${search}%` } },
-        { phone: { [Op.like]: `%${search}%` } }
-      ]
-    } : {};
+    const searchPattern = `%${search}%`;
 
-    const requesters = await Requester.findAll({
-      where: whereClause,
-      limit,
-      order: [['name', 'ASC']],
-    });
+    const requesters = await db
+      .select()
+      .from(schema.requester)
+      .where(
+        search ? or(
+          ilike(schema.requester.name, searchPattern),
+          ilike(schema.requester.email, searchPattern),
+          ilike(schema.requester.phone, searchPattern)
+        ) : undefined
+      )
+      .orderBy(asc(schema.requester.name))
+      .limit(limit);
 
     return json({
-      requesters: requesters.map(r => r.toJSON())
+      requesters
     });
 
   } catch (err) {
     console.error('Error searching requesters:', err);
 
     if (err instanceof Error) {
-      if (err.name === 'SequelizeDatabaseError') {
-        return error(500, { message: 'Database error occurred' });
-      }
-      if (err.name === 'SequelizeConnectionError') {
+      if (err.message.includes('connection')) {
         return error(503, { message: 'Database connection failed' });
       }
     }

@@ -1,29 +1,44 @@
-import { models } from "$lib/server/db/models";
-import { type CategoryCreationAttributes } from "$lib/server/db/models/category.model";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import type { NewCategory } from "$lib/server/db/schema";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
-
+import { eq, sql } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
-    const { categories } = await request.json() as { categories: CategoryCreationAttributes[] }
+    const { categories } = await request.json() as { categories: NewCategory[] };
 
-    if (!categories)
+    if (!categories) {
       return error(400, { message: 'Categories are required.' });
+    }
 
-    if (categories.length < 1) return error(400, { message: 'You must at least have 1 category.' })
+    if (categories.length < 1) {
+      return error(400, { message: 'You must at least have 1 category.' });
+    }
 
-    const created = await models.Category.bulkCreate(categories, {
-      updateOnDuplicate: ['name', 'description', 'prefix']
-    })
+    // Bulk upsert
+    const created = await db
+      .insert(schema.category)
+      .values(categories)
+      .onConflictDoUpdate({
+        target: schema.category.id,
+        set: {
+          name: sql`EXCLUDED.name`,
+          description: sql`EXCLUDED.description`,
+          prefix: sql`EXCLUDED.prefix`,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
+    if (!created || created.length === 0) {
       return error(400, { message: 'Something went wrong while inserting fields into the database.' });
     }
 
     return json({
-      success: created ? true : false,
+      success: true,
       data: created,
-    }, { status: created ? 201 : 400 });
+    }, { status: 201 });
 
   } catch (err) {
     console.error('Error saving categories:', err);
@@ -38,22 +53,26 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 export const GET: RequestHandler = async (): Promise<Response> => {
   try {
-    let categories = await models.Category.findAll()
+    const categories = await db
+      .select()
+      .from(schema.category);
+
     return json({
       success: true,
       data: categories,
-    })
-  } catch (error) {
+    });
+
+  } catch (err) {
     return json(
       {
         success: false,
         message: 'Failed to fetch categories',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
   }
-}
+};
 
 export const DELETE: RequestHandler = async ({ request }): Promise<Response> => {
   try {
@@ -66,14 +85,11 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
       }, { status: 400 });
     }
 
-    const category = await models.Category.findByPk(id, {
-      include: [{
-        model: models.Ticket,
-        as: 'categoryTickets',
-        attributes: ['id'],
-        limit: 1
-      }]
-    });
+    // Check if category exists
+    const [category] = await db
+      .select()
+      .from(schema.category)
+      .where(eq(schema.category.id, id));
 
     if (!category) {
       return json({
@@ -82,14 +98,23 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
       }, { status: 404 });
     }
 
-    if (category.categoryTickets && category.categoryTickets.length > 0) {
+    // Check if category has associated tickets
+    const [ticketCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.ticket)
+      .where(eq(schema.ticket.categoryId, id));
+
+    if (Number(ticketCount.count) > 0) {
       return json({
         success: false,
         message: 'Cannot delete category with associated tickets. Please reassign or delete all tickets first.'
       }, { status: 400 });
     }
 
-    await category.destroy();
+    // Delete the category
+    await db
+      .delete(schema.category)
+      .where(eq(schema.category.id, id));
 
     return json({
       success: true,
@@ -98,6 +123,15 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
 
   } catch (err) {
     console.error('Error deleting category:', err);
+
+    // Handle foreign key constraint error
+    if (err instanceof Error && err.message.includes('foreign key')) {
+      return json({
+        success: false,
+        message: 'Cannot delete category with associated tickets.'
+      }, { status: 400 });
+    }
+
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     return json({
       success: false,

@@ -1,27 +1,33 @@
-
-import { models } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import type { BusinessHours } from "$lib/types";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
-
+import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
-    const { businessHours } = await request.json() as { businessHours: BusinessHours }
+    const { businessHours } = await request.json() as { businessHours: BusinessHours };
 
-    if (!businessHours)
+    if (!businessHours) {
       return error(400, { message: 'Business hours are required.' });
+    }
 
-    const [config, created] = await models.Config.findOrCreate({
-      where: { key: 'businesshours' },
-      defaults: {
+    const [config] = await db
+      .insert(schema.config)
+      .values({
         key: 'businesshours',
         value: businessHours
-      }
-    });
+      })
+      .onConflictDoUpdate({
+        target: schema.config.key,
+        set: {
+          value: businessHours,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
-      await config.update({ value: businessHours });
-    }
+    const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
     return json({
       success: true,
@@ -42,27 +48,31 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 export const GET: RequestHandler = async (): Promise<Response> => {
   try {
-    let businessHours = await models.Config.findOne({ where: { key: 'businesshours' } })
+    const [config] = await db
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, 'businesshours'));
 
-    if (!businessHours)
+    if (!config) {
       return json({
         success: true,
         data: null,
-      })
+      });
+    }
 
     return json({
       success: true,
-      data: businessHours.value,
-    })
-  } catch (error) {
+      data: config.value,
+    });
+
+  } catch (err) {
     return json(
       {
         success: false,
         message: 'Failed to fetch business hours',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
-
   }
-}
+};

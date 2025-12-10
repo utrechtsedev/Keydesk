@@ -1,97 +1,110 @@
-import { Config, Requester, Status, Ticket, TicketAttachment, TicketMessage } from '$lib/server/db/models';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
 import { uploadFile } from '$lib/server/file-upload';
 import type { Attachment, NotificationSettings } from '$lib/types';
 import { json, error, type RequestHandler } from '@sveltejs/kit';
-import { sequelize } from '$lib/server/db/instance';
 import { sendNotification } from '$lib/server/job-queue';
+import { eq, sql } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
-  const transaction = await sequelize.transaction();
   try {
-    const formData = await request.formData();
-    const message = formData.get('message') as string;
-    const isPrivate = formData.get('isPrivate') as string;
-    const ticketId = formData.get('ticketId') as string;
-    const files = formData.getAll('files').filter((file): file is File => file instanceof File);
+    const result = await db.transaction(async (tx) => {
+      const formData = await request.formData();
+      const message = formData.get('message') as string;
+      const isPrivate = formData.get('isPrivate') as string;
+      const ticketId = formData.get('ticketId') as string;
+      const files = formData.getAll('files').filter((file): file is File => file instanceof File);
 
-    if (!message || message.trim() === '') {
-      await transaction.rollback();
-      return error(400, { message: 'Message is required.' });
-    }
+      if (!message || message.trim() === '') {
+        throw new Error('Message is required.');
+      }
 
-    if (!ticketId || isNaN(Number(ticketId))) {
-      await transaction.rollback();
-      return error(400, { message: 'Valid ticket ID is required.' });
-    }
+      if (!ticketId || isNaN(Number(ticketId))) {
+        throw new Error('Valid ticket ID is required.');
+      }
 
-    let isPrivateValue: boolean = isPrivate === 'true';
+      const isPrivateValue: boolean = isPrivate === 'true';
 
-    const attachmentOptions = await Config.findOne({ where: { key: 'attachments' } });
-    if (!attachmentOptions) {
-      await transaction.rollback();
-      return error(500, { message: 'Attachment configuration not found. Please configure attachments in Settings.' });
-    }
+      // Get attachment configuration
+      const [attachmentOptions] = await tx
+        .select()
+        .from(schema.config)
+        .where(eq(schema.config.key, 'attachments'));
 
-    let attachmentConfig: Attachment;
-    try {
-      attachmentConfig = attachmentOptions.value as Attachment;
-    } catch (err) {
-      console.error('Failed to parse attachment configuration:', err);
-      await transaction.rollback();
-      return error(500, { message: 'Invalid attachment configuration.' });
-    }
+      if (!attachmentOptions) {
+        throw new Error('Attachment configuration not found. Please configure attachments in Settings.');
+      }
 
-    const ticketMessages = await TicketMessage.count({
-      where: { ticketId: Number(ticketId) }
+      let attachmentConfig: Attachment;
+      try {
+        attachmentConfig = attachmentOptions.value as Attachment;
+      } catch (err) {
+        console.error('Failed to parse attachment configuration:', err);
+        throw new Error('Invalid attachment configuration.');
+      }
+
+      // Count existing messages for this ticket
+      const [messageCount] = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.ticketMessage)
+        .where(eq(schema.ticketMessage.ticketId, Number(ticketId)));
+
+      const ticketMessages = Number(messageCount.count);
+
+      // Create the ticket message
+      const [ticketMessage] = await tx
+        .insert(schema.ticketMessage)
+        .values({
+          ticketId: Number(ticketId),
+          senderType: 'user',
+          requesterId: null,
+          senderName: locals.user.name,
+          senderEmail: locals.user.email,
+          userId: parseInt(locals.user.id, 10),
+          message,
+          isPrivate: isPrivateValue,
+          channel: 'dashboard',
+          isFirstResponse: ticketMessages === 0,
+          hasAttachments: files.length !== 0,
+        })
+        .returning();
+
+      // Upload files and create attachment records
+      for (const file of files) {
+        const fileUpload = await uploadFile(file, attachmentConfig);
+
+        await tx.insert(schema.ticketAttachment).values({
+          ticketId: Number(ticketId),
+          messageId: ticketMessage.id,
+          fileName: fileUpload.storedFilename,
+          originalFileName: fileUpload.originalFilename,
+          filePath: fileUpload.filePath,
+          fileSize: fileUpload.size,
+          mimeType: fileUpload.mimeType,
+          uploadedByType: 'user',
+          uploadedById: parseInt(locals.user.id, 10),
+          uploadedByName: locals.user.name,
+          downloadCount: 0,
+        });
+      }
+
+      return ticketMessage;
     });
 
-    const ticketMessage = await TicketMessage.create({
-      ticketId: Number(ticketId),
-      senderType: 'user',
-      requesterId: null,
-      senderName: locals.user.name,
-      senderEmail: locals.user.email,
-      userId: locals.user.id,
-      message,
-      isPrivate: isPrivateValue,
-      channel: 'dashboard',
-      isFirstResponse: ticketMessages === 0,
-      hasAttachments: files.length !== 0,
-    }, { transaction });
-
-    for (const file of files) {
-      const fileUpload = await uploadFile(file, attachmentConfig);
-
-      await TicketAttachment.create({
-        ticketId,
-        messageId: ticketMessage.id,
-        fileName: fileUpload.storedFilename,
-        originalFileName: fileUpload.originalFilename,
-        filePath: fileUpload.filePath,
-        fileSize: fileUpload.size,
-        mimeType: fileUpload.mimeType,
-        uploadedByType: 'user',
-        uploadedById: locals.user.id,
-        uploadedByName: locals.user.name,
-        downloadCount: 0,
-      }, { transaction });
-    }
-
-    await transaction.commit();
-
-    const ticket = await Ticket.findOne({
-      where: { id: ticketId }, include: [{
-        model: Requester,
-        as: 'requester'
+    // Fetch ticket with relations (outside transaction for notifications)
+    const ticket = await db.query.ticket.findFirst({
+      where: eq(schema.ticket.id, Number(ticketId)),
+      with: {
+        requester: true,
+        status: true,
       },
-      {
-        model: Status,
-        as: 'status'
-      }]
-    })
+    });
 
-
-    const fetchNotificationConfig = await Config.findOne({ where: { key: 'notifications' } });
+    // Get notification configuration
+    const [fetchNotificationConfig] = await db
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, 'notifications'));
 
     if (!fetchNotificationConfig) {
       throw new Error('Could not create notification for new Ticket Message.');
@@ -99,9 +112,9 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 
     const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
 
-    // if ticket message sender is not assignee of ticket, notify assignee
-    if (ticket && ticket.assignedUserId && ticket.assignedUserId !== locals.user.id) {
-      if (notificationConfig.dashboard.ticket.updated.notifyUser)
+    // Send notifications if ticket is assigned to someone else
+    if (ticket && ticket.assignedUserId && ticket.assignedUserId !== parseInt(locals.user.id, 10)) {
+      if (notificationConfig.dashboard.ticket.updated.notifyUser) {
         sendNotification({
           title: "Ticket updated",
           message: `Ticket ${ticket.id} updated by ${locals.user.name}`,
@@ -111,33 +124,44 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
           relatedEntityId: ticket.id,
           relatedEntityType: "ticket",
           userId: ticket.assignedUserId
-        })
+        });
+      }
 
-      if (notificationConfig.email.ticket.updated.notifyUser)
+      if (notificationConfig.email.ticket.updated.notifyUser) {
         sendNotification({
           title: "Ticket updated",
           message: `Ticket ${ticket.id} updated by ${locals.user.name}`,
           type: "ticket",
-          channel: "dashboard",
+          channel: "email",
           actionUrl: `/dashboard/tickets/${ticket.id}`,
           relatedEntityId: ticket.id,
           relatedEntityType: "ticket",
           userId: ticket.assignedUserId
-        })
+        });
+      }
     }
 
     return json({
       success: true,
       data: {
-        messageId: ticketMessage.id,
+        messageId: result.id,
       },
       message: 'Message sent successfully.',
     }, { status: 201 });
 
   } catch (err) {
-    await transaction.rollback();
     console.error('Error creating ticket message:', err);
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+    // Map specific error messages to appropriate status codes
+    if (errorMessage.includes('required') || errorMessage.includes('Valid')) {
+      return json({
+        success: false,
+        message: errorMessage,
+        error: errorMessage
+      }, { status: 400 });
+    }
+
     return json({
       success: false,
       message: errorMessage,

@@ -1,7 +1,8 @@
-import { Ticket, Requester, Category, User, Status, Priority } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import type { RequestHandler } from "@sveltejs/kit";
 import { createObjectCsvStringifier } from 'csv-writer';
-import { Op } from 'sequelize';
+import { and, or, gte, lte, isNull, eq, ilike, desc, SQL } from 'drizzle-orm';
 
 export const GET: RequestHandler = async ({ url }) => {
   try {
@@ -14,45 +15,70 @@ export const GET: RequestHandler = async ({ url }) => {
     const dateTo = url.searchParams.get('dateTo');
     const includeResolved = url.searchParams.get('includeResolved') !== 'false'; // default true
 
-    const where: any = {};
+    const conditions: (SQL | undefined)[] = [];
 
+    // Search filter
     if (search) {
-      where[Op.or] = [
-        { ticketNumber: { [Op.like]: `%${search}%` } },
-        { subject: { [Op.like]: `%${search}%` } },
-        { description: { [Op.like]: `%${search}%` } }
-      ];
+      const searchPattern = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(schema.ticket.ticketNumber, searchPattern),
+          ilike(schema.ticket.subject, searchPattern),
+        )
+      );
     }
 
-    if (status) where.statusId = status;
-    if (priority) where.priorityId = priority;
-    if (category) where.categoryId = category;
+    // Status filter
+    if (status) {
+      conditions.push(eq(schema.ticket.statusId, Number(status)));
+    }
+
+    // Priority filter
+    if (priority) {
+      conditions.push(eq(schema.ticket.priorityId, Number(priority)));
+    }
+
+    // Category filter
+    if (category) {
+      conditions.push(eq(schema.ticket.categoryId, Number(category)));
+    }
+
+    // Assignee filter
     if (assignee) {
-      where.assignedUserId = assignee === 'unassigned' ? null : assignee;
+      if (assignee === 'unassigned') {
+        conditions.push(isNull(schema.ticket.assignedUserId));
+      } else {
+        conditions.push(eq(schema.ticket.assignedUserId, parseInt(assignee)));
+      }
     }
 
-    if (dateFrom || dateTo) {
-      where.createdAt = {};
-      if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
-      if (dateTo) where.createdAt[Op.lte] = new Date(dateTo);
+    // Date range filter
+    if (dateFrom) {
+      conditions.push(gte(schema.ticket.createdAt, new Date(dateFrom)));
+    }
+    if (dateTo) {
+      conditions.push(lte(schema.ticket.createdAt, new Date(dateTo)));
     }
 
+    // Resolved filter
     if (!includeResolved) {
-      where.resolvedAt = null;
+      conditions.push(isNull(schema.ticket.resolvedAt));
     }
 
-    const tickets = await Ticket.findAll({
-      where,
-      include: [
-        { model: Requester, as: 'requester', required: false },
-        { model: Category, as: 'category', required: false },
-        { model: User, as: 'assignedUser', required: false },
-        { model: Status, as: 'status', required: false },
-        { model: Priority, as: 'priority', required: false }
-      ],
-      order: [['createdAt', 'DESC']]
+    // Fetch tickets with relations
+    const tickets = await db.query.ticket.findMany({
+      where: and(...conditions),
+      with: {
+        requester: true,
+        category: true,
+        assignedUser: true,
+        status: true,
+        priority: true,
+      },
+      orderBy: desc(schema.ticket.createdAt),
     });
 
+    // CSV stringifier setup
     const csvStringifier = createObjectCsvStringifier({
       header: [
         { id: 'ticketNumber', title: 'Ticket Number' },
@@ -75,6 +101,7 @@ export const GET: RequestHandler = async ({ url }) => {
       ]
     });
 
+    // Map tickets to CSV records
     const records = tickets.map(ticket => {
       const firstResponseTime = ticket.firstResponseAt && ticket.createdAt
         ? Math.round((ticket.firstResponseAt.getTime() - ticket.createdAt.getTime()) / 60000)
@@ -105,10 +132,12 @@ export const GET: RequestHandler = async ({ url }) => {
       };
     });
 
+    // Generate CSV
     const csvHeader = csvStringifier.getHeaderString();
     const csvBody = csvStringifier.stringifyRecords(records);
     const csv = csvHeader + csvBody;
 
+    // Generate filename
     let filename = 'tickets-export';
     if (search) filename += `-search-${search.substring(0, 20)}`;
     if (status) filename += `-status-${status}`;
@@ -120,6 +149,7 @@ export const GET: RequestHandler = async ({ url }) => {
         'Content-Disposition': `attachment; filename="${filename}"`
       }
     });
+
   } catch (err) {
     console.error('Error exporting tickets:', err);
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';

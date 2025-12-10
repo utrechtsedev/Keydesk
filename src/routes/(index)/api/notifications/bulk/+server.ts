@@ -1,6 +1,8 @@
-import { UserNotification } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
-// path is /notifications but the model we edit is UserNotification. in the future i might move this.
+import { eq, and, inArray } from "drizzle-orm";
+
 export const PATCH: RequestHandler = async ({ request, locals }) => {
   try {
     if (!locals.user) {
@@ -13,18 +15,21 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
       return error(400, 'Notification IDs are required');
     }
 
-    const [updatedCount] = await UserNotification.update(
-      { 
+    const updated = await db
+      .update(schema.userNotification)
+      .set({
         isRead: true,
         readAt: new Date()
-      },
-      { 
-        where: { 
-          id: ids,
-          userId: locals.user.id
-        }
-      }
-    );
+      })
+      .where(
+        and(
+          inArray(schema.userNotification.id, ids),
+          eq(schema.userNotification.userId, locals.user.id)
+        )
+      )
+      .returning();
+
+    const updatedCount = updated.length;
 
     if (updatedCount === 0) {
       return json({
@@ -62,12 +67,17 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
       return error(400, 'Notification IDs are required');
     }
 
-    const deletedCount = await UserNotification.destroy({
-      where: {
-        id: ids,
-        userId: locals.user.id
-      }
-    });
+    const deleted = await db
+      .delete(schema.userNotification)
+      .where(
+        and(
+          inArray(schema.userNotification.id, ids),
+          eq(schema.userNotification.userId, locals.user.id)
+        )
+      )
+      .returning();
+
+    const deletedCount = deleted.length;
 
     if (deletedCount === 0) {
       return json({
