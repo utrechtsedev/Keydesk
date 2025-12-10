@@ -1,17 +1,16 @@
-import { Category, Priority, Requester, Status, Tag, Ticket, User } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import type { PageServerLoad } from "./$types";
-import type { Order, WhereOptions } from "sequelize";
-import { Op } from "sequelize";
+import { eq, and, or, gte, lte, inArray, isNull, ilike, desc, asc, sql, SQL } from "drizzle-orm";
 
 export const load: PageServerLoad = async ({ url, depends }) => {
-  depends('app:tickets')
+  depends('app:tickets');
 
   const page = Number(url.searchParams.get('page')) || 1;
   const pageSize = Number(url.searchParams.get('pageSize')) || 10;
   const sortBy = url.searchParams.get('sortBy') || 'createdAt';
   const sortOrder = (url.searchParams.get('sortOrder') || 'DESC').toUpperCase() as 'ASC' | 'DESC';
   const search = url.searchParams.get('search') || '';
-
   const statusFilter = url.searchParams.get('status');
   const priorityFilter = url.searchParams.get('priority');
   const categoryFilter = url.searchParams.get('category');
@@ -21,103 +20,97 @@ export const load: PageServerLoad = async ({ url, depends }) => {
 
   const offset = (page - 1) * pageSize;
 
-  let orderClause: Order;
-  if (sortBy === 'requester.name' || sortBy === 'requester_name') {
-    orderClause = [[{ model: Requester, as: 'requester' }, 'name', sortOrder]];
-  } else if (sortBy === 'category.name' || sortBy === 'category_name') {
-    orderClause = [[{ model: Category, as: 'category' }, 'name', sortOrder]];
-  } else if (sortBy === 'user.name' || sortBy === 'user_name') {
-    orderClause = [[{ model: User, as: 'assignedUser' }, 'name', sortOrder]];
-  } else if (sortBy === 'status.name' || sortBy === 'status_name') {
-    orderClause = [[{ model: Status, as: 'status' }, 'name', sortOrder]];
-  } else if (sortBy === 'priority.name' || sortBy === 'priority_name') {
-    orderClause = [[{ model: Priority, as: 'priority' }, 'name', sortOrder]];
-  } else {
-    orderClause = [[sortBy, sortOrder]];
-  }
-
-  const whereClause: WhereOptions = {};
+  const conditions: (SQL | undefined)[] = [];
 
   if (statusFilter) {
-    whereClause.statusId = Number(statusFilter);
+    conditions.push(eq(schema.ticket.statusId, Number(statusFilter)));
   } else {
-    whereClause.statusId = { [Op.in]: [0, 1, 2, 3] };
+    conditions.push(inArray(schema.ticket.statusId, [0, 1, 2, 3]));
   }
 
   if (priorityFilter) {
-    whereClause.priorityId = Number(priorityFilter);
+    conditions.push(eq(schema.ticket.priorityId, Number(priorityFilter)));
   }
 
   if (categoryFilter) {
-    whereClause.categoryId = Number(categoryFilter);
+    conditions.push(eq(schema.ticket.categoryId, Number(categoryFilter)));
   }
 
   if (assigneeFilter) {
     if (assigneeFilter === 'unassigned') {
-      whereClause.assignedUserId = null;
+      conditions.push(isNull(schema.ticket.assignedUserId));
     } else {
-      whereClause.assignedUserId = assigneeFilter;
+      conditions.push(eq(schema.ticket.assignedUserId, parseInt(assigneeFilter)));
     }
   }
 
-  if (dateFrom || dateTo) {
-    const dateFilter: any = {};
-    if (dateFrom) {
-      dateFilter[Op.gte] = new Date(dateFrom);
-    }
-    if (dateTo) {
-      const endDate = new Date(dateTo);
-      endDate.setHours(23, 59, 59, 999);
-      dateFilter[Op.lte] = endDate;
-    }
-    whereClause.createdAt = dateFilter;
+  if (dateFrom) {
+    conditions.push(gte(schema.ticket.createdAt, new Date(dateFrom)));
+  }
+  if (dateTo) {
+    const endDate = new Date(dateTo);
+    endDate.setHours(23, 59, 59, 999);
+    conditions.push(lte(schema.ticket.createdAt, endDate));
   }
 
   if (search) {
-    const searchConditions = [
-      { ticketNumber: { [Op.like]: `%${search}%` } },
-      { subject: { [Op.like]: `%${search}%` } },
-      { '$assignedUser.name$': { [Op.like]: `%${search}%` } },
-      { '$requester.name$': { [Op.like]: `%${search}%` } },
-    ];
-
-    (whereClause as any)[Op.or] = searchConditions;
+    const searchPattern = `%${search}%`;
+    conditions.push(
+      or(
+        ilike(schema.ticket.ticketNumber, searchPattern),
+        ilike(schema.ticket.subject, searchPattern)
+      )
+    );
   }
 
-  const { count, rows } = await Ticket.findAndCountAll({
-    where: whereClause,
+  // Build order by based on sortBy
+  const orderFn = sortOrder === 'DESC' ? desc : asc;
+  let orderByClause;
+
+  switch (sortBy) {
+    case 'ticketNumber':
+      orderByClause = orderFn(schema.ticket.ticketNumber);
+      break;
+    case 'subject':
+      orderByClause = orderFn(schema.ticket.subject);
+      break;
+    case 'targetDate':
+      orderByClause = orderFn(schema.ticket.targetDate);
+      break;
+    case 'updatedAt':
+      orderByClause = orderFn(schema.ticket.updatedAt);
+      break;
+    case 'responseCount':
+      orderByClause = orderFn(schema.ticket.responseCount);
+      break;
+    default:
+      orderByClause = orderFn(schema.ticket.createdAt);
+  }
+
+  const tickets = await db.query.ticket.findMany({
+    where: and(...conditions),
+    with: {
+      requester: true,
+      category: true,
+      assignedUser: true,
+      status: true,
+      priority: true,
+    },
     limit: pageSize,
     offset,
-    order: orderClause,
-    include: [
-      {
-        model: Requester,
-        as: 'requester',
-        required: false
-      },
-      {
-        model: Category,
-        as: 'category'
-      },
-      {
-        model: User,
-        as: 'assignedUser',
-        required: false
-      },
-      {
-        model: Status,
-        as: 'status'
-      },
-      {
-        model: Priority,
-        as: 'priority'
-      }
-    ]
+    orderBy: orderByClause,
   });
 
+  const [countResult] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.ticket)
+    .where(and(...conditions));
+
+  const totalCount = Number(countResult.count);
+
   return {
-    tickets: rows.map(t => t.toJSON()),
-    totalCount: count,
-    pageCount: Math.ceil(count / pageSize),
+    tickets,
+    totalCount,
+    pageCount: Math.ceil(totalCount / pageSize),
   };
 };

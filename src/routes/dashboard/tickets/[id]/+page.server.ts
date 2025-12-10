@@ -1,75 +1,60 @@
 import type { PageServerLoad } from "./$types";
-
-import { Category, Priority, Requester, Status, Tag, Ticket, TicketAttachment, TicketMessage, User } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { redirect } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async ({ params, depends }) => {
-  depends('app:ticket')
-  const id = Number(params.id)
+  depends('app:ticket');
 
-  const ticket = await Ticket.findOne({
-    where: { id },
-    include: [
-      {
-        model: Requester,
-        as: 'requester'
-      },
-      {
-        model: Status,
-        as: 'status'
-      },
-      {
-        model: Category,
-        as: 'category'
-      },
-      {
-        model: Priority,
-        as: 'priority'
-      },
-      {
-        model: Tag,
-        as: 'tags'
-      },
-      {
-        model: User,
-        as: 'assignedUser'
-      },
-      {
-        model: TicketMessage,
-        as: 'messages',
-        include: [
-          {
-            model: TicketAttachment,
-            as: 'messageAttachments'
-          },
-          {
-            model: User,
-            as: 'messageUser'
-          },
-          {
-            model: Requester,
-            as: 'messageRequester'
-          }
-        ]
-      },
-    ],
-    order: [
-      [{ model: TicketMessage, as: 'messages' }, 'createdAt', 'DESC']
-    ]
-  })
-  const priorities = await Priority.findAll()
-  const users = await User.findAll()
-  const statuses = await Status.findAll()
-  const categories = await Category.findAll()
+  const id = Number(params.id);
 
-  if (!ticket || priorities.length < 1 || users.length < 1 || statuses.length < 1 || categories.length < 1)
-    return redirect(301, '/dashboard')
+  // Fetch ticket with all relations
+  const ticket = await db.query.ticket.findFirst({
+    where: eq(schema.ticket.id, id),
+    with: {
+      requester: true,
+      status: true,
+      category: true,
+      priority: true,
+      assignedUser: true,
+      ticketTags: {
+        with: {
+          tag: true,
+        },
+      },
+      messages: {
+        with: {
+          messageAttachments: true,
+          messageUser: true,
+          messageRequester: true,
+        },
+        orderBy: desc(schema.ticketMessage.createdAt),
+      },
+    },
+  });
+
+  // Fetch all lookup data
+  const priorities = await db.select().from(schema.priority);
+  const users = await db.select().from(schema.user);
+  const statuses = await db.select().from(schema.status);
+  const categories = await db.select().from(schema.category);
+
+  if (!ticket || priorities.length < 1 || users.length < 1 || statuses.length < 1 || categories.length < 1) {
+    return redirect(301, '/dashboard');
+  }
+
+  // Transform tags from join table format
+  const ticketWithTags = {
+    ...ticket,
+    tags: ticket.ticketTags.map(tt => tt.tag),
+  };
 
   return {
-    ticket: ticket.toJSON(),
-    priorities: priorities.map(p => p.toJSON()),
-    users: users.map(u => u.toJSON()),
-    statuses: statuses.map(s => s.toJSON()),
-    categories: categories.map(c => c.toJSON())
+    ticket: ticketWithTags,
+    priorities,
+    users,
+    statuses,
+    categories
   };
-}
+};

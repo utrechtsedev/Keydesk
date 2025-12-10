@@ -1,5 +1,6 @@
-import { Priority, Status, Tag, Task, Ticket, User } from "$lib/server/db/models";
-import { Op, type WhereOptions } from "sequelize";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import { eq, and, or, gte, lte, asc, SQL } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
 import { redirect } from "@sveltejs/kit";
 
@@ -13,160 +14,105 @@ export const load: PageServerLoad = async ({ depends, locals, url, params }) => 
   const dateFrom = url.searchParams.get('dateFrom');
   const dateTo = url.searchParams.get('dateTo');
 
-  const whereClause: WhereOptions = {};
+  const conditions: (SQL | undefined)[] = [];
+
+  // Only filter by assignee if assigneeFilter is provided
+  if (assigneeFilter) {
+    conditions.push(eq(schema.task.assigneeId, parseInt(assigneeFilter)));
+  }
 
   if (statusFilter) {
-    whereClause.statusId = Number(statusFilter);
+    conditions.push(eq(schema.task.statusId, Number(statusFilter)));
   }
 
   if (priorityFilter) {
-    whereClause.priorityId = Number(priorityFilter);
+    conditions.push(eq(schema.task.priorityId, Number(priorityFilter)));
   }
 
-  if (categoryFilter) {
-    whereClause.categoryId = Number(categoryFilter);
+  if (dateFrom) {
+    conditions.push(gte(schema.task.createdAt, new Date(dateFrom)));
   }
 
-  if (dateFrom || dateTo) {
-    const dateFilter: any = {};
-    if (dateFrom) {
-      dateFilter[Op.gte] = new Date(dateFrom);
-    }
-    if (dateTo) {
-      const endDate = new Date(dateTo);
-      endDate.setHours(23, 59, 59, 999);
-      dateFilter[Op.lte] = endDate;
-    }
-    whereClause.createdAt = dateFilter;
+  if (dateTo) {
+    const endDate = new Date(dateTo);
+    endDate.setHours(23, 59, 59, 999);
+    conditions.push(lte(schema.task.createdAt, endDate));
   }
 
-  const tasks = await Task.findAll({
-    where: {
-      assigneeId: assigneeFilter || locals.user.id,
-      [Op.or]: [
-        {
-          '$status.isClosed$': false
+  // Get all tasks with relations
+  const tasks = await db.query.task.findMany({
+    where: and(...conditions),
+    with: {
+      assignee: true,
+      status: true,
+      priority: true,
+      subtasks: {
+        with: {
+          assignee: true,
+          status: true,
+          priority: true,
         },
-        {
-          [Op.and]: [
-            { '$status.isClosed$': true },
-            { completedAt: { [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }
-          ]
-        }
-      ]
+        orderBy: asc(schema.task.position),
+      },
     },
-    order: [['dueDate', 'ASC']],
-    include: [
-      {
-        model: User,
-        as: 'assignee',
-      },
-      {
-        model: Status,
-        as: 'status',
-      },
-      {
-        model: Priority,
-        as: 'priority'
-      },
-      {
-        model: Task,
-        as: 'subtasks',
-        required: false,
-        include: [
-          {
-            model: User,
-            as: 'assignee',
-          },
-          {
-            model: Status,
-            as: 'status'
-          },
-          {
-            model: Priority,
-            as: 'priority'
-          }
-        ]
-      }
-    ]
+    orderBy: asc(schema.task.dueDate),
   });
 
-  const task = await Task.findOne({
-    where: { id: params.id },
-    include: [
-      {
-        model: User,
-        as: 'assignee',
-      },
-      {
-        model: User,
-        as: 'creator',
-      },
-      {
-        model: Status,
-        as: 'status'
-      },
-      {
-        model: Priority,
-        as: 'priority'
-      },
-      {
-        model: Ticket,
-        as: 'ticket',
-        required: false
-      },
-      {
-        model: Tag,
-        as: 'tags',
-        required: false
-      },
-      {
-        model: Task,
-        as: 'subtasks',
-        required: false,
-        include: [
-          {
-            model: User,
-            as: 'assignee',
-          },
-          {
-            model: User,
-            as: 'creator',
-          },
-          {
-            model: Status,
-            as: 'status'
-          },
-          {
-            model: Priority,
-            as: 'priority'
-          },
-          {
-            model: Ticket,
-            as: 'ticket',
-            required: false
-          },
-          {
-            model: Task,
-            as: 'parentTask',
-            required: false
-          }
-        ]
-      }
-    ]
+  // Filter: show tasks that are either not closed OR closed within last 7 days
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const filteredTasks = tasks.filter(task => {
+    if (!task.status?.isClosed) return true;
+    if (task.completedAt && task.completedAt >= sevenDaysAgo) return true;
+    return false;
   });
 
-  if (!task) redirect(303, '/dashboard/tasks')
+  // Get the specific task by ID
+  const task = await db.query.task.findFirst({
+    where: eq(schema.task.id, parseInt(params.id)),
+    with: {
+      assignee: true,
+      creator: true,
+      status: true,
+      priority: true,
+      ticket: true,
+      taskTags: {
+        with: {
+          tag: true,
+        },
+      },
+      subtasks: {
+        with: {
+          assignee: true,
+          creator: true,
+          status: true,
+          priority: true,
+          ticket: true,
+          parentTask: true,
+        },
+        orderBy: asc(schema.task.position),
+      },
+    },
+  });
 
-  const tasksList = tasks.map(t => t.toJSON());
+  if (!task) {
+    redirect(303, '/dashboard/tasks');
+  }
 
-  const finishedTasks = tasksList.filter(task => task.status?.isClosed === true);
-  const activeTasks = tasksList.filter(task => task.status?.isClosed !== true);
+  // Transform tags from join table format
+  const taskWithTags = {
+    ...task,
+    tags: task.taskTags.map(tt => tt.tag),
+  };
 
-  console.log(activeTasks.length)
+  const finishedTasks = filteredTasks.filter(task => task.status?.isClosed === true);
+  const activeTasks = filteredTasks.filter(task => task.status?.isClosed !== true);
+
+  console.log(activeTasks.length);
+
   return {
     tasks: activeTasks,
-    task: task.toJSON(),
+    task: taskWithTags,
     finishedTasks,
   };
 };

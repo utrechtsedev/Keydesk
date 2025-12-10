@@ -5,11 +5,11 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Separator } from '$lib/components/ui/separator';
 	import { ToastComponent } from '$lib/components/ui/toast';
-	import type { User } from '$lib/types';
+	import type { PageData } from '$lib/types';
 	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 
-	const { data }: { data: { user: User } } = $props();
+	const { data }: { data: PageData } = $props();
 
 	let user = $state(data.user);
 

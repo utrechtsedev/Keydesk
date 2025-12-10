@@ -1,18 +1,19 @@
-import { Category, Priority, Status, Tag, User } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema"
 import type { LayoutServerLoad } from "../$types";
 
 export const load: LayoutServerLoad = async () => {
-  const priorities = await Priority.findAll()
-  const users = await User.findAll()
-  const statuses = await Status.findAll()
-  const categories = await Category.findAll()
-  const tags = await Tag.findAll()
+  const priorities = await db.select().from(schema.priority)
+  const users = await db.select().from(schema.user)
+  const statuses = await db.select().from(schema.status)
+  const categories = await db.select().from(schema.category)
+  const tags = await db.select().from(schema.tag)
 
   return {
-    priorities: priorities.map(p => p.toJSON()),
-    users: users.map(u => u.toJSON()),
-    statuses: statuses.map(s => s.toJSON()),
-    categories: categories.map(c => c.toJSON()),
-    tags: tags.map(t => t.toJSON())
+    priorities,
+    users,
+    statuses,
+    categories,
+    tags
   };
 };
