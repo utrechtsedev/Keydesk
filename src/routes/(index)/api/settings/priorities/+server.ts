@@ -1,33 +1,50 @@
-import { models, Priority } from "$lib/server/db/models";
-import type { PriorityCreationAttributes } from "$lib/server/db/models/priority.model";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import type { NewPriority } from "$lib/server/db/schema";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { eq, sql } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
-    const { priorities } = await request.json() as { priorities: PriorityCreationAttributes[] }
+    const { priorities } = await request.json() as { priorities: NewPriority[] };
 
-    if (!priorities)
+    if (!priorities) {
       return error(400, { message: 'Priorities are required.' });
+    }
 
-    if (priorities.length < 1) return error(400, { message: 'You must at least have 1 priority.' })
+    if (priorities.length < 1) {
+      return error(400, { message: 'You must at least have 1 priority.' });
+    }
 
     const defaultPriorities = priorities.filter((p) => p.isDefault);
-
-    if (defaultPriorities.length !== 1)
+    if (defaultPriorities.length !== 1) {
       return error(400, { message: 'You must only have 1 default priority.' });
+    }
 
-    const created = await Priority.bulkCreate(priorities, {
-      updateOnDuplicate: ['id', 'createdAt', 'updatedAt']
-    });
+    // Bulk upsert
+    const created = await db
+      .insert(schema.priority)
+      .values(priorities)
+      .onConflictDoUpdate({
+        target: schema.priority.id,
+        set: {
+          name: sql`EXCLUDED.name`,
+          color: sql`EXCLUDED.color`,
+          isDefault: sql`EXCLUDED.is_default`,
+          order: sql`EXCLUDED.order`,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
+    if (!created || created.length === 0) {
       return error(400, { message: 'Something went wrong while inserting fields into the database.' });
     }
 
     return json({
-      success: created ? true : false,
+      success: true,
       data: created,
-    }, { status: created ? 201 : 400 });
+    }, { status: 201 });
 
   } catch (err) {
     console.error('Error saving priorities:', err);
@@ -42,24 +59,26 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 export const GET: RequestHandler = async (): Promise<Response> => {
   try {
-    let priorities = await models.Priority.findAll()
+    const priorities = await db
+      .select()
+      .from(schema.priority);
+
     return json({
       success: true,
       data: priorities,
-    })
+    });
 
-  } catch (error) {
+  } catch (err) {
     return json(
       {
         success: false,
         message: 'Failed to fetch priorities',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
-
   }
-}
+};
 
 export const DELETE: RequestHandler = async ({ request }): Promise<Response> => {
   try {
@@ -72,14 +91,11 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
       }, { status: 400 });
     }
 
-    const priority = await models.Priority.findByPk(id, {
-      include: [{
-        model: models.Ticket,
-        as: 'priorityTickets',
-        attributes: ['id'],
-        limit: 1
-      }]
-    });
+    // Check if priority exists
+    const [priority] = await db
+      .select()
+      .from(schema.priority)
+      .where(eq(schema.priority.id, id));
 
     if (!priority) {
       return json({
@@ -88,6 +104,7 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
       }, { status: 404 });
     }
 
+    // Check if it's the default priority
     if (priority.isDefault) {
       return json({
         success: false,
@@ -95,23 +112,35 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
       }, { status: 400 });
     }
 
-    if (priority.priorityTickets && priority.priorityTickets.length > 0) {
+    // Check if priority has associated tickets
+    const [ticketCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.ticket)
+      .where(eq(schema.ticket.priorityId, id));
+
+    if (Number(ticketCount.count) > 0) {
       return json({
         success: false,
         message: 'Cannot delete priority with associated tickets. Please reassign or delete all tickets first.'
       }, { status: 400 });
     }
 
-    const priorityCount = await models.Priority.count();
+    // Check if it's the last priority
+    const [priorityCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.priority);
 
-    if (priorityCount <= 1) {
+    if (Number(priorityCount.count) <= 1) {
       return json({
         success: false,
         message: 'Cannot delete the last priority. At least 1 priority is required.'
       }, { status: 400 });
     }
 
-    await priority.destroy();
+    // Delete the priority
+    await db
+      .delete(schema.priority)
+      .where(eq(schema.priority.id, id));
 
     return json({
       success: true,
@@ -120,6 +149,15 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
 
   } catch (err) {
     console.error('Error deleting priority:', err);
+
+    // Handle foreign key constraint error
+    if (err instanceof Error && err.message.includes('foreign key')) {
+      return json({
+        success: false,
+        message: 'Cannot delete priority with associated tickets.'
+      }, { status: 400 });
+    }
+
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     return json({
       success: false,

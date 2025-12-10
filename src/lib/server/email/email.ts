@@ -1,7 +1,9 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
-import { models } from "../db/models";
-import { decrypt } from "../db/encrypt";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import { eq } from "drizzle-orm";
+import { decrypt } from "$lib/server/db/encrypt";
 import type { SMTP } from "$lib/types";
 
 let transporter: Transporter | null = null;
@@ -11,18 +13,21 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
 async function getEmailConfig(): Promise<SMTP | null> {
   const now = Date.now();
-
   if (configCache && (now - lastConfigFetch) < CONFIG_CACHE_TTL) {
     return configCache;
   }
 
-  const request = await models.Config.findOne({ where: { key: 'smtp' } });
+  const [request] = await db
+    .select()
+    .from(schema.config)
+    .where(eq(schema.config.key, 'smtp'));
+
   if (!request) {
     console.error('Email SMTP settings not available');
     return null;
   }
 
-  const emailSettings: SMTP = request.value;
+  const emailSettings: SMTP = request.value as SMTP;
   emailSettings.password = decrypt(emailSettings.password);
 
   configCache = emailSettings;
@@ -71,7 +76,6 @@ export async function sendEmail(
   text?: string
 ): Promise<void> {
   const transporter = await getTransporter();
-
   if (!transporter || !configCache) {
     throw new Error('Email not configured');
   }

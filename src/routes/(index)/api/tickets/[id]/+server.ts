@@ -1,15 +1,20 @@
-import { Ticket } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
   try {
     const ticketId = Number(params.id);
-
     if (isNaN(ticketId)) {
       return error(400, 'Invalid ticket ID');
     }
 
-    const findTicket = await Ticket.findByPk(ticketId);
+    // Check if ticket exists
+    const [findTicket] = await db
+      .select()
+      .from(schema.ticket)
+      .where(eq(schema.ticket.id, ticketId));
 
     if (!findTicket) {
       return error(404, 'Ticket not found');
@@ -32,15 +37,24 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       responseCount: number;
     }>;
 
+    // Remove protected fields
     const { id, ticketNumber, createdAt, updatedAt, ...updateData } = ticket as any;
 
-    await findTicket.update(updateData);
+    // Parse assignedUserId to integer if it exists and is not null
+    if (updateData.assignedUserId !== undefined && updateData.assignedUserId !== null) {
+      updateData.assignedUserId = parseInt(updateData.assignedUserId, 10);
+    }
 
-    await findTicket.reload();
+    // Update the ticket
+    const [updatedTicket] = await db
+      .update(schema.ticket)
+      .set(updateData)
+      .where(eq(schema.ticket.id, ticketId))
+      .returning();
 
     return json({
       success: true,
-      ticket: findTicket.toJSON()
+      ticket: updatedTicket
     }, { status: 200 });
 
   } catch (err) {

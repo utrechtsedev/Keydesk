@@ -1,15 +1,19 @@
-import { Config, Requester, Ticket, TicketAttachment, TicketMessage } from '../src/lib/server/db/models'
-import { sendNotification } from '../src/lib/server/job-queue'
-import { getFileExtension, generateRandomString } from '../src/lib/utils/string'
-import { getTicketPrefix, generateTicketNumber } from '../src/lib/server/ticket'
-import { NotificationSettings, type Attachment } from '../src/lib/types'
+import { db } from '../src/lib/server/db/database';
+import * as schema from '../src/lib/server/db/schema';
+import { eq } from 'drizzle-orm';
+import { sendNotification } from '../src/lib/server/job-queue';
+import { getFileExtension, generateRandomString } from '../src/lib/utils/string';
+import { getTicketPrefix, generateTicketNumber } from '../src/lib/server/ticket';
+import { NotificationSettings, type Attachment } from '../src/lib/types';
 import { MailParser } from "mailparser";
 import { sanitize } from "./sanitize";
 import { getClient } from "./client";
 import path from "path";
-import fs from "fs"
+import fs from "fs";
 import { getLogTimestamp } from '../src/lib/utils/date';
-const client = await getClient()
+
+const client = await getClient();
+
 /**
  * Processes incoming email messages and creates corresponding tickets in the database.
  * 
@@ -74,7 +78,7 @@ export async function processMessage(
         continue;
       }
       if (!envelope.subject) {
-        envelope.subject = 'No Subject'
+        envelope.subject = 'No Subject';
         console.warn(`No subject for UID ${uid}.`);
       }
 
@@ -87,43 +91,83 @@ export async function processMessage(
       }
 
       // Check if attachments are enabled
-      const attachmentsEnabled = options.enabled !== false
+      const attachmentsEnabled = options.enabled !== false;
 
-      // Database operations before parsing
-      const [requester, createdRequester] = await Requester.findOrCreate({
-        where: {
-          email: from.address
-        },
-        defaults: {
-          name: from.name || null,
-          email: from.address,
+      // Database operations in transaction
+      const result = await db.transaction(async (tx) => {
+        // Find or create requester
+        const [existingRequester] = await tx
+          .select()
+          .from(schema.requester)
+          .where(eq(schema.requester.email, from.address));
+
+        let requester;
+        let createdRequester = false;
+
+        if (existingRequester) {
+          requester = existingRequester;
+        } else {
+          const [newRequester] = await tx
+            .insert(schema.requester)
+            .values({
+              name: from.name || null,
+              email: from.address,
+            })
+            .returning();
+          requester = newRequester;
+          createdRequester = true;
         }
-      })
 
-      const prefix = await getTicketPrefix();
-      const match = subject.match(new RegExp(`${prefix}(\\d+)`, 'i'));
-      const ticketNumber = match ? match[0] : null
+        // Extract ticket number from subject
+        const prefix = await getTicketPrefix();
+        const match = subject.match(new RegExp(`${prefix}(\\d+)`, 'i'));
+        const ticketNumber = match ? match[0] : null;
 
-      let [ticket, createdTicket] = await Ticket.findOrCreate({
-        where: { ticketNumber },
-        defaults: {
-          ticketNumber: await generateTicketNumber(),
-          requesterId: requester.id,
-          assignedUserId: null,
-          subject: subject || "No subject",
-          channel: "email",
-          statusId: 1,
-          priorityId: 1,
-          categoryId: 1,
-          firstResponseAt: null,
-          resolvedAt: null,
-          closedAt: null,
-          targetDate: new Date(),
-          lastUserResponseAt: null,
-          lastRequesterResponseAt: null,
-          responseCount: 0,
+        // Find or create ticket
+        let ticket;
+        let createdTicket = false;
+
+        if (ticketNumber) {
+          const [existingTicket] = await tx
+            .select()
+            .from(schema.ticket)
+            .where(eq(schema.ticket.ticketNumber, ticketNumber));
+
+          if (existingTicket) {
+            ticket = existingTicket;
+          }
         }
-      })
+
+        if (!ticket) {
+          const newTicketNumber = await generateTicketNumber(tx);
+          const [newTicket] = await tx
+            .insert(schema.ticket)
+            .values({
+              ticketNumber: newTicketNumber,
+              requesterId: requester.id,
+              assignedUserId: null,
+              subject: subject || "No subject",
+              channel: "email",
+              statusId: 1,
+              priorityId: 1,
+              categoryId: 1,
+              firstResponseAt: null,
+              resolvedAt: null,
+              closedAt: null,
+              targetDate: new Date(),
+              lastUserResponseAt: null,
+              lastRequesterResponseAt: null,
+              responseCount: 0,
+            })
+            .returning();
+          ticket = newTicket;
+          createdTicket = true;
+        }
+
+        return { requester, createdRequester, ticket, createdTicket };
+      });
+
+      const { requester, createdRequester, ticket, createdTicket } = result;
 
       // Parse email and collect data
       const { emailContent, attachmentData } = await new Promise<{
@@ -215,22 +259,26 @@ export async function processMessage(
         parser.end();
       });
 
-      const ticketMessage = await TicketMessage.create({
-        ticketId: ticket.id,
-        senderType: "requester",
-        requester: requester.id,
-        senderName: requester.name || null,
-        senderEmail: requester.email,
-        userId: null,
-        message: sanitize(emailContent.html, emailContent.text),
-        isPrivate: false,
-        channel: "email",
-        isFirstResponse: false,
-        hasAttachments: attachmentData.length > 0,
-      })
+      // Create ticket message and attachments
+      const [ticketMessage] = await db
+        .insert(schema.ticketMessage)
+        .values({
+          ticketId: ticket.id,
+          senderType: "requester",
+          requesterId: requester.id,
+          senderName: requester.name || null,
+          senderEmail: requester.email,
+          userId: null,
+          message: sanitize(emailContent.html, emailContent.text),
+          isPrivate: false,
+          channel: "email",
+          isFirstResponse: false,
+          hasAttachments: attachmentData.length > 0,
+        })
+        .returning();
 
       for (const attachment of attachmentData) {
-        await TicketAttachment.create({
+        await db.insert(schema.ticketAttachment).values({
           ticketId: ticket.id,
           messageId: ticketMessage.id,
           fileName: attachment.storedFilename,
@@ -248,13 +296,18 @@ export async function processMessage(
       await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
       console.log(`[${getLogTimestamp()}] Marked UID ${uid} as seen`);
 
-      const fetchNotificationConfig = await Config.findOne({ where: { key: 'notifications' } });
+      // Get notification config
+      const [fetchNotificationConfig] = await db
+        .select()
+        .from(schema.config)
+        .where(eq(schema.config.key, 'notifications'));
 
       if (!fetchNotificationConfig) {
         throw new Error(`[${getLogTimestamp()}] Could not create notifications, notification config not found.`);
       }
 
       const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
+
       if (notificationConfig.dashboard.ticket.created.notifyAllUsers && createdTicket) {
         await sendNotification({
           title: "New Ticket",
@@ -265,7 +318,7 @@ export async function processMessage(
           relatedEntityType: "ticket",
           relatedEntityId: ticket.id,
           actionUrl: `/dashboard/tickets/${ticket.id}`,
-        })
+        });
       }
 
       if (notificationConfig.email.ticket.created.notifyAllUsers && createdTicket) {
@@ -278,7 +331,7 @@ export async function processMessage(
           relatedEntityType: "ticket",
           relatedEntityId: ticket.id,
           actionUrl: `/dashboard/tickets/${ticket.id}`,
-        })
+        });
       }
 
       if (notificationConfig.email.ticket.created.notifyRequester && createdTicket) {
@@ -290,7 +343,7 @@ export async function processMessage(
           email: from.address,
           relatedEntityType: "ticket",
           relatedEntityId: ticket.id,
-        })
+        });
       }
 
       if (notificationConfig.dashboard.ticket.updated.notifyUser && !createdTicket && ticket.assignedUserId) {
@@ -303,7 +356,7 @@ export async function processMessage(
           relatedEntityType: "ticket",
           relatedEntityId: ticket.id,
           actionUrl: `/dashboard/tickets/${ticket.id}`
-        })
+        });
       }
 
     } catch (error) {

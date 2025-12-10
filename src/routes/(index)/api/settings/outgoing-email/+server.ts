@@ -1,35 +1,42 @@
 import { decrypt, encrypt } from "$lib/server/db/encrypt";
-import { models } from "$lib/server/db/models";
-import { error, json, type RequestHandler } from "@sveltejs/kit"
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import { error, json, type RequestHandler } from "@sveltejs/kit";
 import { type SMTP } from "$lib/types";
+import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
     const { smtp } = await request.json() as { smtp: SMTP };
 
     if (!smtp.senderName || !smtp.senderEmail || !smtp.host || !smtp.port) {
-      return error(400, 'Please enter SMTP sender name, email, host and port.')
+      return error(400, 'Please enter SMTP sender name, email, host and port.');
     }
 
     if (smtp.enableAuthentication && (!smtp.username || !smtp.password)) {
-      return error(400, 'Please enter an SMTP username and password or disable SMTP authentication.')
+      return error(400, 'Please enter an SMTP username and password or disable SMTP authentication.');
     }
 
+    if (smtp.password) {
+      smtp.password = encrypt(smtp.password);
+    }
 
-    if (smtp.password)
-      smtp.password = encrypt(smtp.password)
-
-    const [config, created] = await models.Config.findOrCreate({
-      where: { key: 'smtp' },
-      defaults: {
+    const [config] = await db
+      .insert(schema.config)
+      .values({
         key: 'smtp',
         value: smtp
-      }
-    });
+      })
+      .onConflictDoUpdate({
+        target: schema.config.key,
+        set: {
+          value: smtp,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
-      await config.update({ value: smtp });
-    }
+    const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
     return json({
       success: true,
@@ -46,35 +53,38 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       error: errorMessage
     }, { status: 500 });
   }
-}
+};
 
 export const GET: RequestHandler = async () => {
   try {
-    let smtp = await models.Config.findOne({ where: { key: 'smtp' } })
+    const [config] = await db
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, 'smtp'));
 
-    if (!smtp)
+    if (!config) {
       return json({
         success: true,
         data: null,
-      })
+      });
+    }
 
-    let response: SMTP = smtp.value
-
-    response.password = decrypt(response.password)
+    const response: SMTP = config.value as SMTP;
+    response.password = decrypt(response.password);
 
     return json({
       success: true,
       data: response,
-    })
-  } catch (error) {
+    });
+
+  } catch (err) {
     return json(
       {
         success: false,
-        message: 'Failed to fetch outgoing email settings',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Failed to fetch SMTP settings',
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
-
   }
-}
+};

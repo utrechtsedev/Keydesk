@@ -1,25 +1,33 @@
-import { models } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import type { Portal } from "$lib/types";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
-    const { portal } = await request.json() as { portal: Portal }
+    const { portal } = await request.json() as { portal: Portal };
 
-    if (!portal)
+    if (!portal) {
       return error(400, { message: 'Portal settings are required.' });
+    }
 
-    const [config, created] = await models.Config.findOrCreate({
-      where: { key: 'portal' },
-      defaults: {
+    const [config] = await db
+      .insert(schema.config)
+      .values({
         key: 'portal',
         value: portal
-      }
-    });
+      })
+      .onConflictDoUpdate({
+        target: schema.config.key,
+        set: {
+          value: portal,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
-      await config.update({ value: portal });
-    }
+    const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
     return json({
       success: true,
@@ -40,28 +48,31 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 export const GET: RequestHandler = async (): Promise<Response> => {
   try {
-    let portal = await models.Config.findOne({ where: { key: 'portal' } })
+    const [config] = await db
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, 'portal'));
 
-    if (!portal)
+    if (!config) {
       return json({
         success: true,
         data: null,
-      })
+      });
+    }
 
     return json({
       success: true,
-      data: portal.value,
-    })
+      data: config.value,
+    });
 
-  } catch (error) {
+  } catch (err) {
     return json(
       {
         success: false,
         message: 'Failed to fetch portal settings',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
-
   }
-}
+};

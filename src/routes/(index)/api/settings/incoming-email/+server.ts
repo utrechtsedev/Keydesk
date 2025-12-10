@@ -1,7 +1,9 @@
 import { decrypt, encrypt } from "$lib/server/db/encrypt";
-import { models } from "$lib/server/db/models";
-import { error, json, type RequestHandler } from "@sveltejs/kit"
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import { error, json, type RequestHandler } from "@sveltejs/kit";
 import { type IMAP } from "$lib/types";
+import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
@@ -11,20 +13,26 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       return error(400, 'Please enter IMAP details.');
     }
 
-    if (imap.password)
-      imap.password = encrypt(imap.password)
+    if (imap.password) {
+      imap.password = encrypt(imap.password);
+    }
 
-    const [config, created] = await models.Config.findOrCreate({
-      where: { key: 'imap' },
-      defaults: {
+    const [config] = await db
+      .insert(schema.config)
+      .values({
         key: 'imap',
         value: imap
-      }
-    });
+      })
+      .onConflictDoUpdate({
+        target: schema.config.key,
+        set: {
+          value: imap,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
-      await config.update({ value: imap });
-    }
+    const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
     return json({
       success: true,
@@ -41,36 +49,38 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       error: errorMessage
     }, { status: 500 });
   }
-}
+};
 
 export const GET: RequestHandler = async () => {
   try {
-    let imap = await models.Config.findOne({ where: { key: 'imap' } })
+    const [config] = await db
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, 'imap'));
 
-    if (!imap)
+    if (!config) {
       return json({
         success: true,
         data: null,
-      })
+      });
+    }
 
-    let response: IMAP = imap.value
-
-    response.password = decrypt(response.password)
+    const response: IMAP = config.value as IMAP;
+    response.password = decrypt(response.password);
 
     return json({
       success: true,
       data: response,
-    })
+    });
 
-  } catch (error) {
+  } catch (err) {
     return json(
       {
         success: false,
-        message: 'Failed to fetch outgoing organization settings',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Failed to fetch IMAP settings',
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
-
   }
-}
+};

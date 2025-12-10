@@ -1,40 +1,60 @@
-import { models } from "$lib/server/db/models";
-import type { StatusCreationAttributes } from "$lib/server/db/models/status.model";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import type { NewStatus } from "$lib/server/db/schema";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { eq, sql } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
-    const { statuses } = await request.json() as { statuses: StatusCreationAttributes[] }
+    const { statuses } = await request.json() as { statuses: NewStatus[] };
 
-    if (!statuses)
+    if (!statuses) {
       return error(400, { message: 'Statuses are required.' });
+    }
 
-    if (statuses.length < 2) return error(400, { message: 'You must at least have 2 statuses. 1 for open tickets, 1 for closed tickets' })
+    if (statuses.length < 2) {
+      return error(400, { message: 'You must at least have 2 statuses. 1 for open tickets, 1 for closed tickets' });
+    }
 
     const defaultStatuses = statuses.filter((s) => s.isDefault);
-
-    if (defaultStatuses.length !== 1)
+    if (defaultStatuses.length !== 1) {
       return error(400, { message: 'You must only have 1 default status.' });
+    }
 
     const openStatuses = statuses.filter((s) => !s.isClosed);
-    if (openStatuses.length < 1) return error(400, { message: 'You must have at least 1 open status.' });
+    if (openStatuses.length < 1) {
+      return error(400, { message: 'You must have at least 1 open status.' });
+    }
 
     const closedStatuses = statuses.filter((s) => s.isClosed);
-    if (closedStatuses.length < 1) return error(400, { message: 'You must have at least 1 closed status.' });
+    if (closedStatuses.length < 1) {
+      return error(400, { message: 'You must have at least 1 closed status.' });
+    }
 
-    const created = await models.Status.bulkCreate(statuses, {
-      updateOnDuplicate: ['name', 'color', 'isDefault', 'isClosed']
-    })
+    // Bulk upsert
+    const created = await db
+      .insert(schema.status)
+      .values(statuses)
+      .onConflictDoUpdate({
+        target: schema.status.id,
+        set: {
+          name: sql`EXCLUDED.name`,
+          color: sql`EXCLUDED.color`,
+          isDefault: sql`EXCLUDED.is_default`,
+          isClosed: sql`EXCLUDED.is_closed`,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
+    if (!created || created.length === 0) {
       return error(400, { message: 'Something went wrong while inserting fields into the database.' });
     }
 
-
     return json({
-      success: created ? true : false,
+      success: true,
       data: created,
-    }, { status: created ? 201 : 400 });
+    }, { status: 201 });
 
   } catch (err) {
     console.error('Error saving statuses:', err);
@@ -49,17 +69,21 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 export const GET: RequestHandler = async (): Promise<Response> => {
   try {
-    const statuses = await models.Status.findAll();
+    const statuses = await db
+      .select()
+      .from(schema.status);
+
     return json({
       success: true,
       data: statuses
     });
-  } catch (error) {
+
+  } catch (err) {
     return json(
       {
         success: false,
         message: 'Failed to fetch statuses',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -77,14 +101,11 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
       }, { status: 400 });
     }
 
-    const status = await models.Status.findByPk(id, {
-      include: [{
-        model: models.Ticket,
-        as: 'statusTickets',
-        attributes: ['id'],
-        limit: 1
-      }]
-    });
+    // Check if status exists
+    const [status] = await db
+      .select()
+      .from(schema.status)
+      .where(eq(schema.status.id, id));
 
     if (!status) {
       return json({
@@ -93,6 +114,7 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
       }, { status: 404 });
     }
 
+    // Check if it's the default status
     if (status.isDefault) {
       return json({
         success: false,
@@ -100,31 +122,48 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
       }, { status: 400 });
     }
 
-    if (status.statusTickets && status.statusTickets.length > 0) {
+    // Check if status has associated tickets
+    const [ticketCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.ticket)
+      .where(eq(schema.ticket.statusId, id));
+
+    if (Number(ticketCount.count) > 0) {
       return json({
         success: false,
         message: 'Cannot delete status with associated tickets. Please reassign or delete all tickets first.'
       }, { status: 400 });
     }
 
-    const openStatusCount = await models.Status.count({ where: { isClosed: false } });
-    const closedStatusCount = await models.Status.count({ where: { isClosed: true } });
+    // Count open and closed statuses
+    const [openStatusCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.status)
+      .where(eq(schema.status.isClosed, false));
 
-    if (!status.isClosed && openStatusCount <= 1) {
+    const [closedStatusCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.status)
+      .where(eq(schema.status.isClosed, true));
+
+    if (!status.isClosed && Number(openStatusCount.count) <= 1) {
       return json({
         success: false,
         message: 'Cannot delete the last open status. At least 1 open status is required.'
       }, { status: 400 });
     }
 
-    if (status.isClosed && closedStatusCount <= 1) {
+    if (status.isClosed && Number(closedStatusCount.count) <= 1) {
       return json({
         success: false,
         message: 'Cannot delete the last closed status. At least 1 closed status is required.'
       }, { status: 400 });
     }
 
-    await status.destroy();
+    // Delete the status
+    await db
+      .delete(schema.status)
+      .where(eq(schema.status.id, id));
 
     return json({
       success: true,
@@ -133,6 +172,15 @@ export const DELETE: RequestHandler = async ({ request }): Promise<Response> => 
 
   } catch (err) {
     console.error('Error deleting status:', err);
+
+    // Handle foreign key constraint error
+    if (err instanceof Error && err.message.includes('foreign key')) {
+      return json({
+        success: false,
+        message: 'Cannot delete status with associated tickets.'
+      }, { status: 400 });
+    }
+
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     return json({
       success: false,

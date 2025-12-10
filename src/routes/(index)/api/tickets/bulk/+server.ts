@@ -1,5 +1,7 @@
-import { Tag, Ticket } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { eq, inArray } from "drizzle-orm";
 
 export const PATCH: RequestHandler = async ({ request }) => {
   try {
@@ -13,63 +15,93 @@ export const PATCH: RequestHandler = async ({ request }) => {
       return error(400, 'Some fields are missing. Please retry your request.');
     }
 
-    let tickets;
-    const where = { id: ids };
+    let updatedCount = 0;
 
     switch (itemType) {
-      case 'user':
-        tickets = await Ticket.update({ assignedUserId: itemId }, { where });
+      case 'user': {
+        const result = await db
+          .update(schema.ticket)
+          .set({ assignedUserId: parseInt(itemId, 10) })
+          .where(inArray(schema.ticket.id, ids))
+          .returning();
+        updatedCount = result.length;
         break;
-
+      }
       case 'category': {
         const categoryId = Number(itemId);
         if (isNaN(categoryId)) return error(400, 'Invalid category ID');
-        tickets = await Ticket.update({ categoryId }, { where });
+
+        const result = await db
+          .update(schema.ticket)
+          .set({ categoryId })
+          .where(inArray(schema.ticket.id, ids))
+          .returning();
+        updatedCount = result.length;
         break;
       }
-
       case 'status': {
         const statusId = Number(itemId);
         if (isNaN(statusId)) return error(400, 'Invalid status ID');
-        tickets = await Ticket.update({ statusId }, { where });
+
+        const result = await db
+          .update(schema.ticket)
+          .set({ statusId })
+          .where(inArray(schema.ticket.id, ids))
+          .returning();
+        updatedCount = result.length;
         break;
       }
-
       case 'priority': {
         const priorityId = Number(itemId);
         if (isNaN(priorityId)) return error(400, 'Invalid priority ID');
-        tickets = await Ticket.update({ priorityId }, { where });
+
+        const result = await db
+          .update(schema.ticket)
+          .set({ priorityId })
+          .where(inArray(schema.ticket.id, ids))
+          .returning();
+        updatedCount = result.length;
         break;
       }
       case 'tag': {
         const tagId = Number(itemId);
         if (isNaN(tagId)) return error(400, 'Invalid tag ID');
 
-        const tag = await Tag.findByPk(tagId);
+        // Verify tag exists
+        const [tag] = await db
+          .select()
+          .from(schema.tag)
+          .where(eq(schema.tag.id, tagId));
+
         if (!tag) return error(404, 'Tag not found');
 
-        const tickets = await Ticket.findAll({ where });
-
+        // Add tag to all tickets (using onConflictDoNothing to prevent duplicates)
         await Promise.all(
-          tickets.map(ticket => ticket.addTag(tagId))
+          ids.map(ticketId =>
+            db
+              .insert(schema.ticketTag)
+              .values({ ticketId, tagId })
+              .onConflictDoNothing()
+          )
         );
 
         return json({
           success: true,
-          updatedCount: tickets.length,
-          message: `Tag added to ${tickets.length} ticket(s)`
+          updatedCount: ids.length,
+          message: `Tag added to ${ids.length} ticket(s)`
         }, { status: 200 });
-      } default:
+      }
+      default:
         return error(400, 'Invalid item type');
     }
 
-    if (!tickets) {
-      return error(400, 'No tickets were updated. Unknown error.');
+    if (updatedCount === 0) {
+      return error(400, 'No tickets were updated.');
     }
 
     return json({
       success: true,
-      updated: tickets[0],
+      updated: updatedCount,
     }, { status: 200 });
 
   } catch (err) {
@@ -90,15 +122,18 @@ export const DELETE: RequestHandler = async ({ request }) => {
       return error(400, 'Some fields are missing. Please retry your request.');
     }
 
-    const tickets = await Ticket.destroy({ where: { id: ids } })
+    const deleted = await db
+      .delete(schema.ticket)
+      .where(inArray(schema.ticket.id, ids))
+      .returning();
 
-    if (!tickets) {
-      return error(400, 'No tickets were deleted. Unknown error.');
+    if (!deleted || deleted.length === 0) {
+      return error(400, 'No tickets were deleted.');
     }
 
     return json({
       success: true,
-      deleted: tickets,
+      deleted: deleted.length,
     }, { status: 200 });
 
   } catch (err) {
@@ -109,4 +144,4 @@ export const DELETE: RequestHandler = async ({ request }) => {
       error: errorMessage
     }, { status: 500 });
   }
-}
+};

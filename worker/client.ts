@@ -1,8 +1,10 @@
 import { ImapFlow } from "imapflow";
-import { Config } from '../src/lib/server/db/models/config.model.ts';
+import { db } from '../src/lib/server/db/database';
+import * as schema from '../src/lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import { type IMAP } from "../src/lib/types/core.ts";
-import { decrypt } from '../src/lib/server/db/encrypt.ts'
-import { getLogTimestamp } from '../src/lib/utils/date.ts'
+import { decrypt } from '../src/lib/server/db/encrypt.ts';
+import { getLogTimestamp } from '../src/lib/utils/date.ts';
 
 let client: ImapFlow | null = null;  // Starts as null
 
@@ -11,7 +13,10 @@ export async function getClient(): Promise<ImapFlow> {
     return client;
   }
 
-  const imap = await Config.findOne({ where: { key: 'imap' } });
+  const [imap] = await db
+    .select()
+    .from(schema.config)
+    .where(eq(schema.config.key, 'imap'));
 
   if (!imap) {
     throw new Error(`[${getLogTimestamp()}] IMAP configuration not found in database, exiting...`);

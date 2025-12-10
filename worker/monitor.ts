@@ -1,9 +1,12 @@
 import { type Attachment } from '../src/lib/types'
-import { Config } from '../src/lib/server/db/models/config.model.ts';
+import { db } from '../src/lib/server/db/database'
+import * as schema from '../src/lib/server/db/schema'
+import { eq } from 'drizzle-orm'
 import { getLogTimestamp } from '../src/lib/utils/date.ts'
 import { getClient } from './client';
 import { processMessage } from './process.ts'
 import fs from "fs"
+
 const client = await getClient()
 
 /** Maximum number of consecutive IDLE failures before switching to polling mode */
@@ -178,7 +181,11 @@ async function ensureConnection(): Promise<void> {
  */
 async function getMailOptions(): Promise<Attachment> {
   try {
-    let attachmentConfig = await Config.findOne({ where: { key: 'attachments' } });
+    const [attachmentConfig] = await db
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, 'attachments'));
+
     const config = attachmentConfig?.value as Attachment | undefined;
 
     if (!config?.allowedMimeTypes || !Array.isArray(config.allowedMimeTypes) || config.allowedMimeTypes.length === 0) {

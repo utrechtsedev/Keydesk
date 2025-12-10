@@ -1,6 +1,8 @@
-import { models } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import type { TicketConfig } from "$lib/types";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
@@ -14,17 +16,22 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       return error(400, { message: 'Ticket prefix and next number are required' });
     }
 
-    const [config, created] = await models.Config.findOrCreate({
-      where: { key: 'tickets' },
-      defaults: {
+    const [config] = await db
+      .insert(schema.config)
+      .values({
         key: 'tickets',
         value: tickets
-      }
-    });
+      })
+      .onConflictDoUpdate({
+        target: schema.config.key,
+        set: {
+          value: tickets,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
-      await config.update({ value: tickets });
-    }
+    const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
     return json({
       success: true,
@@ -45,28 +52,31 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 export const GET: RequestHandler = async () => {
   try {
-    let tickets = await models.Config.findOne({ where: { key: 'tickets' } })
+    const [config] = await db
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, 'tickets'));
 
-
-    if (!tickets)
+    if (!config) {
       return json({
         success: true,
         data: null,
-      })
+      });
+    }
 
     return json({
       success: true,
-      data: tickets.value
-    })
-  } catch (error) {
+      data: config.value
+    });
+
+  } catch (err) {
     return json(
       {
         success: false,
         message: 'Failed to fetch tickets settings',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
-
   }
-}
+};

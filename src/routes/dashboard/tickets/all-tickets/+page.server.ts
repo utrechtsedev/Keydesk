@@ -1,11 +1,11 @@
-
-import { Category, Priority, Requester, Status, Tag, Ticket, User } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import type { PageServerLoad } from "./$types";
-import type { Order } from "sequelize";
-import { Op } from "sequelize";
+import { or, ilike, sql, eq, asc, desc, SQL } from "drizzle-orm";
 
 export const load: PageServerLoad = async ({ url, depends }) => {
-  depends('app:tickets')
+  depends('app:tickets');
+
   const page = Number(url.searchParams.get('page')) || 1;
   const pageSize = Number(url.searchParams.get('pageSize')) || 10;
   const sortBy = url.searchParams.get('sortBy') || 'createdAt';
@@ -13,64 +13,93 @@ export const load: PageServerLoad = async ({ url, depends }) => {
   const search = url.searchParams.get('search') || '';
   const offset = (page - 1) * pageSize;
 
-  let orderClause: Order;
-  if (sortBy === 'requester.name' || sortBy === 'requester_name') {
-    orderClause = [[{ model: Requester, as: 'requester' }, 'name', sortOrder]];
-  } else if (sortBy === 'category.name' || sortBy === 'category_name') {
-    orderClause = [[{ model: Category, as: 'category' }, 'name', sortOrder]];
-  } else if (sortBy === 'user.name' || sortBy === 'user_name') {
-    orderClause = [[{ model: User, as: 'assignedUser' }, 'name', sortOrder]];
-  } else if (sortBy === 'status.name' || sortBy === 'status_name') {
-    orderClause = [[{ model: Status, as: 'status' }, 'name', sortOrder]];
-  } else if (sortBy === 'priority.name' || sortBy === 'priority_name') {
-    orderClause = [[{ model: Priority, as: 'priority' }, 'name', sortOrder]];
-  } else {
-    orderClause = [[sortBy, sortOrder]];
+  // Build search conditions
+  const searchConditions: SQL[] = [];
+  if (search) {
+    const searchPattern = `%${search}%`;
+    searchConditions.push(
+      or(
+        ilike(schema.ticket.ticketNumber, searchPattern),
+        ilike(schema.ticket.subject, searchPattern),
+        ilike(schema.user.name, searchPattern),
+        ilike(schema.requester.name, searchPattern)
+      )!
+    );
   }
 
-  const whereClause = search ? {
-    [Op.or]: [
-      { ticketNumber: { [Op.like]: `%${search}%` } },
-      { subject: { [Op.like]: `%${search}%` } },
-      { '$assignedUser.name$': { [Op.like]: `%${search}%` } },
-      { '$requester.name$': { [Op.like]: `%${search}%` } },
-    ]
-  } : {};
+  // Build order by clause
+  const orderFn = sortOrder === 'DESC' ? desc : asc;
+  let orderByClause: SQL;
 
-  const { count, rows } = await Ticket.findAndCountAll({
-    where: whereClause,
-    limit: pageSize,
-    offset,
-    order: orderClause,
-    include: [
-      {
-        model: Requester,
-        as: 'requester',
-        required: false
-      },
-      {
-        model: Category,
-        as: 'category'
-      },
-      {
-        model: User,
-        as: 'assignedUser'
-      },
-      {
-        model: Status,
-        as: 'status'
-      },
-      {
-        model: Priority,
-        as: 'priority'
-      }
-    ]
-  });
+  if (sortBy === 'requester.name' || sortBy === 'requester_name') {
+    orderByClause = orderFn(schema.requester.name);
+  } else if (sortBy === 'category.name' || sortBy === 'category_name') {
+    orderByClause = orderFn(schema.category.name);
+  } else if (sortBy === 'user.name' || sortBy === 'user_name') {
+    orderByClause = orderFn(schema.user.name);
+  } else if (sortBy === 'status.name' || sortBy === 'status_name') {
+    orderByClause = orderFn(schema.status.name);
+  } else if (sortBy === 'priority.name' || sortBy === 'priority_name') {
+    orderByClause = orderFn(schema.priority.name);
+  } else {
+    // Default to ticket columns
+    const ticketColumn = {
+      'ticketNumber': schema.ticket.ticketNumber,
+      'subject': schema.ticket.subject,
+      'createdAt': schema.ticket.createdAt,
+      'updatedAt': schema.ticket.updatedAt,
+      'targetDate': schema.ticket.targetDate,
+      'responseCount': schema.ticket.responseCount,
+    }[sortBy] ?? schema.ticket.createdAt;
+
+    orderByClause = orderFn(ticketColumn);
+  }
+
+  // Build the query with joins
+  const baseQuery = db
+    .select()
+    .from(schema.ticket)
+    .leftJoin(schema.requester, eq(schema.ticket.requesterId, schema.requester.id))
+    .leftJoin(schema.category, eq(schema.ticket.categoryId, schema.category.id))
+    .leftJoin(schema.user, eq(schema.ticket.assignedUserId, schema.user.id))
+    .leftJoin(schema.status, eq(schema.ticket.statusId, schema.status.id))
+    .leftJoin(schema.priority, eq(schema.ticket.priorityId, schema.priority.id))
+    .$dynamic();
+
+  // Apply search conditions
+  const queryWithWhere = searchConditions.length > 0
+    ? baseQuery.where(searchConditions[0])
+    : baseQuery;
+
+  // Fetch tickets with pagination
+  const rows = await queryWithWhere
+    .orderBy(orderByClause)
+    .limit(pageSize)
+    .offset(offset);
+
+  // Count total
+  const [countResult] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.ticket)
+    .leftJoin(schema.requester, eq(schema.ticket.requesterId, schema.requester.id))
+    .leftJoin(schema.user, eq(schema.ticket.assignedUserId, schema.user.id))
+    .where(searchConditions.length > 0 ? searchConditions[0] : undefined);
+
+  const totalCount = Number(countResult.count);
+
+  // Transform the joined data into the expected format
+  const tickets = rows.map(row => ({
+    ...row.ticket,
+    requester: row.requester,
+    category: row.category,
+    assignedUser: row.user,
+    status: row.status,
+    priority: row.priority,
+  }));
 
   return {
-    tickets: rows.map(t => t.toJSON()),
-    totalCount: count,
-    pageCount: Math.ceil(count / pageSize),
+    tickets,
+    totalCount,
+    pageCount: Math.ceil(totalCount / pageSize),
   };
 };
-

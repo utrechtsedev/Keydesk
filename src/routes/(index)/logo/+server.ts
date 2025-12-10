@@ -1,5 +1,7 @@
-import { models } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
@@ -13,26 +15,40 @@ export const POST: RequestHandler = async ({ request }) => {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    await models.Image.upsert({
-      id: 1,
-      fileName: file.name,
-      mimeType: file.type,
-      fileData: buffer,
-    });
+    await db
+      .insert(schema.image)
+      .values({
+        id: 1,
+        fileName: file.name,
+        mimeType: file.type,
+        fileData: buffer,
+      })
+      .onConflictDoUpdate({
+        target: schema.image.id,
+        set: {
+          fileName: file.name,
+          mimeType: file.type,
+          fileData: buffer,
+          updatedAt: new Date()
+        }
+      });
 
     return json({
       success: true,
       message: 'Image uploaded successfully',
     });
-  } catch (error) {
-    console.error('Error uploading image:', error);
+  } catch (err) {
+    console.error('Error uploading image:', err);
     return json({ error: 'Failed to upload image' }, { status: 500 });
   }
 };
 
 export const GET: RequestHandler = async () => {
   try {
-    const image = await models.Image.findByPk(1);
+    const [image] = await db
+      .select()
+      .from(schema.image)
+      .where(eq(schema.image.id, 1));
 
     if (!image) {
       throw error(404, 'Image not found');

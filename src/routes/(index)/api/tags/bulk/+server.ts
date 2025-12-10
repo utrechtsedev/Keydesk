@@ -1,5 +1,7 @@
-import { Task, Ticket, Tag } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import { json, type RequestHandler } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
@@ -16,17 +18,35 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
     // Find the entity
     let entity;
     if (type === 'ticket') {
-      entity = await Ticket.findByPk(id);
+      const [ticket] = await db
+        .select()
+        .from(schema.ticket)
+        .where(eq(schema.ticket.id, id));
+      entity = ticket;
     } else if (type === 'task') {
-      entity = await Task.findByPk(id);
+      const [task] = await db
+        .select()
+        .from(schema.task)
+        .where(eq(schema.task.id, id));
+      entity = task;
     }
 
     if (!entity) {
       return json({ error: 'Entity not found' }, { status: 404 });
     }
 
+    // Clear existing tags
+    if (type === 'ticket') {
+      await db
+        .delete(schema.ticketTag)
+        .where(eq(schema.ticketTag.ticketId, id));
+    } else {
+      await db
+        .delete(schema.taskTag)
+        .where(eq(schema.taskTag.taskId, id));
+    }
+
     if (!tags || tags.length === 0) {
-      await entity.setTags([]);
       return json({ success: true, tags: [] });
     }
 
@@ -34,17 +54,47 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
     const tagInstances = await Promise.all(
       tags.map(async (tagName) => {
         const normalizedName = tagName.trim().toLowerCase();
-        const [tag] = await Tag.findOrCreate({
-          where: { name: normalizedName },
-          defaults: { name: normalizedName }
-        });
-        return tag;
+
+        // Try to insert, if conflict just fetch existing
+        const [result] = await db
+          .insert(schema.tag)
+          .values({ name: normalizedName })
+          .onConflictDoNothing({ target: schema.tag.name })
+          .returning();
+
+        if (result) {
+          return result;
+        }
+
+        // If conflict occurred, fetch the existing tag
+        const [existingTag] = await db
+          .select()
+          .from(schema.tag)
+          .where(eq(schema.tag.name, normalizedName));
+
+        return existingTag!;
       })
     );
 
-    await entity.setTags(tagInstances);
+    // Create associations
+    if (type === 'ticket') {
+      await db.insert(schema.ticketTag).values(
+        tagInstances.map(tag => ({
+          ticketId: id,
+          tagId: tag.id
+        }))
+      );
+    } else {
+      await db.insert(schema.taskTag).values(
+        tagInstances.map(tag => ({
+          taskId: id,
+          tagId: tag.id
+        }))
+      );
+    }
 
-    return json({ success: true, tags: tagInstances.map(t => t.toJSON()) });
+    return json({ success: true, tags: tagInstances });
+
   } catch (err) {
     console.error('Error creating tags:', err);
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';

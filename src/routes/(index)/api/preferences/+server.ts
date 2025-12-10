@@ -1,5 +1,7 @@
-import { User } from "$lib/server/db/models";
 import type { User as UserType } from "$lib/types";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import { eq } from "drizzle-orm";
 import { json, type RequestHandler } from "@sveltejs/kit";
 
 export const PATCH: RequestHandler = async ({ request, locals }): Promise<Response> => {
@@ -8,17 +10,17 @@ export const PATCH: RequestHandler = async ({ request, locals }): Promise<Respon
 
     if (!user) return json({ error: 'JSON formatted incorrectly' }, { status: 401 })
 
-    const findUser = await User.findByPk(locals.user.id)
+    const findUser = await db.select().from(schema.user).where(eq(schema.user.id, locals.user.id))
 
     if (!findUser) return json({ error: 'User not found' }, { status: 404 })
 
-    const updated = await findUser.update({
+    const [updated] = await db.update(schema.user).set({
       name: user.name,
       email: user.email,
-      notificationPreferences: user.notificationPreferences,
-    })
+      notificationPreferences: user.notificationPreferences
+    }).where(eq(schema.user.id, locals.user.id)).returning()
 
-    return json({ success: true, user: updated.toJSON() })
+    return json({ success: true, user: updated })
 
   } catch (error) {
     console.error('Error updating user:', error);

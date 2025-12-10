@@ -1,12 +1,14 @@
-import { Config, Notification, Ticket, User, UserNotification } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import { generateTemplate, sendEmail } from "$lib/server/email";
-import type { Organization, TicketMessage } from "$lib/types";
+import type { Organization, TicketMessage, Ticket } from "$lib/types";
 
 export interface NotificationOptions {
   title: string;
   message: string;
-  userId?: string;
-  userIds?: string[];
+  userId?: number;
+  userIds?: number[];
   allUsers?: boolean;
   email?: string;
   type: "info" | "success" | "warning" | "error" | "ticket" | "system";
@@ -14,7 +16,7 @@ export interface NotificationOptions {
   relatedEntityType?: "ticket" | "user" | "system" | null;
   relatedEntityId?: number | null;
   actionUrl: string;
-  createdById?: string | null;
+  createdById?: number | null;
   ticket?: Ticket;
   ticketMessage?: TicketMessage;
 }
@@ -23,23 +25,26 @@ export interface NotificationOptions {
  * Helper: Process notification for a single user
  */
 async function processUserNotification(
-  user: { id: string; email: string; name: string },
+  user: { id: number; email: string; name: string },
   options: NotificationOptions,
   organization: Organization | null
 ): Promise<void> {
   if (!options.ticket) throw new Error('Ticket required');
 
-  const notification = await Notification.create({
-    title: options.title,
-    message: options.message,
-    type: options.type,
-    channel: options.channel,
-    relatedEntityType: options.relatedEntityType,
-    relatedEntityId: options.ticket.id,
-    actionUrl: options.actionUrl,
-  });
+  const [notification] = await db
+    .insert(schema.notification)
+    .values({
+      title: options.title,
+      message: options.message,
+      type: options.type,
+      channel: options.channel,
+      relatedEntityType: options.relatedEntityType,
+      relatedEntityId: options.ticket.id,
+      actionUrl: options.actionUrl,
+    })
+    .returning();
 
-  await UserNotification.create({
+  await db.insert(schema.userNotification).values({
     notificationId: notification.id,
     userId: user.id,
     isRead: false,
@@ -71,9 +76,16 @@ export async function handleSendNotification(options: NotificationOptions): Prom
       throw new Error('Must specify at least one recipient option');
     }
 
-    const organization = options.channel === 'email' || options.email
-      ? (await Config.findOne({ where: { key: 'organization' } }) as Organization | null)
-      : null;
+    let organization: Organization | null = null;
+
+    if (options.channel === 'email' || options.email) {
+      const [orgConfig] = await db
+        .select()
+        .from(schema.config)
+        .where(eq(schema.config.key, 'organization'));
+
+      organization = orgConfig ? (orgConfig.value as Organization) : null;
+    }
 
     if ((options.channel === 'email' || options.email) && !organization) {
       throw new Error('Organization config not found');
@@ -82,7 +94,7 @@ export async function handleSendNotification(options: NotificationOptions): Prom
     if (options.email && options.relatedEntityType === 'ticket') {
       if (!options.ticket) throw new Error('Ticket required');
 
-      await Notification.create({
+      await db.insert(schema.notification).values({
         title: options.title,
         message: options.message,
         type: options.type,
@@ -108,23 +120,36 @@ export async function handleSendNotification(options: NotificationOptions): Prom
       return;
     }
 
-    let users: User[] = [];
+    let users: Array<{ id: number; email: string; name: string }> = [];
 
     if (options.userId) {
-      const user = await User.findOne({
-        where: { id: options.userId },
-        attributes: ['id', 'email', 'name'],
-      });
+      const [user] = await db
+        .select({
+          id: schema.user.id,
+          email: schema.user.email,
+          name: schema.user.name,
+        })
+        .from(schema.user)
+        .where(eq(schema.user.id, options.userId));
+
       if (user) users = [user];
-    } else if (options.userIds) {
-      users = await User.findAll({
-        where: { id: options.userIds },
-        attributes: ['id', 'email', 'name'],
-      });
+    } else if (options.userIds && options.userIds.length > 0) {
+      users = await db
+        .select({
+          id: schema.user.id,
+          email: schema.user.email,
+          name: schema.user.name,
+        })
+        .from(schema.user)
+        .where(inArray(schema.user.id, options.userIds));
     } else if (options.allUsers) {
-      users = await User.findAll({
-        attributes: ['id', 'email', 'name'],
-      });
+      users = await db
+        .select({
+          id: schema.user.id,
+          email: schema.user.email,
+          name: schema.user.name,
+        })
+        .from(schema.user);
     }
 
     const batchSize = 10;

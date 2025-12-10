@@ -1,4 +1,6 @@
-import { TicketAttachment } from '$lib/server/db/models';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
 import { error, json, type RequestHandler } from '@sveltejs/kit';
 import fs from 'fs';
 import path from 'path';
@@ -19,20 +21,23 @@ export const GET: RequestHandler = async ({ params, locals }): Promise<Response>
       return error(400, { message: 'File name is required.' });
     }
 
-    const attachment = await TicketAttachment.findOne({
-      where: {
-        ticketId: Number(ticketId),
-        fileName: fileName,
-      },
-    });
+    const [attachment] = await db
+      .select()
+      .from(schema.ticketAttachment)
+      .where(
+        and(
+          eq(schema.ticketAttachment.ticketId, Number(ticketId)),
+          eq(schema.ticketAttachment.fileName, fileName)
+        )
+      );
 
     if (!attachment) {
       return error(404, { message: 'Attachment not found.' });
     }
 
     const filePath = path.resolve(attachment.filePath);
-
     const uploadsDir = path.resolve('./uploads');
+
     if (!filePath.startsWith(uploadsDir)) {
       console.error('Path traversal attempt detected:', filePath);
       return error(403, { message: 'Invalid file path.' });
@@ -51,8 +56,14 @@ export const GET: RequestHandler = async ({ params, locals }): Promise<Response>
       return error(500, { message: 'Failed to read file.' });
     }
 
+    // Increment download count
     try {
-      await attachment.increment('downloadCount');
+      await db
+        .update(schema.ticketAttachment)
+        .set({
+          downloadCount: sql`${schema.ticketAttachment.downloadCount} + 1`
+        })
+        .where(eq(schema.ticketAttachment.id, attachment.id));
     } catch (err) {
       console.error('Failed to increment download count:', err);
     }
@@ -66,7 +77,6 @@ export const GET: RequestHandler = async ({ params, locals }): Promise<Response>
         'Cache-Control': 'private, max-age=3600',
       },
     });
-
   } catch (err) {
     console.error('Error downloading attachment:', err);
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';

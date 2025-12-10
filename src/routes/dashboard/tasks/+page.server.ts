@@ -1,5 +1,6 @@
-import { Priority, Tag, Status, Task, User, Ticket } from "$lib/server/db/models";
-import { Op, type WhereOptions } from "sequelize";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
+import { eq, and, or, gte, lte, asc, sql, SQL } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ depends, locals, url }) => {
@@ -12,117 +13,88 @@ export const load: PageServerLoad = async ({ depends, locals, url }) => {
   const dateFrom = url.searchParams.get('dateFrom');
   const dateTo = url.searchParams.get('dateTo');
 
-  const whereClause: WhereOptions = {};
+  const conditions: (SQL | undefined)[] = [];
+
+  // Only filter by assignee if assigneeFilter is provided
+  if (assigneeFilter) {
+    conditions.push(eq(schema.task.assigneeId, parseInt(assigneeFilter)));
+  }
 
   if (statusFilter) {
-    whereClause.statusId = Number(statusFilter);
+    conditions.push(eq(schema.task.statusId, Number(statusFilter)));
   }
 
   if (priorityFilter) {
-    whereClause.priorityId = Number(priorityFilter);
+    conditions.push(eq(schema.task.priorityId, Number(priorityFilter)));
   }
 
-  if (categoryFilter) {
-    whereClause.categoryId = Number(categoryFilter);
+  if (dateFrom) {
+    conditions.push(gte(schema.task.createdAt, new Date(dateFrom)));
   }
 
-  if (dateFrom || dateTo) {
-    const dateFilter: any = {};
-    if (dateFrom) {
-      dateFilter[Op.gte] = new Date(dateFrom);
-    }
-    if (dateTo) {
-      const endDate = new Date(dateTo);
-      endDate.setHours(23, 59, 59, 999);
-      dateFilter[Op.lte] = endDate;
-    }
-    whereClause.createdAt = dateFilter;
+  if (dateTo) {
+    const endDate = new Date(dateTo);
+    endDate.setHours(23, 59, 59, 999);
+    conditions.push(lte(schema.task.createdAt, endDate));
   }
 
-  const tasks = await Task.findAll({
-    where: {
-      assigneeId: assigneeFilter || locals.user.id,
-      [Op.or]: [
-        {
-          '$status.isClosed$': false
+  const tasks = await db.query.task.findMany({
+    where: and(...conditions),
+    with: {
+      assignee: true,
+      status: true,
+      priority: true,
+      creator: true,
+      ticket: true,
+      taskTags: {
+        with: {
+          tag: true,
         },
-        {
-          [Op.and]: [
-            { '$status.isClosed$': true },
-            { completedAt: { [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }
-          ]
-        }
-      ]
+      },
+      subtasks: {
+        with: {
+          assignee: true,
+          status: true,
+          priority: true,
+          creator: true,
+          ticket: true,
+          taskTags: {
+            with: {
+              tag: true,
+            },
+          },
+        },
+        orderBy: asc(schema.task.position),
+      },
     },
-    order: [['dueDate', 'ASC']],
-    include: [
-      {
-        model: User,
-        as: 'assignee',
-      },
-      {
-        model: Status,
-        as: 'status',
-      },
-      {
-        model: Priority,
-        as: 'priority'
-      },
-      {
-        model: Tag,
-        as: 'tags'
-      },
-      {
-        model: User,
-        as: 'creator'
-      },
-      {
-        model: Ticket,
-        as: 'ticket'
-      },
-      {
-        model: Task,
-        as: 'subtasks',
-        required: false,
-        include: [
-          {
-            model: User,
-            as: 'assignee',
-          },
-          {
-            model: Status,
-            as: 'status'
-          },
-          {
-            model: Priority,
-            as: 'priority'
-          },
-          {
-            model: Tag,
-            as: 'tags'
-          },
-          {
-            model: User,
-            as: 'creator'
-          },
-          {
-            model: Ticket,
-            as: 'ticket'
-          },
-        ]
-      }
-    ]
+    orderBy: asc(schema.task.dueDate),
   });
 
-  const tasksList = tasks.map(t => t.toJSON());
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const finishedTasks = tasksList.filter(task => task.status?.isClosed === true);
-  const activeTasks = tasksList.filter(task => task.status?.isClosed !== true);
+  const filteredTasks = tasks.filter(task => {
+    if (!task.status?.isClosed) return true;
+    if (task.completedAt && task.completedAt >= sevenDaysAgo) return true;
+    return false;
+  });
 
-  console.log(activeTasks.length)
+  const tasksWithTags = filteredTasks.map(task => ({
+    ...task,
+    tags: task.taskTags.map(tt => tt.tag),
+    subtasks: task.subtasks.map(subtask => ({
+      ...subtask,
+      tags: subtask.taskTags.map(tt => tt.tag),
+    })),
+  }));
+
+  const finishedTasks = tasksWithTags.filter(task => task.status?.isClosed === true);
+  const activeTasks = tasksWithTags.filter(task => task.status?.isClosed !== true);
+
+  console.log(activeTasks.length);
+
   return {
     tasks: activeTasks,
     finishedTasks,
-    activeTasks
+    activeTasks,
   };
 };

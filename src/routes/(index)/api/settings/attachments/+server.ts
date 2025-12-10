@@ -1,25 +1,33 @@
-import { models } from "$lib/server/db/models";
+import { db } from "$lib/server/db/database";
+import * as schema from "$lib/server/db/schema";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
 import type { Attachment } from "$lib/types";
+import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   try {
-    const { attachments } = await request.json() as { attachments: Attachment }
+    const { attachments } = await request.json() as { attachments: Attachment };
 
-    if (!attachments)
-      return error(400, { message: 'Business hours are required.' });
+    if (!attachments) {
+      return error(400, { message: 'Attachments are required.' });
+    }
 
-    const [config, created] = await models.Config.findOrCreate({
-      where: { key: 'attachments' },
-      defaults: {
+    const [config] = await db
+      .insert(schema.config)
+      .values({
         key: 'attachments',
         value: attachments
-      }
-    });
+      })
+      .onConflictDoUpdate({
+        target: schema.config.key,
+        set: {
+          value: attachments,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
 
-    if (!created) {
-      await config.update({ value: attachments });
-    }
+    const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
     return json({
       success: true,
@@ -40,28 +48,31 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 export const GET: RequestHandler = async (): Promise<Response> => {
   try {
-    let attachments = await models.Config.findOne({ where: { key: 'attachments' } })
+    const [config] = await db
+      .select()
+      .from(schema.config)
+      .where(eq(schema.config.key, 'attachments'));
 
-    if (!attachments)
+    if (!config) {
       return json({
         success: true,
         data: null,
-      })
+      });
+    }
 
     return json({
       success: true,
-      data: attachments.value,
-    })
+      data: config.value,
+    });
 
-  } catch (error) {
+  } catch (err) {
     return json(
       {
         success: false,
-        message: 'Failed to fetch business hours',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Failed to fetch attachments',
+        error: err instanceof Error ? err.message : 'Unknown error'
       },
       { status: 500 }
     );
-
   }
-}
+};
