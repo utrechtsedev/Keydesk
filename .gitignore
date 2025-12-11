@@ -26,3 +26,4 @@ vite.config.ts.timestamp-*
 /uploads
 .DS_Store
 TODO.md
+LOG.md
