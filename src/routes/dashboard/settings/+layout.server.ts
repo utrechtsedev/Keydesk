@@ -1,8 +1,9 @@
-import { error, redirect } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 import type { LayoutServerLoad } from "../$types";
+import { requireAuth } from "$lib/server/auth-helpers";
 
 export const load: LayoutServerLoad = ({ locals }) => {
-  if (!locals.user) return error(401, "Unauthorized")
+  const { user } = requireAuth(locals)
 
-  if (locals.user.role !== "admin") redirect(303, '/dashboard')
+  if (user.role !== "admin") redirect(303, '/dashboard')
 }
