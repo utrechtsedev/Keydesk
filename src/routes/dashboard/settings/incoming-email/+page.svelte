@@ -64,8 +64,7 @@
 			toast.success('Succesfully saved IMAP settings.');
 			return;
 		}
-		console.log(response.status, response.statusText);
-		return toast.error('Error saving configuration. Check browser console.');
+		return toast.error('Error saving configuration.');
 	}
 
 	onMount(async () => {

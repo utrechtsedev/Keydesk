@@ -69,7 +69,6 @@
 			const response = await axios.get(`/api/requesters?search=${encodeURIComponent(query)}`);
 			requesters = response.data.requesters;
 		} catch (error) {
-			console.error('Search error:', error);
 			toast.error('Failed to search requesters');
 			requesters = [];
 		} finally {

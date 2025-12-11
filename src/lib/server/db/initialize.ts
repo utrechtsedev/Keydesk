@@ -19,16 +19,16 @@ import * as schema from "./schema/index.js";
 class DatabaseInitializer {
   private log(message: string, type: 'info' | 'success' | 'warn' | 'error' = 'info'): void {
     const icons = {
-      info: 'ℹ️',
-      success: '✓',
-      warn: '⚠️',
-      error: '✗'
+      info: '[info]',
+      success: '[success]',
+      warn: '[warning]',
+      error: '[error]'
     };
     console.log(`${icons[type]} ${message}`);
   }
 
   async initialize(): Promise<void> {
-    console.log("🚀 Initializing database with default configuration...\n");
+    console.log("Initializing database with default configuration...\n");
 
     try {
       await this.setupAttachmentsConfig();
@@ -38,13 +38,13 @@ class DatabaseInitializer {
       await this.setupStatuses();
       await this.setupCategories();
 
-      console.log("\n✅ Database initialization completed successfully!");
+      console.log("\nDatabase initialization completed successfully");
       console.log("\nNext steps:");
       console.log("  1. Run: tsx seed-database.ts --clean");
       console.log("  2. Or use the complete seeder if you created it");
 
     } catch (error) {
-      console.error("\n❌ Error during initialization:");
+      console.error("\nError during initialization:");
       console.error(error);
       throw error;
     }
@@ -305,10 +305,10 @@ const initializer = new DatabaseInitializer();
 
 initializer.initialize()
   .then(() => {
-    console.log("\n👋 Initialization complete. Exiting...");
+    console.log("\nInitialization complete. Exiting...");
     process.exit(0);
   })
   .catch((error: Error) => {
-    console.error("\n💥 Fatal error:", error);
+    console.error("\nFatal error:", error);
     process.exit(1);
   });

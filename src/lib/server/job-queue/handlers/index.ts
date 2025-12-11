@@ -1,3 +1,4 @@
+import { logger } from '$lib/server/logger';
 import { registerJobHandler } from '../index';
 import { handleSendNotification } from './notification.handler';
 
@@ -8,5 +9,5 @@ import { handleSendNotification } from './notification.handler';
 export function registerAllHandlers(): void {
   registerJobHandler('send-notification', handleSendNotification);
 
-  console.log('✅ All job handlers registered');
+  logger.info('All job handlers registered');
 }

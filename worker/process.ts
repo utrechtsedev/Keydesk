@@ -8,9 +8,9 @@ import { NotificationSettings, type Attachment } from '../src/lib/types';
 import { MailParser } from "mailparser";
 import { sanitize } from "./sanitize";
 import { getClient } from "./client";
+import { logger } from '../src/lib/server/logger';
 import path from "path";
 import fs from "fs";
-import { getLogTimestamp } from '../src/lib/utils/date';
 
 const client = await getClient();
 
@@ -63,43 +63,39 @@ export async function processMessage(
       // Early validation checks
       if (!message) continue;
       if (!message.source) {
-        console.warn(`No source for UID ${uid}, skipped.`);
+        logger.warn({ uid }, 'No source for UID, skipped');
         continue;
       }
       if (!message.envelope) {
-        console.warn(`No envelope for UID ${uid}, skipped.`);
+        logger.warn({ uid }, 'No envelope for UID, skipped');
         continue;
       }
 
       const envelope = message.envelope;
 
-      if (!envelope.from?.[0]) {
-        console.warn(`No sender for UID ${uid}, skipped.`);
+      if (!envelope.from?.[0] || !envelope.from[0].address) {
+        logger.warn({ uid }, 'No sender for UID, skipped');
         continue;
       }
       if (!envelope.subject) {
         envelope.subject = 'No Subject';
-        console.warn(`No subject for UID ${uid}.`);
+        logger.warn({ uid }, 'No subject for UID');
       }
 
       const from = envelope.from[0];
       const subject = envelope.subject;
-
-      if (!from.address) {
-        console.warn(`No sender address for UID ${uid}, skipped.`);
-        continue;
-      }
 
       // Check if attachments are enabled
       const attachmentsEnabled = options.enabled !== false;
 
       // Database operations in transaction
       const result = await db.transaction(async (tx) => {
+
         // Find or create requester
         const [existingRequester] = await tx
           .select()
           .from(schema.requester)
-          .where(eq(schema.requester.email, from.address));
+          .where(eq(schema.requester.email, from.address!));
 
         let requester;
         let createdRequester = false;
@@ -107,12 +103,13 @@ export async function processMessage(
         if (existingRequester) {
           requester = existingRequester;
         } else {
+          const requesterValues: schema.NewRequester = {
+            name: from.name,
+            email: from.address!,
+          };
           const [newRequester] = await tx
             .insert(schema.requester)
-            .values({
-              name: from.name || null,
-              email: from.address,
-            })
+            .values(requesterValues)
             .returning();
           requester = newRequester;
           createdRequester = true;
@@ -206,7 +203,7 @@ export async function processMessage(
           if (data.type === 'attachment') {
             // Skip attachment processing if disabled
             if (!attachmentsEnabled) {
-              console.log('Attachments disabled, skipping:', data.filename);
+              logger.info({ filename: data.filename }, 'Attachments disabled, skipping');
               data.release();
               return;
             }
@@ -216,7 +213,11 @@ export async function processMessage(
 
             const maxSizeBytes = options.maxFileSizeMB * 1024 * 1024;
             if (fileSize > maxSizeBytes) {
-              console.warn(`Attachment ${data.filename} exceeds max size (${fileSize} > ${maxSizeBytes} bytes), skipping`);
+              logger.warn({
+                filename: data.filename,
+                fileSize,
+                maxSizeBytes
+              }, 'Attachment exceeds max size, skipping');
               data.release();
               return;
             }
@@ -224,7 +225,10 @@ export async function processMessage(
             // Validate MIME type
             if (options.allowedMimeTypes && options.allowedMimeTypes.length > 0) {
               if (!options.allowedMimeTypes.includes(mimeType)) {
-                console.warn(`Attachment ${data.filename} has disallowed MIME type (${mimeType}), skipping`);
+                logger.warn({
+                  filename: data.filename,
+                  mimeType
+                }, 'Attachment has disallowed MIME type, skipping');
                 data.release();
                 return;
               }
@@ -294,7 +298,7 @@ export async function processMessage(
       }
 
       await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
-      console.log(`[${getLogTimestamp()}] Marked UID ${uid} as seen`);
+      logger.info({ uid }, 'Marked UID as seen');
 
       // Get notification config
       const [fetchNotificationConfig] = await db
@@ -303,7 +307,8 @@ export async function processMessage(
         .where(eq(schema.config.key, 'notifications'));
 
       if (!fetchNotificationConfig) {
-        throw new Error(`[${getLogTimestamp()}] Could not create notifications, notification config not found.`);
+        logger.error('Could not create notifications, notification config not found');
+        throw new Error('Notification config not found');
       }
 
       const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
@@ -360,7 +365,7 @@ export async function processMessage(
       }
 
     } catch (error) {
-      console.error(`[${getLogTimestamp()}] Error processing UID ${uid}:`, error);
+      logger.error({ uid, error }, 'Error processing UID');
     }
   }
 }

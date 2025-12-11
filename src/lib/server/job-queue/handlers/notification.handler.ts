@@ -3,6 +3,7 @@ import * as schema from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { generateTemplate, sendEmail } from "$lib/server/email";
 import type { Organization, TicketMessage, Ticket } from "$lib/types";
+import { logger } from "$lib/server/logger";
 
 export interface NotificationOptions {
   title: string;
@@ -160,17 +161,16 @@ export async function handleSendNotification(options: NotificationOptions): Prom
         batch.map(async (user) => {
           try {
             await processUserNotification(user, options, organization);
-            console.log(`✅ ${options.channel === 'email' ? 'Email' : 'Notification'} sent to ${user.email}`);
+            logger.info(`${options.channel === 'email' ? 'Email' : 'Notification'} sent to ${user.email}`);
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            console.error(`❌ Failed to process ${user.email}:`, errorMessage);
+            logger.error({ error }, `Failed to process ${user.email}:`);
           }
         })
       );
     }
 
   } catch (error) {
-    console.error('❌ Error in handleSendNotification:', error);
+    logger.error({ error }, 'Error in handleSendNotification:');
     throw error;
   }
 }

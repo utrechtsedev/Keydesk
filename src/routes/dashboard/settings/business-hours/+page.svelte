@@ -55,8 +55,7 @@
 			toast.success('Successfully saved business hours.');
 			return;
 		}
-		console.log(response.status, response.statusText);
-		return toast.error('Error saving configuration. Check browser console.');
+		return toast.error('Error saving configuration.');
 	}
 
 	onMount(async () => {

@@ -3,6 +3,7 @@ import path from 'path';
 import { generateRandomString } from '$lib/utils/string';
 import { getFileExtension } from '$lib/utils/string';
 import type { Attachment } from '$lib/types';
+import { logger } from './logger';
 
 export interface UploadedFileData {
   fileId: string;
@@ -61,12 +62,6 @@ export async function uploadFile(
     );
   }
 
-  console.log('File validated:', {
-    filename: file.name,
-    contentType: mimeType,
-    size: fileSize
-  });
-
   // Generate unique filename
   const fileId = generateRandomString(24);
   const extension = getFileExtension(path.basename(file.name));
@@ -105,11 +100,11 @@ export async function uploadFile(
       );
     }
 
-    console.log('File uploaded successfully:', {
+    logger.info({
       storedFilename,
       originalFilename: file.name,
       filePath
-    });
+    }, 'File uploaded successfully:');
 
     return {
       fileId,
@@ -123,10 +118,10 @@ export async function uploadFile(
     try {
       if (fs.existsSync(filePath)) {
         await fs.promises.unlink(filePath);
-        console.log('Cleaned up partial file:', filePath);
+        logger.info({ filePath }, 'Cleaned up partial file');
       }
     } catch (cleanupError) {
-      console.error('Failed to cleanup partial file:', cleanupError);
+      logger.error({ cleanupError }, 'Failed to cleanup partial file:');
     }
 
     throw error;

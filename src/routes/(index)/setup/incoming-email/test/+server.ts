@@ -1,6 +1,7 @@
 import { ImapFlow } from "imapflow";
 import { type IMAP } from "$lib/types";
 import { json, type RequestHandler } from "@sveltejs/kit";
+import { logger } from "$lib/server/logger";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { imap } = await request.json() as { imap: IMAP };
@@ -22,20 +23,19 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
   const connectionPromise = (async () => {
     await testClient.connect();
-    console.log('[SETUP] IMAP Connected successfully');
+    logger.info({ host: imap.host }, 'IMAP Connected successfully');
 
     await testClient.mailboxOpen('INBOX');
-    console.log('[SETUP] IMAP Mailbox opened');
+    logger.info({ host: imap.host }, 'IMAP Mailbox opened');
 
     const mailboxInfo = await testClient.status('INBOX', { messages: true });
-    console.log('[SETUP] IMAP Mailbox info retrieved:', mailboxInfo);
+    logger.info({ mailboxInfo }, 'IMAP Mailbox info retrieved');
 
     await testClient.logout();
-    console.log('[SETUP] IMAP Logged out');
+    logger.info({ host: imap.host }, 'IMAP Logged out');
 
     return mailboxInfo;
   })();
-
   const mailboxInfo = await Promise.race([connectionPromise, timeoutPromise]) as any;
 
   return json({

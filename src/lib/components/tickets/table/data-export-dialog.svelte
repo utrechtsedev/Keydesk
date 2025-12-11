@@ -89,8 +89,6 @@
 				const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
 				if (filenameMatch) {
 					filename = filenameMatch[1];
-					console.log('Extracted filename:', filename);
-					console.log('Filename length:', filename.length);
 				}
 			}
 

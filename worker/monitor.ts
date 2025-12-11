@@ -2,9 +2,9 @@ import { type Attachment } from '../src/lib/types'
 import { db } from '../src/lib/server/db/database'
 import * as schema from '../src/lib/server/db/schema'
 import { eq } from 'drizzle-orm'
-import { getLogTimestamp } from '../src/lib/utils/date.ts'
 import { getClient } from './client';
 import { processMessage } from './process.ts'
+import { logger } from '../src/lib/server/logger.ts'
 import fs from "fs"
 
 const client = await getClient()
@@ -86,7 +86,7 @@ export async function startEmailMonitoring(): Promise<void> {
 
       if (usePolling) {
         // Fallback: Use polling instead of IDLE
-        console.log(`[${getLogTimestamp()}] Using polling mode (checking every 60 seconds)`);
+        logger.warn('Using IMAP polling instead of IDLE protocol');
         await pollingLoop(mailOptions);
       } else {
         // Try IDLE mode
@@ -94,19 +94,25 @@ export async function startEmailMonitoring(): Promise<void> {
       }
 
     } catch (error) {
-      console.error('IMAP Error:', error);
+      logger.error({ error }, 'IMAP Error');
 
       // Increment retry counter
       idleRetries++;
 
       if (idleRetries >= MAX_IDLE_RETRIES) {
-        console.warn(`[${getLogTimestamp()}] IDLE failed ${MAX_IDLE_RETRIES} times, switching to polling mode`);
+        logger.warn({
+          maxRetries: MAX_IDLE_RETRIES
+        }, `IDLE failed ${MAX_IDLE_RETRIES} times, switching to polling mode`);
         usePolling = true;
         idleRetries = 0; // Reset for potential future IDLE attempts
       } else {
         // Exponential backoff
         const delay = IDLE_RETRY_DELAY_MS * Math.pow(2, idleRetries - 1);
-        console.log(`[${getLogTimestamp()}] Retrying in ${delay}ms... (attempt ${idleRetries}/${MAX_IDLE_RETRIES})`);
+        logger.info({
+          delay,
+          attempt: idleRetries,
+          maxRetries: MAX_IDLE_RETRIES
+        }, `Retrying in ${delay}ms`);
         await sleep(delay);
       }
 
@@ -140,15 +146,15 @@ async function ensureConnection(): Promise<void> {
     const isConnected = client.usable;
 
     if (!isConnected) {
-      console.log(`[${getLogTimestamp()}] Reconnecting to IMAP server...`);
+      logger.info('Reconnecting to IMAP server');
       await client.connect();
     }
 
     // Ensure mailbox is open
     await client.mailboxOpen('INBOX');
-    console.log(`[${getLogTimestamp()}] Succesfully connected to IMAP server.`)
+    logger.info('Successfully connected to IMAP server');
   } catch (error) {
-    console.error(`[${getLogTimestamp()}] Failed to establish connection:`, error);
+    logger.error({ error }, 'Failed to establish connection');
     throw error;
   }
 }
@@ -189,7 +195,7 @@ async function getMailOptions(): Promise<Attachment> {
     const config = attachmentConfig?.value as Attachment | undefined;
 
     if (!config?.allowedMimeTypes || !Array.isArray(config.allowedMimeTypes) || config.allowedMimeTypes.length === 0) {
-      console.warn(`[${getLogTimestamp()}] Invalid or missing attachment config, attachments will be disabled`);
+      logger.warn('Invalid or missing attachment config, attachments will be disabled');
       return {
         enabled: false,
         maxFileSizeMB: 10,
@@ -203,7 +209,7 @@ async function getMailOptions(): Promise<Attachment> {
       allowedMimeTypes: config.allowedMimeTypes
     };
   } catch (error) {
-    console.error(`[${getLogTimestamp()}] Error loading attachment config:`, error);
+    logger.error({ error }, 'Error loading attachment config');
     return {
       enabled: false,
       maxFileSizeMB: 10,
@@ -230,11 +236,13 @@ async function processExistingUnread(mailOptions: Attachment): Promise<void> {
   try {
     const existingUnseenUIDs = await client.search({ seen: false }, { uid: true });
     if (existingUnseenUIDs && existingUnseenUIDs.length > 0) {
-      console.log(`[${getLogTimestamp()}] Processing ${existingUnseenUIDs.length} existing unread messages`);
+      logger.info({
+        count: existingUnseenUIDs.length
+      }, `Processing ${existingUnseenUIDs.length} existing unread messages`);
       await processMessage(existingUnseenUIDs, mailOptions);
     }
   } catch (error) {
-    console.error(`[${getLogTimestamp()}] Error processing existing unread messages:`, error);
+    logger.error({ error }, 'Error processing existing unread messages');
     // Don't throw - we can continue even if this fails
   }
 }
@@ -262,10 +270,12 @@ function setupExistsHandler(mailOptions: Attachment): void {
       const unseenUIDs = await client.search({ seen: false }, { uid: true });
       if (!unseenUIDs || unseenUIDs.length === 0) return;
 
-      console.log(`[${getLogTimestamp()}] New message(s) detected: ${unseenUIDs.length} unread`);
+      logger.info({
+        count: unseenUIDs.length
+      }, `New message(s) detected: ${unseenUIDs.length} unread`);
       await processMessage(unseenUIDs, mailOptions);
     } catch (error) {
-      console.error(`[${getLogTimestamp()}] Error handling new message:`, error);
+      logger.error({ error }, 'Error handling new message');
     }
   });
 }
@@ -285,7 +295,7 @@ function setupExistsHandler(mailOptions: Attachment): void {
  * - Falls back to polling mode after consecutive failures
  */
 async function idleLoop(): Promise<void> {
-  console.log(`[${getLogTimestamp()}] Starting IDLE mode...`);
+  logger.info('Starting IDLE mode');
   while (true) {
     await client.idle();
   }
@@ -314,11 +324,13 @@ async function pollingLoop(mailOptions: Attachment): Promise<void> {
       // Check for new messages
       const unseenUIDs = await client.search({ seen: false }, { uid: true });
       if (unseenUIDs && unseenUIDs.length > 0) {
-        console.log(`[${getLogTimestamp()}] Polling: Found ${unseenUIDs.length} unread messages`);
+        logger.info({
+          count: unseenUIDs.length
+        }, `Polling: Found ${unseenUIDs.length} unread messages`);
         await processMessage(unseenUIDs, mailOptions);
       }
     } catch (error) {
-      console.error('Error during polling:', error);
+      logger.error({ error }, 'Error during polling');
       // Reconnect and continue
       await ensureConnection();
     }

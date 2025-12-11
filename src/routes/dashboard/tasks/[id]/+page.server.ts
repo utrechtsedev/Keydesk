@@ -108,8 +108,6 @@ export const load: PageServerLoad = async ({ depends, locals, url, params }) => 
   const finishedTasks = filteredTasks.filter(task => task.status?.isClosed === true);
   const activeTasks = filteredTasks.filter(task => task.status?.isClosed !== true);
 
-  console.log(activeTasks.length);
-
   return {
     tasks: activeTasks,
     task: taskWithTags,

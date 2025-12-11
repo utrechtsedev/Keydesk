@@ -21,8 +21,7 @@
 			toast.success('Succesfully saved portal settings.');
 			return goto('/setup/admin-account');
 		}
-		console.log(response.status, response.statusText);
-		return toast.error('Error saving configuration. Check browser console.');
+		return toast.error('Error saving configuration.');
 	}
 	onMount(async () => {
 		const { data } = await axios.get('');

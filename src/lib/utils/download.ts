@@ -1,3 +1,4 @@
+import { logger } from '$lib/server/logger';
 import axios from 'axios';
 
 export async function handleDownloadAttachment(ticketId: number, fileName: string) {
@@ -16,7 +17,7 @@ export async function handleDownloadAttachment(ticketId: number, fileName: strin
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   } catch (error) {
-    console.error('Download error:', error);
+    logger.error({ error }, 'Download attachment error');
     throw error;
   }
 }

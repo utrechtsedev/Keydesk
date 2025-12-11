@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { type SMTP } from "$lib/types";
 import { json, type RequestHandler } from "@sveltejs/kit";
+import { logger } from '$lib/server/logger';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { smtp } = await request.json() as { smtp: SMTP };
@@ -21,7 +22,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
   const connectionPromise = (async () => {
     await transporter.verify();
-    console.log('[SETUP] SMTP connection verified');
+    logger.info({ host: smtp.host }, 'SMTP connection verified');
 
     return true;
   })();

@@ -5,6 +5,7 @@ import * as schema from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { decrypt } from "$lib/server/db/encrypt";
 import type { SMTP } from "$lib/types";
+import { logger } from "../logger";
 
 let transporter: Transporter | null = null;
 let configCache: SMTP | null = null;
@@ -23,7 +24,7 @@ async function getEmailConfig(): Promise<SMTP | null> {
     .where(eq(schema.config.key, 'smtp'));
 
   if (!request) {
-    console.error('Email SMTP settings not available');
+    logger.warn('Email SMTP settings not available, cannot send email.');
     return null;
   }
 

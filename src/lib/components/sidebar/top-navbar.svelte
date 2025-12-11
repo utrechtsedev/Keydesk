@@ -38,9 +38,7 @@
 				}
 				return n;
 			});
-		} catch (error) {
-			console.error('Failed to mark all notifications as read:', error);
-		}
+		} catch (error) {}
 	}
 	async function handleNotificationClick(notification: UserNotification) {
 		const actionUrl = notification.notification!.actionUrl;
@@ -58,9 +56,7 @@
 				}
 				return n;
 			});
-		} catch (error) {
-			console.error('Failed to mark notification as read:', error);
-		}
+		} catch (error) {}
 
 		if (actionUrl) {
 			goto(actionUrl);

@@ -1,6 +1,7 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import { createClient } from 'redis';
 import type { NotificationOptions } from '$lib/server/job-queue/handlers/notification.handler';
+import { logger } from '../logger';
 
 // ============================================================================
 // REDIS CONNECTION & DETECTION
@@ -32,10 +33,10 @@ async function checkRedisConnection(): Promise<boolean> {
     await client.quit();
     isRedisAvailable = true
 
-    console.log('✅ Redis connection successful - Queue mode enabled');
+    logger.info('Redis connection successful - Queue mode enabled');
     return true;
   } catch (error) {
-    console.warn('⚠️  Redis not available - Running in direct execution mode');
+    logger.warn('Redis not available - Running in direct execution mode');
     return false;
   }
 }
@@ -48,7 +49,7 @@ export async function initializeQueue(): Promise<void> {
 
   if (isRedisAvailable) {
     queue = new Queue('jobs', { connection });
-    console.log('Queue initialized');
+    logger.info('BullMQ Queue initialized');
   }
 }
 
@@ -108,12 +109,12 @@ export async function enqueue(
         count: 1000,
       },
     });
-    console.log(`📋 Job "${type}" queued`);
+    logger.info(`Job "${type}" queued`);
     return;
   }
 
   // Fallback: Execute immediately
-  console.log(`⚡ Executing job "${type}" directly (no Redis)`);
+  logger.warn(`Executing job "${type}" directly (no Redis)`);
   const handler = handlers.get(type);
 
   if (!handler) {
@@ -123,7 +124,7 @@ export async function enqueue(
   try {
     await handler(data);
   } catch (error) {
-    console.error(`Failed to execute job "${type}":`, error);
+    logger.error({ error }, `Failed to execute job "${type}":`);
     throw error;
   }
 }
@@ -138,7 +139,7 @@ export async function enqueue(
 export async function startJobWorker(): Promise<Worker | null> {
   await checkRedisConnection()
   if (!isRedisAvailable) {
-    console.log('Worker not started - Redis not available');
+    logger.warn('Worker not started - Redis not available');
     return null;
   }
 
@@ -158,18 +159,18 @@ export async function startJobWorker(): Promise<Worker | null> {
   );
 
   worker.on('completed', (job) => {
-    console.log(`✅ Job ${job.id} (${job.name}) completed`);
+    logger.info(`Job ${job.id} (${job.name}) completed`);
   });
 
-  worker.on('failed', (job, err) => {
-    console.error(`❌ Job ${job?.id} (${job?.name}) failed:`, err.message);
+  worker.on('failed', (job, error) => {
+    logger.error({ error }, `Job ${job?.id} (${job?.name}) failed`);
   });
 
-  worker.on('error', (err) => {
-    console.error('❌ Worker error:', err);
+  worker.on('error', (error) => {
+    logger.error({ error }, 'Worker error');
   });
 
-  console.log('🚀 Job worker started');
+  logger.info('Job worker started');
   return worker;
 }
 

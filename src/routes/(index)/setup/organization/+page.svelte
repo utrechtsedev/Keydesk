@@ -45,7 +45,6 @@
 				});
 				await checkLogo();
 			} catch (error) {
-				console.error('Failed to upload image:', error);
 				alert('Image too large');
 			} finally {
 				uploading = false;
@@ -70,8 +69,7 @@
 			toast.success('Succesfully saved organization settings.');
 			return goto('/setup/outgoing-email');
 		}
-		console.log(response.status, response.statusText);
-		return toast.error('Error saving configuration. Check browser console.');
+		return toast.error('Error saving configuration.');
 	}
 
 	let hasLogo = $state(false);
