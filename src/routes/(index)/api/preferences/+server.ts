@@ -3,31 +3,25 @@ import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { json, type RequestHandler } from "@sveltejs/kit";
+import { requireAuth } from "$lib/server/auth-helpers";
+import { NotFoundError, ValidationError } from "$lib/server/errors";
 
 export const PATCH: RequestHandler = async ({ request, locals }): Promise<Response> => {
-  try {
-    const { user } = await request.json() as { user: UserType };
+  const { user } = requireAuth(locals)
 
-    if (!user) return json({ error: 'JSON formatted incorrectly' }, { status: 401 })
+  const { user: userData } = await request.json() as { user: UserType };
 
-    const findUser = await db.select().from(schema.user).where(eq(schema.user.id, locals.user.id))
+  if (!user) throw new ValidationError('JSON formatted incorrectly')
 
-    if (!findUser) return json({ error: 'User not found' }, { status: 404 })
+  const findUser = await db.select().from(schema.user).where(eq(schema.user.id, user.id))
 
-    const [updated] = await db.update(schema.user).set({
-      name: user.name,
-      email: user.email,
-      notificationPreferences: user.notificationPreferences
-    }).where(eq(schema.user.id, locals.user.id)).returning()
+  if (!findUser) throw new NotFoundError('User not found.')
 
-    return json({ success: true, user: updated })
+  const [updated] = await db.update(schema.user).set({
+    name: user.name,
+    email: user.email,
+    notificationPreferences: userData.notificationPreferences
+  }).where(eq(schema.user.id, user.id)).returning()
 
-  } catch (error) {
-    console.error('Error updating user:', error);
-    return json({
-      error: 'Failed to update task',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-
-  }
+  return json({ success: true, user: updated })
 }

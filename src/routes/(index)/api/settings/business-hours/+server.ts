@@ -1,78 +1,55 @@
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
+import { ValidationError } from "$lib/server/errors";
 import type { BusinessHours } from "$lib/types";
-import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-  try {
-    const { businessHours } = await request.json() as { businessHours: BusinessHours };
+  const { businessHours } = await request.json() as { businessHours: BusinessHours };
 
-    if (!businessHours) {
-      return error(400, { message: 'Business hours are required.' });
-    }
+  if (!businessHours)
+    throw new ValidationError('Business hours are required.')
 
-    const [config] = await db
-      .insert(schema.config)
-      .values({
-        key: 'businesshours',
-        value: businessHours
-      })
-      .onConflictDoUpdate({
-        target: schema.config.key,
-        set: {
-          value: businessHours,
-          updatedAt: new Date()
-        }
-      })
-      .returning();
+  const [config] = await db
+    .insert(schema.config)
+    .values({
+      key: 'businessHours',
+      value: businessHours
+    })
+    .onConflictDoUpdate({
+      target: schema.config.key,
+      set: {
+        value: businessHours,
+        updatedAt: new Date()
+      }
+    })
+    .returning();
 
-    const created = config.createdAt.getTime() === config.updatedAt.getTime();
+  const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
-    return json({
-      success: true,
-      data: config.value,
-      created
-    }, { status: created ? 201 : 200 });
-
-  } catch (err) {
-    console.error('Error saving business hours:', err);
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    return json({
-      success: false,
-      message: 'Failed to save business hours configuration.',
-      error: errorMessage
-    }, { status: 500 });
-  }
+  return json({
+    success: true,
+    data: config.value,
+    created
+  }, { status: created ? 201 : 200 });
 };
 
 export const GET: RequestHandler = async (): Promise<Response> => {
-  try {
-    const [config] = await db
-      .select()
-      .from(schema.config)
-      .where(eq(schema.config.key, 'businesshours'));
+  const [config] = await db
+    .select()
+    .from(schema.config)
+    .where(eq(schema.config.key, 'businessHours'));
 
-    if (!config) {
-      return json({
-        success: true,
-        data: null,
-      });
-    }
-
+  if (!config) {
     return json({
       success: true,
-      data: config.value,
+      data: null,
     });
-
-  } catch (err) {
-    return json(
-      {
-        success: false,
-        message: 'Failed to fetch business hours',
-        error: err instanceof Error ? err.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
   }
+
+  return json({
+    success: true,
+    data: config.value,
+  });
 };

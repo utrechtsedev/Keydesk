@@ -1,68 +1,57 @@
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
+import { NotFoundError, ValidationError } from "$lib/server/errors";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
-  try {
-    const ticketId = Number(params.id);
-    if (isNaN(ticketId)) {
-      return error(400, 'Invalid ticket ID');
-    }
+  const ticketId = Number(params.id);
 
-    // Check if ticket exists
-    const [findTicket] = await db
-      .select()
-      .from(schema.ticket)
-      .where(eq(schema.ticket.id, ticketId));
+  if (isNaN(ticketId))
+    throw new ValidationError('Invalid ticket ID')
 
-    if (!findTicket) {
-      return error(404, 'Ticket not found');
-    }
+  const [findTicket] = await db
+    .select()
+    .from(schema.ticket)
+    .where(eq(schema.ticket.id, ticketId));
 
-    const ticket = await request.json() as Partial<{
-      requesterId: number;
-      assignedUserId: string | null;
-      subject: string;
-      channel: "email" | "portal" | "user";
-      statusId: number;
-      priorityId: number;
-      categoryId: number;
-      firstResponseAt: Date | null;
-      resolvedAt: Date | null;
-      closedAt: Date | null;
-      targetDate: Date;
-      lastUserResponseAt: Date | null;
-      lastRequesterResponseAt: Date | null;
-      responseCount: number;
-    }>;
+  if (!findTicket)
+    throw new NotFoundError('Ticket not found.')
 
-    // Remove protected fields
-    const { id, ticketNumber, createdAt, updatedAt, ...updateData } = ticket as any;
+  const ticket = await request.json() as Partial<{
+    requesterId: number;
+    assignedUserId: string | null;
+    subject: string;
+    channel: "email" | "portal" | "user";
+    statusId: number;
+    priorityId: number;
+    categoryId: number;
+    firstResponseAt: Date | null;
+    resolvedAt: Date | null;
+    closedAt: Date | null;
+    targetDate: Date;
+    lastUserResponseAt: Date | null;
+    lastRequesterResponseAt: Date | null;
+    responseCount: number;
+  }>;
 
-    // Parse assignedUserId to integer if it exists and is not null
-    if (updateData.assignedUserId !== undefined && updateData.assignedUserId !== null) {
-      updateData.assignedUserId = parseInt(updateData.assignedUserId, 10);
-    }
+  // Remove protected fields
+  const { id, ticketNumber, createdAt, updatedAt, ...updateData } = ticket as any;
 
-    // Update the ticket
-    const [updatedTicket] = await db
-      .update(schema.ticket)
-      .set(updateData)
-      .where(eq(schema.ticket.id, ticketId))
-      .returning();
-
-    return json({
-      success: true,
-      ticket: updatedTicket
-    }, { status: 200 });
-
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    return json({
-      success: false,
-      message: 'Failed to update ticket',
-      error: errorMessage
-    }, { status: 500 });
+  // Parse assignedUserId to integer if it exists and is not null
+  if (updateData.assignedUserId !== undefined && updateData.assignedUserId !== null) {
+    updateData.assignedUserId = parseInt(updateData.assignedUserId, 10);
   }
+
+  // Update the ticket
+  const [updatedTicket] = await db
+    .update(schema.ticket)
+    .set(updateData)
+    .where(eq(schema.ticket.id, ticketId))
+    .returning();
+
+  return json({
+    success: true,
+    ticket: updatedTicket
+  }, { status: 200 });
 };

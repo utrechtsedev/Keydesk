@@ -5,10 +5,7 @@ import * as schema from "$lib/server/db/schema";
 import { db } from "$lib/server/db/database";
 
 export const load: LayoutServerLoad = async ({ locals }) => {
-
   if (!locals.session || !locals.user) return redirect(303, '/login')
-
-
 
   const notifications = await db.query.userNotification.findMany({
     where: and(

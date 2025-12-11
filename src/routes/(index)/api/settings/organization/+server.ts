@@ -1,82 +1,59 @@
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
+import { ValidationError } from "$lib/server/errors";
 import type { Organization } from "$lib/types";
 import { error, json, type RequestHandler } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-  try {
-    const { organization } = await request.json() as { organization: Organization };
+  const { organization } = await request.json() as { organization: Organization };
 
-    if (!organization) {
-      return error(400, { message: 'Organization data is required.' });
-    }
+  if (!organization)
+    throw new ValidationError('Organization data is required')
 
-    if (!organization.name || !organization.domain) {
-      return error(400, { message: 'Organization name and domain are required' });
-    }
 
-    const [config] = await db
-      .insert(schema.config)
-      .values({
-        key: 'organization',
-        value: organization
-      })
-      .onConflictDoUpdate({
-        target: schema.config.key,
-        set: {
-          value: organization,
-          updatedAt: new Date()
-        }
-      })
-      .returning();
+  if (!organization.name || !organization.domain)
+    throw new ValidationError('Organization name and domain are required')
 
-    const created = config.createdAt.getTime() === config.updatedAt.getTime();
+  const [config] = await db
+    .insert(schema.config)
+    .values({
+      key: 'organization',
+      value: organization
+    })
+    .onConflictDoUpdate({
+      target: schema.config.key,
+      set: {
+        value: organization,
+        updatedAt: new Date()
+      }
+    })
+    .returning();
 
-    return json({
-      success: true,
-      data: config.value,
-      created
-    }, { status: created ? 201 : 200 });
+  const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
-  } catch (err) {
-    console.error('Error saving organization:', err);
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    return json({
-      success: false,
-      message: 'Failed to save organization settings',
-      error: errorMessage
-    }, { status: 500 });
-  }
+  return json({
+    success: true,
+    data: config.value,
+    created
+  }, { status: created ? 201 : 200 });
 };
 
 export const GET: RequestHandler = async () => {
-  try {
-    const [config] = await db
-      .select()
-      .from(schema.config)
-      .where(eq(schema.config.key, 'organization'));
+  const [config] = await db
+    .select()
+    .from(schema.config)
+    .where(eq(schema.config.key, 'organization'));
 
-    if (!config) {
-      return json({
-        success: true,
-        data: null,
-      });
-    }
-
+  if (!config) {
     return json({
       success: true,
-      data: config.value,
+      data: null,
     });
-
-  } catch (err) {
-    return json(
-      {
-        success: false,
-        message: 'Failed to fetch organization settings',
-        error: err instanceof Error ? err.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
   }
+
+  return json({
+    success: true,
+    data: config.value,
+  });
 };
