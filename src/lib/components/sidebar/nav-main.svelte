@@ -97,15 +97,6 @@
 									{/snippet}
 								</Sidebar.MenuSubButton>
 							</Sidebar.MenuSubItem>
-							<Sidebar.MenuSubItem>
-								<Sidebar.MenuSubButton>
-									{#snippet child({ props })}
-										<a href="/dashboard/tickets/all-tickets" {...props}>
-											<span>All Tickets</span>
-										</a>
-									{/snippet}
-								</Sidebar.MenuSubButton>
-							</Sidebar.MenuSubItem>
 						</Sidebar.MenuSub>
 					</Collapsible.Content>
 				</Sidebar.MenuItem>

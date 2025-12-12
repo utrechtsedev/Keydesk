@@ -19,7 +19,6 @@ export const load: PageServerLoad = async ({ url, depends }) => {
   const dateTo = url.searchParams.get('dateTo');
 
   const offset = (page - 1) * pageSize;
-
   const conditions: (SQL | undefined)[] = [];
 
   if (statusFilter) {
@@ -47,6 +46,7 @@ export const load: PageServerLoad = async ({ url, depends }) => {
   if (dateFrom) {
     conditions.push(gte(schema.ticket.createdAt, new Date(dateFrom)));
   }
+
   if (dateTo) {
     const endDate = new Date(dateTo);
     endDate.setHours(23, 59, 59, 999);
@@ -68,38 +68,76 @@ export const load: PageServerLoad = async ({ url, depends }) => {
   let orderByClause;
 
   switch (sortBy) {
-    case 'ticketNumber':
+    case 'ticket-number':
       orderByClause = orderFn(schema.ticket.ticketNumber);
       break;
     case 'subject':
       orderByClause = orderFn(schema.ticket.subject);
       break;
-    case 'targetDate':
-      orderByClause = orderFn(schema.ticket.targetDate);
+    case 'requester-name':
+      orderByClause = orderFn(schema.requester.name);
       break;
-    case 'updatedAt':
+    case 'category-name':
+      orderByClause = orderFn(schema.category.name);
+      break;
+    case 'user-name':
+      orderByClause = orderFn(schema.user.name);
+      break;
+    case 'status-name':
+      orderByClause = orderFn(schema.status.name);
+      break;
+    case 'priority-name':
+      orderByClause = orderFn(schema.priority.name);
+      break;
+    case 'resolved-at':
+      orderByClause = orderFn(schema.ticket.resolvedAt);
+      break;
+    case 'first-response-at':
+      orderByClause = orderFn(schema.ticket.firstResponseAt);
+      break;
+    case 'updated-at':
       orderByClause = orderFn(schema.ticket.updatedAt);
       break;
-    case 'responseCount':
-      orderByClause = orderFn(schema.ticket.responseCount);
-      break;
+    case 'created-at':
     default:
       orderByClause = orderFn(schema.ticket.createdAt);
   }
 
-  const tickets = await db.query.ticket.findMany({
-    where: and(...conditions),
-    with: {
-      requester: true,
-      category: true,
-      assignedUser: true,
-      status: true,
-      priority: true,
-    },
-    limit: pageSize,
-    offset,
-    orderBy: orderByClause,
-  });
+  // Use select with joins instead of query API for proper sorting
+  const tickets = await db
+    .select({
+      id: schema.ticket.id,
+      ticketNumber: schema.ticket.ticketNumber,
+      subject: schema.ticket.subject,
+      channel: schema.ticket.channel,
+      statusId: schema.ticket.statusId,
+      priorityId: schema.ticket.priorityId,
+      categoryId: schema.ticket.categoryId,
+      requesterId: schema.ticket.requesterId,
+      assignedUserId: schema.ticket.assignedUserId,
+      firstResponseAt: schema.ticket.firstResponseAt,
+      resolvedAt: schema.ticket.resolvedAt,
+      closedAt: schema.ticket.closedAt,
+      targetDate: schema.ticket.targetDate,
+      responseCount: schema.ticket.responseCount,
+      createdAt: schema.ticket.createdAt,
+      updatedAt: schema.ticket.updatedAt,
+      requester: schema.requester,
+      category: schema.category,
+      assignedUser: schema.user,
+      status: schema.status,
+      priority: schema.priority,
+    })
+    .from(schema.ticket)
+    .leftJoin(schema.requester, eq(schema.ticket.requesterId, schema.requester.id))
+    .leftJoin(schema.category, eq(schema.ticket.categoryId, schema.category.id))
+    .leftJoin(schema.user, eq(schema.ticket.assignedUserId, schema.user.id))
+    .leftJoin(schema.status, eq(schema.ticket.statusId, schema.status.id))
+    .leftJoin(schema.priority, eq(schema.ticket.priorityId, schema.priority.id))
+    .where(and(...conditions))
+    .orderBy(orderByClause)
+    .limit(pageSize)
+    .offset(offset);
 
   const [countResult] = await db
     .select({ count: sql<number>`count(*)` })

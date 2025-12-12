@@ -45,7 +45,7 @@
 			<Button
 				variant="outline"
 				size="sm"
-				class="m-0 rounded-l-none {autoRefresh ? '!bg-muted' : ''}"
+				class="m-0 rounded-l-none {autoRefresh ? 'bg-muted!' : ''}"
 				onclick={() => {
 					autoRefresh = !autoRefresh;
 					localStorage.setItem('autoRefresh', JSON.stringify(autoRefresh));

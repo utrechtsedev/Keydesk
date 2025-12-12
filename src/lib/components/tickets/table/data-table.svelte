@@ -258,7 +258,6 @@
 	});
 </script>
 
-<!-- Rest of template stays the same -->
 <div class="w-full">
 	<div class="flex items-center justify-between py-4">
 		<Input

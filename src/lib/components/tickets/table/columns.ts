@@ -37,31 +37,34 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
+    id: "ticket-number",
     accessorKey: "ticketNumber",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `No.`
+        onclick: column.getToggleSortingHandler(), text: "No."
       }),
     meta: {
-      title: 'Ticket Number'
+      title: "Ticket Number"
     },
     enableHiding: false
   },
   {
+    id: "requester-name",
     accessorKey: "requester.name",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Requester`
+        onclick: column.getToggleSortingHandler(), text: "Requester"
       }),
     cell: ({ row }) => {
-      if (!row.original.requester.name) return '-'
+      if (!row.original.requester.name) return "-"
       return row.original.requester.name
     },
     meta: {
-      title: 'Requester'
+      title: "Requester"
     },
   },
   {
+    id: "subject",
     accessorKey: "subject",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
@@ -72,6 +75,7 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
+    id: "category-name",
     accessorKey: "category.name",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
@@ -83,6 +87,7 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
+    id: "user-name",
     accessorKey: "user.name",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
@@ -98,6 +103,7 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
+    id: "status-name",
     accessorKey: "status.name",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
@@ -115,6 +121,7 @@ export const columns: ColumnDef<TicketList>[] = [
     },
   },
   {
+    id: "priority-name",
     accessorKey: "priority.name",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
@@ -132,6 +139,7 @@ export const columns: ColumnDef<TicketList>[] = [
     },
   },
   {
+    id: "resolved-at",
     accessorKey: "resolvedAt",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
@@ -156,6 +164,7 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
+    id: "first-response-at",
     accessorKey: "firstResponseAt",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
@@ -180,6 +189,7 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
+    id: "created-at",
     accessorKey: "createdAt",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
@@ -204,6 +214,7 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
+    id: "updated-at",
     accessorKey: "updatedAt",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
