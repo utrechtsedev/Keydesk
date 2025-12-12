@@ -89,8 +89,6 @@ export const load: PageServerLoad = async ({ depends, locals, url }) => {
   const finishedTasks = tasksWithTags.filter(task => task.status?.isClosed === true);
   const activeTasks = tasksWithTags.filter(task => task.status?.isClosed !== true);
 
-  console.log(tasks.map((t) => t.createdAt));
-
   return {
     tasks: activeTasks,
     finishedTasks,
