@@ -63,10 +63,8 @@
 				type: 'ticket',
 				tags: editableTags || []
 			});
-			console.log(response.data);
 			if (response.data.success) {
 				invalidate('app:ticket');
-				tags = response.data.tags;
 			}
 
 			toast.success('Succesfully saved tags.');
