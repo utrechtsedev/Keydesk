@@ -5,15 +5,14 @@
 	import { Pencil, PlaneTakeoff, Plus, Save, Trash, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import axios from 'axios';
-	import { onMount } from 'svelte';
-	import type { Holiday } from '$lib/types';
+	import type { Holiday, PageData } from '$lib/types';
 
-	type HolidayType = Omit<Holiday, 'id' | 'createdAt' | 'updatedAt'>;
+	const { data }: { data: PageData & { holidays: Holiday[] } } = $props();
 
-	let holidays: HolidayType[] = $state([]);
-	let editing = $state<HolidayType>();
+	let holidays = $state<Holiday[]>(data.holidays);
+	let editing = $state<Holiday>();
 
-	function startEdit(item: HolidayType) {
+	function startEdit(item: Holiday) {
 		editing = item;
 	}
 
@@ -29,7 +28,7 @@
 	}
 
 	function addItem() {
-		const newItem: HolidayType = {
+		const newItem: Holiday = {
 			name: 'New Holiday',
 			start: new Date(),
 			end: new Date()
@@ -38,7 +37,7 @@
 		editing = newItem;
 	}
 
-	function deleteItem(item: HolidayType) {
+	function deleteItem(item: Holiday) {
 		holidays = holidays.filter((h) => h !== item);
 		editing = undefined;
 	}
@@ -54,11 +53,11 @@
 		return dateStr ? new Date(dateStr) : new Date();
 	}
 
-	function updateHolidayStart(holiday: HolidayType, dateStr: string) {
+	function updateHolidayStart(holiday: Holiday, dateStr: string) {
 		holiday.start = datetimeLocalToDate(dateStr);
 	}
 
-	function updateHolidayEnd(holiday: HolidayType, dateStr: string) {
+	function updateHolidayEnd(holiday: Holiday, dateStr: string) {
 		holiday.end = datetimeLocalToDate(dateStr);
 	}
 
@@ -72,17 +71,6 @@
 
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		const { data } = await axios.get('/api/settings/holidays');
-
-		if (data.data)
-			holidays = data.data.map((h: HolidayType) => ({
-				...h,
-				start: new Date(h.start),
-				end: new Date(h.end)
-			}));
-	});
 </script>
 
 <div class="flex flex-col">

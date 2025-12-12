@@ -6,48 +6,10 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
-	import { onMount } from 'svelte';
-	import type { BusinessHours } from '$lib/types';
+	import type { BusinessHours, PageData } from '$lib/types';
 
-	let businessHours: BusinessHours = $state({
-		schedule: {
-			monday: {
-				enabled: true,
-				start: '09:00',
-				end: '17:00'
-			},
-			tuesday: {
-				enabled: true,
-				start: '09:00',
-				end: '17:00'
-			},
-			wednesday: {
-				enabled: true,
-				start: '09:00',
-				end: '17:00'
-			},
-			thursday: {
-				enabled: true,
-				start: '09:00',
-				end: '17:00'
-			},
-			friday: {
-				enabled: true,
-				start: '09:00',
-				end: '17:00'
-			},
-			saturday: {
-				enabled: false,
-				start: null,
-				end: null
-			},
-			sunday: {
-				enabled: false,
-				start: null,
-				end: null
-			}
-		}
-	});
+	const { data }: { data: PageData & { businessHours: BusinessHours } } = $props();
+	let businessHours = $state(data.businessHours);
 
 	async function handleSave() {
 		const response = await axios.post('/api/settings/business-hours', { businessHours });
@@ -57,11 +19,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		const { data } = await axios.get('/api/settings/business-hours');
-		if (data.data) businessHours = data.data;
-	});
 </script>
 
 <div class="flex items-center justify-center p-10">

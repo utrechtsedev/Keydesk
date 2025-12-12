@@ -6,21 +6,14 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { toast } from 'svelte-sonner';
 	import axios from 'axios';
-	import { onMount } from 'svelte';
-	import type { SMTP } from '$lib/types';
+	import type { PageData, SMTP } from '$lib/types';
 	import { ToastComponent } from '$lib/components/ui/toast';
 	import { Spinner } from '$lib/components/ui/spinner';
 
-	let smtp: SMTP = $state({
-		senderName: '',
-		senderEmail: '',
-		host: '',
-		port: 587,
-		SSL: true,
-		enableAuthentication: true,
-		username: '',
-		password: ''
-	});
+	const { data }: { data: PageData & { smtp: SMTP } } = $props();
+
+	let smtp: SMTP = $state(data.smtp);
+
 	let saveDisabled = $state(true);
 	let testLoading = $state('hidden');
 
@@ -79,11 +72,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		let { data } = await axios.get('/api/settings/outgoing-email');
-		if (data.data) smtp = data.data;
-	});
 
 	$effect(() => {
 		if (!smtp.enableAuthentication) {

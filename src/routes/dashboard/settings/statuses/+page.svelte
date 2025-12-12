@@ -6,10 +6,11 @@
 	import { toast } from 'svelte-sonner';
 	import { Switch } from '$lib/components/ui/switch';
 	import axios from 'axios';
-	import { onMount } from 'svelte';
-	import type { Status } from '$lib/types';
+	import type { PageData, Status } from '$lib/types';
 
-	let statuses: Status[] = $state([]);
+	const { data }: { data: PageData & { statuses: Status[] } } = $props();
+
+	let statuses = $state(data.statuses);
 	let editing = $state<Status>();
 
 	function startEdit(status: Status) {
@@ -114,11 +115,6 @@
 
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		const { data } = await axios.get('/api/settings/statuses');
-		if (data.data) statuses = data.data;
-	});
 </script>
 
 <div class="flex flex-col">

@@ -5,15 +5,12 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { Switch } from '$lib/components/ui/switch';
 	import axios from 'axios';
-	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import type { TicketConfig } from '$lib/types';
+	import type { PageData, TicketConfig } from '$lib/types';
 
-	let tickets: TicketConfig = $state({
-		nextTicketNumber: 1,
-		autoCreateRequesters: true,
-		ticketPrefix: 'T'
-	});
+	const { data }: { data: PageData & { tickets: TicketConfig } } = $props();
+
+	let tickets: TicketConfig = $state(data.tickets);
 
 	async function handleNext() {
 		if (!tickets.nextTicketNumber || !tickets.ticketPrefix)
@@ -25,11 +22,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		let { data } = await axios.get('/api/settings/tickets');
-		if (data.data) tickets = data.data;
-	});
 </script>
 
 <div class="flex items-center justify-center p-10">

@@ -6,23 +6,15 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import axios from 'axios';
 	import { timezones } from '$lib/utils/timezones';
-	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import type { Organization } from '$lib/types';
+	import type { Organization, PageData } from '$lib/types';
 	import Upload4 from '$lib/icons/upload-4.svelte';
 	import Check2 from '$lib/icons/check-2.svelte';
 	import { CountrySelector } from '$lib/components/ui/country-select';
 
-	let organization: Organization = $state({
-		name: '',
-		domain: '',
-		language: '',
-		timezone: '',
-		country: '',
-		address: '',
-		city: '',
-		zipCode: ''
-	});
+	const { data }: { data: PageData & { organization: Organization } } = $props();
+
+	let organization = $state(data.organization);
 
 	let fileInput: HTMLInputElement | undefined = $state();
 	let previewUrl = $state<string | null>(null);
@@ -75,15 +67,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		let { data } = await axios.get('/api/settings/organization');
-
-		if (data.data) {
-			organization = data.data;
-			previewUrl = `/logo`;
-		}
-	});
 </script>
 
 <div class="flex items-center justify-center p-10">

@@ -6,10 +6,10 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { toast } from 'svelte-sonner';
 	import axios from 'axios';
-	import { onMount } from 'svelte';
-	import type { Category } from '$lib/types';
+	import type { Category, PageData } from '$lib/types';
 
-	let categories: Category[] = $state([]);
+	const { data }: { data: PageData & { categories: Category[] } } = $props();
+	let categories = $state(data.categories);
 	let editing = $state<Category>();
 
 	function startEdit(category: Category) {
@@ -75,11 +75,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		const { data } = await axios.get('/api/settings/categories');
-		if (data.data && data.data.length > 0) categories = data.data;
-	});
 </script>
 
 <div class="flex flex-col">

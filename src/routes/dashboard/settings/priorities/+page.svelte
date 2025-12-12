@@ -6,10 +6,11 @@
 	import { toast } from 'svelte-sonner';
 	import { Switch } from '$lib/components/ui/switch';
 	import axios from 'axios';
-	import { onMount } from 'svelte';
-	import type { Priority } from '$lib/types';
+	import type { PageData, Priority } from '$lib/types';
 
-	let priorities: Priority[] = $state([]);
+	const { data }: { data: PageData & { priorities: Priority[] } } = $props();
+
+	let priorities = $state(data.priorities);
 	let editing = $state<Priority>();
 
 	function startEdit(priority: Priority) {
@@ -66,7 +67,7 @@
 		}
 
 		try {
-			const response = await axios.delete('/api/settings/priorities', {
+			await axios.delete('/api/settings/priorities', {
 				data: { id: priority.id }
 			});
 
@@ -98,11 +99,6 @@
 
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		const { data } = await axios.get('/api/settings/priorities');
-		if (data.data) priorities = data.data;
-	});
 </script>
 
 <div class="flex flex-col">

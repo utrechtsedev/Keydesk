@@ -7,27 +7,11 @@
 	import { TagsInput } from '$lib/components/ui/tags-input';
 	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
-	import { onMount } from 'svelte';
-	import type { Attachment } from '$lib/types';
+	import type { Attachment, PageData } from '$lib/types';
 
-	let disabled = $state(false);
-	let attachments: Attachment = $state({
-		enabled: true,
-		maxFileSizeMB: 10,
-		allowedMimeTypes: [
-			'image/jpg',
-			'image/jpeg',
-			'image/png',
-			'image/gif',
-			'application/pdf',
-			'application/msword', // doc
-			'application/vnd.openxmlformats-officedocument.wordprocessingml.document', //docx
-			'application/vnd.ms-excel', // xls
-			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', //xlsx
-			'text/*', // txt and other text formats
-			'application/zip'
-		]
-	});
+	const { data }: { data: PageData & { attachments: Attachment } } = $props();
+
+	let attachments: Attachment = $state(data.attachments);
 
 	async function handleSave() {
 		const response = await axios.post('/api/settings/attachments', { attachments });
@@ -37,21 +21,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		const { data } = await axios.get('/api/settings/attachments');
-		if (data.data) attachments = data.data;
-	});
-
-	$effect(() => {
-		if (!attachments.enabled) {
-			disabled = true;
-			attachments.allowedMimeTypes = [];
-			attachments.maxFileSizeMB = 0;
-		} else {
-			disabled = false;
-		}
-	});
 </script>
 
 <div class="flex items-center justify-center p-10">
@@ -97,7 +66,7 @@
 						<Field.Set class="gap-2">
 							<Field.Label>Max File Size (MB)</Field.Label>
 							<Input
-								{disabled}
+								disabled={!attachments.enabled}
 								bind:value={attachments.maxFileSizeMB}
 								id="max-filesize"
 								type="number"
@@ -113,7 +82,7 @@
 							<TagsInput
 								id="allowed-extensions"
 								bind:value={attachments.allowedMimeTypes}
-								{disabled}
+								disabled={!attachments.enabled}
 							/>
 							<Field.Description>
 								Specify which file types users can upload (MIME types)

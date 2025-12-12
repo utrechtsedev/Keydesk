@@ -6,18 +6,14 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { toast } from 'svelte-sonner';
 	import axios from 'axios';
-	import { onMount } from 'svelte';
-	import type { IMAP } from '$lib/types';
+	import type { IMAP, PageData } from '$lib/types';
 	import { ToastComponent } from '$lib/components/ui/toast';
 	import { Spinner } from '$lib/components/ui/spinner';
 
-	let imap: IMAP = $state({
-		host: '',
-		port: 993,
-		username: '',
-		password: '',
-		SSL: true
-	});
+	const { data }: { data: PageData & { imap: IMAP } } = $props();
+
+	let imap: IMAP = $state(data.imap);
+
 	let saveDisabled = $state(true);
 	let testLoading = $state('hidden');
 
@@ -66,11 +62,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		let { data } = await axios.get('/api/settings/incoming-email');
-		if (data.data) imap = data.data;
-	});
 </script>
 
 <div class="flex items-center justify-center p-10">

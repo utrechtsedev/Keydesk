@@ -4,30 +4,12 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Separator } from '$lib/components/ui/separator';
 	import axios from 'axios';
-	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import type { NotificationSettings } from '$lib/types';
+	import type { NotificationSettings, PageData } from '$lib/types';
 
-	let notifications: NotificationSettings = $state({
-		dashboard: {
-			ticket: {
-				created: { notifyAllUsers: true },
-				assigned: { notifyUser: true },
-				updated: { notifyUser: true },
-				resolved: { notifyUser: true },
-				closed: { notifyUser: true }
-			}
-		},
-		email: {
-			ticket: {
-				created: { notifyAllUsers: true, notifyRequester: true },
-				assigned: { notifyUser: true, notifyRequester: true },
-				updated: { notifyUser: true, notifyRequester: true },
-				resolved: { notifyUser: true, notifyRequester: true },
-				closed: { notifyUser: true, notifyRequester: true }
-			}
-		}
-	});
+	const { data }: { data: PageData & { notificationConfig: NotificationSettings } } = $props();
+
+	let notifications = $state(data.notificationConfig);
 
 	type DashboardEventKey = 'created' | 'assigned' | 'updated' | 'resolved' | 'closed';
 	type DashboardOptionKey = 'notifyAllUsers' | 'notifyUser';
@@ -121,11 +103,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		const { data } = await axios.get('/api/settings/notifications');
-		if (data.data) notifications = data.data;
-	});
 </script>
 
 <div class="flex items-center justify-center p-4 sm:p-10">

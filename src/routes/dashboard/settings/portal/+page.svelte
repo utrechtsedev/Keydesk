@@ -5,15 +5,11 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
-	import { onMount } from 'svelte';
-	import type { Portal } from '$lib/types';
+	import type { PageData, Portal } from '$lib/types';
 
-	let portal: Portal = $state({
-		enabled: true,
-		allowGuestTickets: true,
-		requireEmailVerification: false,
-		showKnowledgeBase: true
-	});
+	const { data }: { data: PageData & { portal: Portal } } = $props();
+
+	let portal = $state(data.portal);
 
 	async function handleNext() {
 		const response = await axios.post('/api/settings/portal', { portal });
@@ -23,11 +19,6 @@
 		}
 		return toast.error('Error saving configuration.');
 	}
-
-	onMount(async () => {
-		const { data } = await axios.get('/api/settings/portal');
-		if (data.data) portal = data.data;
-	});
 </script>
 
 <div class="flex items-center justify-center p-10">
