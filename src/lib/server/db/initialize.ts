@@ -37,6 +37,7 @@ class DatabaseInitializer {
       await this.setupPriorities();
       await this.setupStatuses();
       await this.setupCategories();
+      await this.setupTicketConfig();
 
       console.log("\nDatabase initialization completed successfully");
       console.log("\nNext steps:");
@@ -97,11 +98,11 @@ class DatabaseInitializer {
       const [existing] = await db
         .select()
         .from(schema.config)
-        .where(sql`${schema.config.key} = 'businesshours'`);
+        .where(sql`${schema.config.key} = 'business-hours'`);
 
       if (!existing) {
         await db.insert(schema.config).values({
-          key: "businesshours",
+          key: "business-hours",
           value: {
             schedule: {
               monday: { enabled: true, start: "09:00", end: "17:00" },
@@ -295,6 +296,35 @@ class DatabaseInitializer {
       }
     } catch (error) {
       this.log("Failed to setup categories", 'error');
+      throw error;
+    }
+  }
+
+  private async setupTicketConfig() {
+    this.log("Seeding ticket config...", 'info');
+
+    try {
+      const [existing] = await db
+        .select()
+        .from(schema.config)
+        .where(sql`${schema.config.key} = 'tickets'`);
+      ;
+
+      if (!existing) {
+        await db.insert(schema.config).values({
+          key: 'tickets', 
+          value: { 
+            nextTicketNumber: 1,
+            autoCreateRequesters: true,
+            ticketPrefix: "TKT-", }
+        });
+
+        this.log(`Ticket configuration created`, 'success');
+      } else {
+        this.log(`Ticket configuration already exist`, 'info');
+      }
+    } catch (error) {
+      this.log("Failed to setup ticket configuration", 'error');
       throw error;
     }
   }
