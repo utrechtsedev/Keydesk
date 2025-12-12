@@ -10,6 +10,7 @@
 	import { toast } from 'svelte-sonner';
 
 	const uid = $props.id();
+
 	let {
 		title,
 		description,
@@ -27,18 +28,37 @@
 	} = $props();
 
 	let value = $state('-1');
-
 	const selected = $derived(items.find((i) => String(i.id) === value));
+
 	async function handleSave() {
 		try {
+			// Handle tags differently - add instead of replace
+			if (itemType === 'tag') {
+				if (!selected?.name) {
+					return toast.error('Please select a tag');
+				}
+
+				await axios.patch('/api/tags/bulk', {
+					ids,
+					tag: selected.name,
+					type: 'ticket'
+				});
+
+				invalidate('app:tickets');
+				open = false;
+				return toast.success(`Successfully added tag to ${ids.length} ticket(s)`);
+			}
+
+			// Handle other item types (user, category, status, priority)
 			await axios.patch('/api/tickets/bulk', {
 				ids,
 				itemId: value,
 				itemType
 			});
+
 			invalidate('app:tickets');
 			open = false;
-			return toast.success('Succesfully updated ticket(s).');
+			return toast.success('Successfully updated ticket(s)');
 		} catch (error) {
 			if (axios.isAxiosError(error) && error.response) {
 				return toast.error(ToastComponent, {
@@ -48,7 +68,6 @@
 					}
 				});
 			}
-
 			return toast.error(ToastComponent, {
 				componentProps: {
 					title: 'Request failed',
@@ -63,10 +82,15 @@
 	<Dialog.Content class="sm:max-w-[425px]">
 		<Dialog.Header>
 			<Dialog.Title>{title}</Dialog.Title>
-			<Dialog.Description>{description}. Updating {ids.length} ticket(s).</Dialog.Description>
+			<Dialog.Description>
+				{description}. {itemType === 'tag' ? 'Adding tag to' : 'Updating'}
+				{ids.length} ticket(s).
+			</Dialog.Description>
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
-			<Label for={uid}>Select with placeholder</Label>
+			<Label for={uid}>
+				{itemType === 'tag' ? 'Select tag to add' : 'Select an option'}
+			</Label>
 			<Select.Root type="single" bind:value>
 				<Select.Trigger id={uid} class="w-full">
 					{selected?.name ?? 'Select an option'}
@@ -81,7 +105,9 @@
 			</Select.Root>
 		</div>
 		<Dialog.Footer>
-			<Button type="submit" onclick={handleSave}>Save changes</Button>
+			<Button type="submit" onclick={handleSave}>
+				{itemType === 'tag' ? 'Add tag' : 'Save changes'}
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

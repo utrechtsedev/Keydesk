@@ -11,9 +11,7 @@
 	let filterDialogOpen = $state(false);
 
 	let tasks = $derived(data.tasks.filter((t) => !t.parentTaskId));
-	let finishedTasks = $derived(
-		data.finishedTasks.filter((t) => t.subtasks && t.subtasks.length > 0)
-	);
+
 	const parentTasks = $derived(tasks.filter((t) => !t.parentTaskId));
 
 	let openTaskSheet = $state(false);

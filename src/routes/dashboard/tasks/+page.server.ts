@@ -1,6 +1,6 @@
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
-import { eq, and, or, gte, lte, asc, sql, SQL } from "drizzle-orm";
+import { eq, and, gte, lte, asc, SQL } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ depends, locals, url }) => {
@@ -8,7 +8,6 @@ export const load: PageServerLoad = async ({ depends, locals, url }) => {
 
   const statusFilter = url.searchParams.get('status');
   const priorityFilter = url.searchParams.get('priority');
-  const categoryFilter = url.searchParams.get('category');
   const assigneeFilter = url.searchParams.get('assignee');
   const dateFrom = url.searchParams.get('dateFrom');
   const dateTo = url.searchParams.get('dateTo');
@@ -90,11 +89,10 @@ export const load: PageServerLoad = async ({ depends, locals, url }) => {
   const finishedTasks = tasksWithTags.filter(task => task.status?.isClosed === true);
   const activeTasks = tasksWithTags.filter(task => task.status?.isClosed !== true);
 
-  console.log(activeTasks.length);
+  console.log(tasks.map((t) => t.createdAt));
 
   return {
     tasks: activeTasks,
     finishedTasks,
-    activeTasks,
   };
 };

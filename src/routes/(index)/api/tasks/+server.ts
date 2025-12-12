@@ -8,22 +8,20 @@ import { requireAuth } from "$lib/server/auth-helpers";
 import { NotFoundError, ValidationError } from "$lib/server/errors";
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
-  const { user } = requireAuth(locals)
-
+  const { user } = requireAuth(locals);
   const { task } = await request.json() as { task: TaskType };
 
   if (!task?.title?.trim())
-    throw new ValidationError('Task title is required')
+    throw new ValidationError('Task title is required');
 
   if (!task.assigneeId)
-    throw new ValidationError('Assignee is required')
+    throw new ValidationError('Assignee is required');
 
   if (!task.statusId)
-    throw new ValidationError('Status is required')
-
+    throw new ValidationError('Status is required');
 
   if (!task.priorityId)
-    throw new ValidationError('Priority is required')
+    throw new ValidationError('Priority is required');
 
   // Verify assignee exists
   const [assignee] = await db
@@ -32,7 +30,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     .where(eq(schema.user.id, task.assigneeId));
 
   if (!assignee)
-    throw new NotFoundError('Assignee not found')
+    throw new NotFoundError('Assignee not found');
 
   // Verify status exists
   const [status] = await db
@@ -41,7 +39,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     .where(eq(schema.status.id, task.statusId));
 
   if (!status)
-    throw new NotFoundError('Status not found')
+    throw new NotFoundError('Status not found');
 
   // Verify priority exists
   const [priority] = await db
@@ -50,7 +48,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     .where(eq(schema.priority.id, task.priorityId));
 
   if (!priority)
-    throw new NotFoundError('Priority not found')
+    throw new NotFoundError('Priority not found');
 
   // Verify parent task if provided
   if (task.parentTaskId) {
@@ -60,14 +58,13 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       .where(eq(schema.task.id, task.parentTaskId));
 
     if (!parentTask)
-      throw new NotFoundError('Parent task not found.')
-
+      throw new NotFoundError('Parent task not found');
 
     if (parentTask.parentTaskId)
-      throw new ValidationError('Task cannot be subtask of subtask.')
+      throw new ValidationError('Task cannot be subtask of subtask');
   }
 
-  // Create the task
+  // Create the task - convert date strings to Date objects
   const [newTask] = await db
     .insert(schema.task)
     .values({
@@ -79,8 +76,8 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       parentTaskId: task.parentTaskId || null,
       statusId: task.statusId,
       priorityId: task.priorityId,
-      dueDate: task.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      startDate: task.startDate || null,
+      dueDate: task.dueDate ? new Date(task.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      startDate: task.startDate ? new Date(task.startDate) : null,
       completedAt: null,
     })
     .returning();
@@ -119,10 +116,10 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
   const { task } = await request.json() as { task: TaskType };
 
   if (!task?.id)
-    throw new ValidationError('Task ID is required')
+    throw new ValidationError('Task ID is required');
 
   if (!task.assigneeId)
-    throw new ValidationError('Assignee ID is required')
+    throw new ValidationError('Assignee ID is required');
 
   // Find the task
   const [findTask] = await db
@@ -131,7 +128,7 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
     .where(eq(schema.task.id, task.id));
 
   if (!findTask)
-    throw new NotFoundError('Task not found')
+    throw new NotFoundError('Task not found');
 
   // Verify parent task if provided
   if (task.parentTaskId) {
@@ -141,16 +138,16 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
       .where(eq(schema.task.id, task.parentTaskId));
 
     if (!parentTask)
-      throw new NotFoundError('Parent task not found.')
+      throw new NotFoundError('Parent task not found');
 
     if (parentTask.parentTaskId)
-      throw new ValidationError('Task cannot be subtask of subtask.')
+      throw new ValidationError('Task cannot be subtask of subtask');
 
     if (parentTask.id === findTask.id)
-      throw new ValidationError('Task cannot be its own parent.')
+      throw new ValidationError('Task cannot be its own parent');
   }
 
-  // Update the task
+  // Update the task - convert date strings to Date objects
   const [updatedTask] = await db
     .update(schema.task)
     .set({
@@ -161,9 +158,9 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
       parentTaskId: task.parentTaskId || null,
       statusId: task.statusId,
       priorityId: task.priorityId,
-      dueDate: task.dueDate,
-      startDate: task.startDate,
-      completedAt: task.completedAt,
+      dueDate: task.dueDate ? new Date(task.dueDate) : new Date(),
+      startDate: task.startDate ? new Date(task.startDate) : null,
+      completedAt: task.completedAt ? new Date(task.completedAt) : null,
       position: task.position,
     })
     .where(eq(schema.task.id, task.id))
