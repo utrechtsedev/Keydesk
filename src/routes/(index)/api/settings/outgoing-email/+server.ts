@@ -1,7 +1,7 @@
 import { decrypt, encrypt } from "$lib/server/db/encrypt";
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
-import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import { type SMTP } from "$lib/types";
 import { eq } from "drizzle-orm";
 import { ValidationError } from "$lib/server/errors";
@@ -57,7 +57,9 @@ export const GET: RequestHandler = async () => {
   }
 
   const response: SMTP = config.value as SMTP;
-  response.password = decrypt(response.password);
+  if (response.password) {
+    response.password = decrypt(response.password);
+  }
 
   return json({
     success: true,

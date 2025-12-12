@@ -1,6 +1,6 @@
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
-import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import type { Attachment } from "$lib/types";
 import { eq } from "drizzle-orm";
 import { ValidationError } from "$lib/server/errors";

@@ -14,7 +14,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const [config] = await db
     .insert(schema.config)
     .values({
-      key: 'businessHours',
+      key: 'business-hours',
       value: businessHours
     })
     .onConflictDoUpdate({
@@ -39,7 +39,7 @@ export const GET: RequestHandler = async (): Promise<Response> => {
   const [config] = await db
     .select()
     .from(schema.config)
-    .where(eq(schema.config.key, 'businessHours'));
+    .where(eq(schema.config.key, 'business-hours'));
 
   if (!config) {
     return json({
