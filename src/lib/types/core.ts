@@ -1,3 +1,5 @@
+import { type Task as DrizzleTask } from "$lib/server/db/schema"
+
 export interface SMTP {
   senderName: string;
   senderEmail: string;
@@ -151,7 +153,7 @@ export interface Ticket {
   // requester 
   requesterId: number;
   // assignment and ownership
-  assignedUserId: string | null;
+  assignedUserId: number | null;
   // ticket content
   subject: string;
   channel: "email" | "portal" | "user";
@@ -289,31 +291,7 @@ export interface TicketConfig {
   ticketPrefix: string,
 }
 
-export interface Task {
-  id: number;
-  // Basic info
-  title: string;
-  description: string | null;
-  // Relationships
-  ticketId: number | null; // null = standalone task
-  assigneeId: number;
-  parentTaskId: number | null; // null = root task
-  createdById: string; // User who created it
-  // Classification
-  statusId: number;
-  priorityId: number;
-  // Timing
-  dueDate: Date;
-  startDate: Date | null;
-  completedAt: Date | null;
-  // Tracking
-  estimatedMinutes: number | null; // Estimated time in minutes
-  actualMinutes: number | null; // Actual time spent
-  position: number; // For manual ordering
-  // Timestamps
-  createdAt: Date;
-  updatedAt: Date;
-  // includes?
+export interface Task extends DrizzleTask {
   assignee?: User;
   subtasks?: Task[];
   parentTask?: Task;

@@ -165,6 +165,7 @@
 				{handleSave}
 			/>
 			<TicketProperties
+				ticketId={ticket.id}
 				bind:priorityId={ticket.priorityId}
 				bind:categoryId={ticket.categoryId}
 				bind:statusId={ticket.statusId}

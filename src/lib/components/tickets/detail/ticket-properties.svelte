@@ -10,8 +10,13 @@
 	import { cn } from '$lib/utils';
 	import { Check, ChevronDown } from '@lucide/svelte';
 	import type { Category, Priority, Status, Tag, User } from '$lib/types';
+	import axios from 'axios';
+	import { invalidate } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
+	import { ToastComponent } from '$lib/components/ui/toast';
 
 	let {
+		ticketId,
 		priorityId = $bindable(),
 		statusId = $bindable(),
 		categoryId = $bindable(),
@@ -25,13 +30,14 @@
 		highlightStatus = $bindable(false),
 		highlightCategory = $bindable(false)
 	}: {
+		ticketId: number;
 		priorityId: number;
 		statusId: number;
 		categoryId: number;
 		statuses: Status[];
 		priorities: Priority[];
 		categories: Category[];
-		userId: string | null;
+		userId: number | null;
 		users: User[];
 		tags: Tag[];
 		highlightPriority?: boolean;
@@ -40,14 +46,40 @@
 	} = $props();
 	let open = $state(false);
 
-	let tagNames = $state(tags.map((tag) => tag.name));
+	let editableTags = $derived<string[] | undefined>(tags?.map((t) => t.name));
 	const selectedPriority = $derived(priorities.find((p) => p.id === Number(priorityId)));
 	const selectedStatus = $derived(statuses.find((s) => s.id === Number(statusId)));
 	const selectedCategory = $derived(categories.find((c) => c.id === Number(categoryId)));
 
-	function handleSelectAssignee(currentAssignedUser: string) {
-		userId = currentAssignedUser === userId ? '' : currentAssignedUser;
+	function handleSelectAssignee(currentAssignedUser: number) {
+		userId = currentAssignedUser === userId ? 0 : currentAssignedUser;
 		open = false;
+	}
+
+	async function handleSaveTags() {
+		try {
+			const response = await axios.post('/api/tags/bulk', {
+				id: ticketId,
+				type: 'ticket',
+				tags: editableTags || []
+			});
+			console.log(response.data);
+			if (response.data.success) {
+				invalidate('app:ticket');
+				tags = response.data.tags;
+			}
+
+			toast.success('Succesfully saved tags.');
+		} catch (err) {
+			if (axios.isAxiosError(err) && err.response) {
+				toast.error(ToastComponent, {
+					componentProps: {
+						title: 'Failed saving Tags',
+						body: err.message
+					}
+				});
+			}
+		}
 	}
 
 	let priorityIdString = $state(priorityId.toString());
@@ -186,7 +218,10 @@
 
 		<div class="space-y-2">
 			<Label>Tags</Label>
-			<TagsInput bind:value={tagNames} placeholder="Add a tag" />
+			<div class="flex gap-1">
+				<TagsInput bind:value={editableTags} placeholder="Add a tag" />
+				<Button variant="outline" onclick={handleSaveTags}>Save</Button>
+			</div>
 		</div>
 	</Card.Content>
 </Card.Root>

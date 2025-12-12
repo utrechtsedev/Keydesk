@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as Sheet from '$lib/components/ui/sheet';
-	import * as Rename from '$lib/components/ui/rename';
 	import * as Select from '$lib/components/ui/select';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
@@ -24,7 +23,6 @@
 	import Subtitles2 from '$lib/icons/subtitles-2.svelte';
 	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
 	import MediaRecord from '$lib/icons/media-record.svelte';
-	import { Provider } from '../ui/tooltip';
 
 	let {
 		task = $bindable(),
@@ -42,7 +40,6 @@
 		users: User[];
 	} = $props();
 
-	let renameMode = $state<'edit' | 'view'>('view');
 	let highlightTitle = $state<boolean>(false);
 	let editableTask = $state<Task>();
 	let statusIdString = $state('');
@@ -53,7 +50,7 @@
 	let editableTags = $derived<string[] | undefined>(editableTask?.tags?.map((t) => t.name));
 	const selectedStatus = $derived(statuses.find((s) => s.id === Number(statusIdString)));
 	const selectedPriority = $derived(priorities.find((p) => p.id === Number(priorityIdString)));
-	const selectedUser = $derived(users.find((u) => u.id === assigneeIdString));
+	const selectedUser = $derived(users.find((u) => u.id === Number(assigneeIdString)));
 	const isNewTask = $derived(!task?.id);
 
 	async function handleSaveTags() {
@@ -127,7 +124,7 @@
 				editableTask = JSON.parse(JSON.stringify(task));
 				statusIdString = editableTask!.statusId.toString();
 				priorityIdString = editableTask!.priorityId.toString();
-				assigneeIdString = editableTask!.assigneeId;
+				assigneeIdString = editableTask!.assigneeId.toString();
 			} else {
 				const defaultStatus = statuses[0];
 				const defaultPriority = priorities[0];
@@ -137,24 +134,22 @@
 					title: '',
 					description: null,
 					ticketId: null,
-					assigneeId: defaultUser?.id || '',
+					assigneeId: defaultUser?.id || 0,
 					parentTaskId: null,
-					createdById: '', // Will be set by backend
+					createdById: 0,
 					statusId: defaultStatus?.id || 1,
 					priorityId: defaultPriority?.id || 1,
-					dueDate: null,
+					dueDate: new Date(),
 					startDate: null,
 					completedAt: null,
-					estimatedMinutes: null,
-					actualMinutes: null,
 					position: 0,
 					createdAt: new Date(),
 					updatedAt: new Date()
 				} as Task;
 
-				statusIdString = editableTask.statusId.toString();
-				priorityIdString = editableTask.priorityId.toString();
-				assigneeIdString = editableTask.assigneeId;
+				statusIdString = editableTask!.statusId.toString();
+				priorityIdString = editableTask!.priorityId.toString();
+				assigneeIdString = editableTask!.assigneeId.toString();
 				editDescription = true;
 			}
 		}
@@ -172,7 +167,7 @@
 			editableTask.statusId = Number(statusIdString);
 		}
 		if (editableTask && assigneeIdString) {
-			editableTask.assigneeId = assigneeIdString;
+			editableTask.assigneeId = Number(assigneeIdString);
 		}
 	});
 </script>
@@ -247,7 +242,7 @@
 						</Select.Trigger>
 						<Select.Content>
 							{#each users as user (user.id)}
-								<Select.Item value={user.id}>
+								<Select.Item value={user.id.toString()}>
 									{user.name}
 								</Select.Item>
 							{/each}
@@ -300,7 +295,7 @@
 								if (editableTask) {
 									editableTask.dueDate = e.currentTarget.value
 										? new Date(e.currentTarget.value)
-										: null;
+										: new Date();
 								}
 							}}
 						/>

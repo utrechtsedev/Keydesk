@@ -14,7 +14,6 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   if (!type || !id)
     throw new ValidationError('Type and ID are required');
 
-
   if (type !== "ticket" && type !== "task")
     throw new ValidationError('Type must be either "ticket" or "task"');
 
@@ -34,7 +33,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   }
 
   if (!entity)
-    throw new NotFoundError(`${entity} not found`)
+    throw new NotFoundError(`${type} not found`);
 
   // Clear existing tags
   if (type === 'ticket') {
@@ -55,23 +54,23 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
     tags.map(async (tagName) => {
       const normalizedName = tagName.trim().toLowerCase();
 
-      const [result] = await db
-        .insert(schema.tag)
-        .values({ name: normalizedName })
-        .onConflictDoNothing({ target: schema.tag.name })
-        .returning();
-
-      if (result) {
-        return result;
-      }
-
-      // If conflict occurred, fetch the existing tag
+      // Check if tag exists
       const [existingTag] = await db
         .select()
         .from(schema.tag)
         .where(eq(schema.tag.name, normalizedName));
 
-      return existingTag!;
+      if (existingTag) {
+        return existingTag;
+      }
+
+      // Create new tag if it doesn't exist
+      const [newTag] = await db
+        .insert(schema.tag)
+        .values({ name: normalizedName })
+        .returning();
+
+      return newTag;
     })
   );
 
