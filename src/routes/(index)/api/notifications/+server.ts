@@ -2,7 +2,7 @@ import { requireAuth } from "$lib/server/auth-helpers";
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema"
 import { NotFoundError, ValidationError } from "$lib/server/errors";
-import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import { and, eq } from "drizzle-orm";
 
 export const PATCH: RequestHandler = async ({ request, locals }) => {
