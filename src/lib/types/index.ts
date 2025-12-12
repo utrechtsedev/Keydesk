@@ -1,4 +1,6 @@
 export * from './core'
 export * from './ticket-list'
 export * from './ticket-detail'
-export * from './page-data.js'
+export * from './page-data'
+export * from './configuration'
+export * from './icon'
