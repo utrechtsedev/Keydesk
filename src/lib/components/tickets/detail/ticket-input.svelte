@@ -114,31 +114,13 @@
 			</div>
 			<div class="flex gap-1">
 				<input id={fileInputId} type="file" multiple class="hidden" onchange={handleFileSelect} />
-				<Tooltip.Provider>
-					<Tooltip.Root>
-						<Tooltip.Trigger>
-							<Button
-								variant="outline"
-								class="cursor-pointer"
-								onclick={() => document.getElementById(fileInputId)?.click()}
-							>
-								<Plus />
-							</Button>
-						</Tooltip.Trigger>
-						<Tooltip.Content>Attach files</Tooltip.Content>
-					</Tooltip.Root>
-				</Tooltip.Provider>
+				<Button variant="outline" onclick={() => document.getElementById(fileInputId)?.click()}>
+					<Plus class="size-auto" size={18} />
+				</Button>
 				{#if handleNewMessage}
-					<Tooltip.Provider>
-						<Tooltip.Root>
-							<Tooltip.Trigger>
-								<Button variant="outline" class="cursor-pointer" onclick={handleNewMessage}>
-									<PaperPlane />
-								</Button>
-							</Tooltip.Trigger>
-							<Tooltip.Content>Send message</Tooltip.Content>
-						</Tooltip.Root>
-					</Tooltip.Provider>
+					<Button variant="outline" class="cursor-pointer" onclick={handleNewMessage}>
+						<PaperPlane />
+					</Button>
 				{/if}
 			</div>
 		</div>

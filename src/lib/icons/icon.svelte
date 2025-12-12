@@ -1,5 +1,6 @@
 <script lang="ts">
 	import defaultAttributes from '$lib/icons/defaultAttributes';
+	import { cn } from '$lib/utils';
 
 	const {
 		name,
@@ -8,6 +9,7 @@
 		absoluteStrokeWidth = false,
 		iconNode = [],
 		children,
+		class: className,
 		...props
 	} = $props();
 </script>
@@ -18,7 +20,7 @@
 	width={size}
 	height={size}
 	fill={color}
-	class={['dark:invert', name, props.class]}
+	class={cn('dark:invert', name, className)}
 	viewBox="0 0 18 18"
 >
 	{#each iconNode as [tag, attrs]}

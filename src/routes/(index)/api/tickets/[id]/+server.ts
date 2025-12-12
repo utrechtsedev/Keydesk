@@ -1,7 +1,7 @@
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
 import { NotFoundError, ValidationError } from "$lib/server/errors";
-import { error, json, type RequestHandler } from "@sveltejs/kit";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
@@ -38,9 +38,18 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   // Remove protected fields
   const { id, ticketNumber, createdAt, updatedAt, ...updateData } = ticket as any;
 
+  // Convert date strings to Date objects
+  const dateFields = ['firstResponseAt', 'resolvedAt', 'closedAt', 'targetDate', 'lastUserResponseAt', 'lastRequesterResponseAt'];
+
+  for (const field of dateFields) {
+    if (updateData[field] !== undefined && updateData[field] !== null) {
+      updateData[field] = new Date(updateData[field]);
+    }
+  }
+
   // Parse assignedUserId to integer if it exists and is not null
   if (updateData.assignedUserId !== undefined && updateData.assignedUserId !== null) {
-    updateData.assignedUserId = parseInt(updateData.assignedUserId, 10);
+    updateData.assignedUserId = updateData.assignedUserId;
   }
 
   // Update the ticket
