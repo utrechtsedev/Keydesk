@@ -1,9 +1,10 @@
 import pino from 'pino';
-import { dev } from '$app/environment';
+
+const isDev = process.env.NODE_ENV !== 'production';
 
 const pinoLogger = pino({
-  level: process.env.LOG_LEVEL || (dev ? 'debug' : 'info'),
-  transport: dev
+  level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
+  transport: isDev
     ? {
       target: 'pino-pretty',
       options: {
@@ -45,3 +46,4 @@ export const logger = {
     }
   }
 };
+

@@ -1,14 +1,14 @@
-import { db } from '../src/lib/server/db/database';
-import * as schema from '../src/lib/server/db/schema';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { sendNotification } from '../src/lib/server/job-queue';
-import { getFileExtension, generateRandomString } from '../src/lib/utils/string';
-import { getTicketPrefix, generateTicketNumber } from '../src/lib/server/ticket';
-import { NotificationSettings, type Attachment } from '../src/lib/types';
+import { sendNotification } from '$lib/server/job-queue';
+import { getFileExtension, generateRandomString } from '$lib/utils/string';
+import { getTicketPrefix, generateTicketNumber } from '$lib/server/ticket';
+import { NotificationSettings, type Attachment } from '$lib/types';
 import { MailParser } from "mailparser";
 import { sanitize } from "./sanitize";
 import { getClient } from "./client";
-import { logger } from '../src/lib/server/logger';
+import { logger } from '$lib/server/logger';
 import path from "path";
 import fs from "fs";
 
@@ -211,7 +211,7 @@ export async function processMessage(
             const fileSize = data.size || 0;
             const mimeType = data.contentType || 'application/octet-stream';
 
-            const maxSizeBytes = options.maxFileSizeMB * 1024 * 1024;
+            const maxSizeBytes = options.maxFileSizeMB! * 1024 * 1024;
             if (fileSize > maxSizeBytes) {
               logger.warn({
                 filename: data.filename,

@@ -16,7 +16,7 @@ export interface NotificationOptions {
   channel: "dashboard" | "email";
   relatedEntityType?: "ticket" | "user" | "system" | null;
   relatedEntityId?: number | null;
-  actionUrl: string;
+  actionUrl?: string;
   createdById?: number | null;
   ticket?: Ticket;
   ticketMessage?: TicketMessage;

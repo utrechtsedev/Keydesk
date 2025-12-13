@@ -1,12 +1,12 @@
 import { ImapFlow } from "imapflow";
-import { db } from '../src/lib/server/db/database';
-import * as schema from '../src/lib/server/db/schema';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { type IMAP } from "../src/lib/types/core.ts";
-import { decrypt } from '../src/lib/server/db/encrypt.ts';
-import { getLogTimestamp } from '../src/lib/utils/date.ts';
+import { type IMAP } from "$lib/types";
+import { decrypt } from '$lib/server/db/encrypt';
+import { getLogTimestamp } from '$lib/utils/date';
 
-let client: ImapFlow | null = null;  // Starts as null
+let client: ImapFlow | null = null;
 
 export async function getClient(): Promise<ImapFlow> {
   if (client) {

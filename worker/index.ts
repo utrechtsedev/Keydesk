@@ -1,15 +1,16 @@
 import { startEmailMonitoring } from "./monitor";
-import { registerAllHandlers } from "../src/lib/server/job-queue/handlers"
-import { startJobWorker } from "../src/lib/server/job-queue";
-import { logger } from "../src/lib/server/logger";
+import { registerAllHandlers } from "$lib/server/job-queue/handlers"
+import { startJobWorker } from "$lib/server/job-queue";
+import { logger } from "$lib/server/logger";
 
 async function main() {
   startEmailMonitoring();
+
   registerAllHandlers();
-  await startJobWorker(); // Now async
+  await startJobWorker();
 }
 
-async function runForever() {
+async function run() {
   while (true) {
     try {
       await main();
@@ -20,4 +21,4 @@ async function runForever() {
   }
 }
 
-runForever();
+run();
