@@ -14,17 +14,22 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   if (categories.length < 1)
     throw new ValidationError('You must at least have 1 category')
 
-  const cleanCategories = categories.map(cat => ({
-    name: cat.name,
-    description: cat.description,
-    prefix: cat.prefix
-  }));
-
-  await db.execute(sql`TRUNCATE TABLE ${schema.category} RESTART IDENTITY CASCADE`);
-
   const created = await db
     .insert(schema.category)
-    .values(cleanCategories)
+    .values(categories.map(c => ({
+      ...c,
+      createdAt: c.createdAt ? new Date(c.createdAt) : new Date(),
+      updatedAt: c.updatedAt ? new Date(c.updatedAt) : new Date()
+    })))
+    .onConflictDoUpdate({
+      target: schema.category.id,
+      set: {
+        name: sql`EXCLUDED.name`,
+        description: sql`EXCLUDED.description`,
+        prefix: sql`EXCLUDED.prefix`,
+        updatedAt: new Date()
+      }
+    })
     .returning();
 
   if (!created || created.length === 0)

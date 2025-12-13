@@ -27,18 +27,23 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   if (closedStatuses.length < 1)
     throw new ValidationError('You must have at least 1 closed status.')
 
-  const cleanStatuses = statuses.map(s => ({
-    name: s.name,
-    color: s.color,
-    isDefault: s.isDefault,
-    isClosed: s.isClosed,
-  }));
-
-  await db.execute(sql`TRUNCATE TABLE ${schema.status} RESTART IDENTITY CASCADE`);
-
   const created = await db
     .insert(schema.status)
-    .values(cleanStatuses)
+    .values(statuses.map(s => ({
+      ...s,
+      createdAt: s.createdAt ? new Date(s.createdAt) : new Date(),
+      updatedAt: s.updatedAt ? new Date(s.updatedAt) : new Date()
+    })))
+    .onConflictDoUpdate({
+      target: schema.status.id,
+      set: {
+        name: sql`EXCLUDED.name`,
+        color: sql`EXCLUDED.color`,
+        isDefault: sql`EXCLUDED.is_default`,
+        isClosed: sql`EXCLUDED.is_closed`,
+        updatedAt: new Date()
+      }
+    })
     .returning();
 
   if (!created || created.length === 0)

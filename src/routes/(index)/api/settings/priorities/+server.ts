@@ -19,18 +19,13 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   if (defaultPriorities.length !== 1)
     throw new ValidationError('You must only have 1 default priority.')
 
-  const cleanPriorities = priorities.map(p => ({
-    name: p.name,
-    color: p.color,
-    isDefault: p.isDefault,
-    order: p.order
-  }));
-
-  await db.execute(sql`TRUNCATE TABLE ${schema.priority} RESTART IDENTITY CASCADE`);
-
   const created = await db
     .insert(schema.priority)
-    .values(cleanPriorities)
+    .values(priorities.map(p => ({
+      ...p,
+      createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+      updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date()
+    })))
     .onConflictDoUpdate({
       target: schema.priority.id,
       set: {
@@ -62,6 +57,12 @@ export const GET: RequestHandler = async (): Promise<Response> => {
     data: priorities,
   });
 };
+
+
+
+
+
+
 
 
 
