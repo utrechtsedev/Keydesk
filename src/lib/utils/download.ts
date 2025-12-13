@@ -1,7 +1,7 @@
-import axios from 'axios';
+import api from './axios';
 
 export async function handleDownloadAttachment(ticketId: number, fileName: string) {
-  const response = await axios.get(`/dashboard/tickets/${ticketId}/${fileName}`, {
+  const response = await api.get(`/dashboard/tickets/${ticketId}/${fileName}`, {
     responseType: 'blob'
   });
 
