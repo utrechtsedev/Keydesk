@@ -5,21 +5,17 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Separator } from '$lib/components/ui/separator';
 	import { TagsInput } from '$lib/components/ui/tags-input';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import type { Attachment, PageData } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { attachments: Attachment } } = $props();
 
 	let attachments: Attachment = $state(data.attachments);
 
 	async function handleSave() {
-		const response = await axios.post('/api/settings/attachments', { attachments });
-		if (response.status < 300) {
-			toast.success('Successfully saved attachment settings.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+		const response = await api.post('/api/settings/attachments', { attachments });
+		toast.success('Successfully saved attachment settings.');
 	}
 </script>
 

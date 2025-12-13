@@ -4,12 +4,11 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
 	import { toast } from 'svelte-sonner';
-	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import type { IMAP } from '$lib/types';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import { Spinner } from '$lib/components/ui/spinner';
+	import api from '$lib/utils/axios';
 
 	let imap: IMAP = $state({
 		host: '',
@@ -25,55 +24,28 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await axios.post('/setup/incoming-email/test', { imap });
-
+			const response = await api.post('/setup/incoming-email/test', { imap });
 			if (response.data.success) {
 				saveDisabled = false;
-				testLoading = 'hidden';
-				return toast.success(response.data.message);
+				toast.success(response.data.message);
 			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Test failed',
-					body: response.data.error || response.data.message
-				}
-			});
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				testLoading = 'hidden';
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
+		} finally {
+			testLoading = 'hidden';
 		}
 	}
-
 	async function handleNext() {
 		if (!imap.host || !imap.port || !imap.username || !imap.password) {
 			return toast.error('Please enter IMAP details.');
 		}
 
-		const response = await axios.post('', { imap });
-		if (response.status < 300) {
-			toast.success('Succesfully saved IMAP settings.');
-			return goto('/setup/portal');
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('', { imap });
+
+		toast.success('Succesfully saved IMAP settings.');
+		return goto('/setup/portal');
 	}
 
 	onMount(async () => {
-		let { data } = await axios.get('');
+		let { data } = await api.get('');
 		if (data.data) imap = data.data;
 	});
 </script>

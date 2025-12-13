@@ -5,8 +5,8 @@
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
 	import { Switch } from '$lib/components/ui/switch';
-	import axios from 'axios';
 	import type { PageData, Priority } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { priorities: Priority[] } } = $props();
 
@@ -66,23 +66,15 @@
 			return toast.error('Cannot delete the last priority. At least 1 priority is required.');
 		}
 
-		try {
-			await axios.delete('/api/settings/priorities', {
-				data: { id: priority.id }
-			});
+		await api.delete('/api/settings/priorities', {
+			data: { id: priority.id }
+		});
 
-			priorities = priorities.filter((p) => p !== priority);
-			if (editing === priority) {
-				editing = undefined;
-			}
-			toast.success('Priority deleted successfully.');
-		} catch (error) {
-			if (axios.isAxiosError(error)) {
-				toast.error(error.response?.data?.message || 'Error deleting priority.');
-			} else {
-				toast.error('Error deleting priority.');
-			}
+		priorities = priorities.filter((p) => p !== priority);
+		if (editing === priority) {
+			editing = undefined;
 		}
+		toast.success('Priority deleted successfully.');
 	}
 
 	async function handleSave() {
@@ -90,14 +82,8 @@
 		if (defaultPriorities.length !== 1)
 			return toast.error('You must have exactly 1 default priority.');
 
-		const response = await axios.post('/api/settings/priorities', { priorities });
-
-		if (response.status < 300) {
-			toast.success('Successfully saved priority settings.');
-			return;
-		}
-
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/priorities', { priorities });
+		toast.success('Successfully saved priority settings.');
 	}
 </script>
 

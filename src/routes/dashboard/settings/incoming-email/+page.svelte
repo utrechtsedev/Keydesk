@@ -5,10 +5,9 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Separator } from '$lib/components/ui/separator';
 	import { toast } from 'svelte-sonner';
-	import axios from 'axios';
 	import type { IMAP, PageData } from '$lib/types';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import { Spinner } from '$lib/components/ui/spinner';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { imap: IMAP } } = $props();
 
@@ -20,34 +19,11 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await axios.post('/api/settings/incoming-email/test', { imap });
-			if (response.data.success) {
-				saveDisabled = false;
-				testLoading = 'hidden';
-				return toast.success(response.data.message);
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Test failed',
-					body: response.data.error || response.data.message
-				}
-			});
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				testLoading = 'hidden';
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
+			const response = await api.post('/api/settings/incoming-email/test', { imap });
+			saveDisabled = false;
+			return toast.success(response.data.message);
+		} finally {
+			testLoading = 'hidden';
 		}
 	}
 
@@ -55,12 +31,8 @@
 		if (!imap.host || !imap.port || !imap.username || !imap.password) {
 			return toast.error('Please enter IMAP details.');
 		}
-		const response = await axios.post('/api/settings/incoming-email', { imap });
-		if (response.status < 300) {
-			toast.success('Succesfully saved IMAP settings.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/incoming-email', { imap });
+		toast.success('Succesfully saved IMAP settings.');
 	}
 </script>
 

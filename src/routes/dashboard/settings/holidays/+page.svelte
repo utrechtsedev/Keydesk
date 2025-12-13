@@ -4,8 +4,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Pencil, PlaneTakeoff, Plus, Save, Trash, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
-	import axios from 'axios';
 	import type { Holiday, PageData } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { holidays: Holiday[] } } = $props();
 
@@ -62,14 +62,8 @@
 	}
 
 	async function handleSave() {
-		const response = await axios.post('/api/settings/holidays', { holidays });
-
-		if (response.status < 300) {
-			toast.success('Successfully saved holiday settings.');
-			return;
-		}
-
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/holidays', { holidays });
+		toast.success('Successfully saved holiday settings.');
 	}
 </script>
 

@@ -3,21 +3,17 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Separator } from '$lib/components/ui/separator';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import type { PageData, Portal } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { portal: Portal } } = $props();
 
 	let portal = $state(data.portal);
 
 	async function handleNext() {
-		const response = await axios.post('/api/settings/portal', { portal });
-		if (response.status < 300) {
-			toast.success('Succesfully saved portal settings.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/portal', { portal });
+		toast.success('Succesfully saved portal settings.');
 	}
 </script>
 

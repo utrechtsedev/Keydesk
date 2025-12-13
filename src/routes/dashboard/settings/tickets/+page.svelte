@@ -4,9 +4,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import { Switch } from '$lib/components/ui/switch';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import type { PageData, TicketConfig } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { tickets: TicketConfig } } = $props();
 
@@ -15,12 +15,9 @@
 	async function handleNext() {
 		if (!tickets.nextTicketNumber || !tickets.ticketPrefix)
 			return toast.error('Fill in all required fields.');
-		const response = await axios.post('/api/settings/tickets', { tickets });
-		if (response.status < 300) {
-			toast.success('Succesfully saved ticketing settings.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+
+		await api.post('/api/settings/tickets', { tickets });
+		toast.success('Succesfully saved ticketing settings.');
 	}
 </script>
 

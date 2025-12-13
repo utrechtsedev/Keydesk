@@ -10,10 +10,9 @@
 	import { cn } from '$lib/utils';
 	import { Check, ChevronDown } from '@lucide/svelte';
 	import type { Category, Priority, Status, Tag, User } from '$lib/types';
-	import axios from 'axios';
 	import { invalidate } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { ToastComponent } from '$lib/components/ui/toast';
+	import api from '$lib/utils/axios';
 
 	let {
 		ticketId,
@@ -30,7 +29,7 @@
 		highlightStatus = $bindable(false),
 		highlightCategory = $bindable(false)
 	}: {
-		ticketId: number;
+		ticketId?: number;
 		priorityId: number;
 		statusId: number;
 		categoryId: number;
@@ -57,27 +56,13 @@
 	}
 
 	async function handleSaveTags() {
-		try {
-			const response = await axios.post('/api/tags/bulk', {
-				id: ticketId,
-				type: 'ticket',
-				tags: editableTags || []
-			});
-			if (response.data.success) {
-				invalidate('app:ticket');
-			}
-
-			toast.success('Succesfully saved tags.');
-		} catch (err) {
-			if (axios.isAxiosError(err) && err.response) {
-				toast.error(ToastComponent, {
-					componentProps: {
-						title: 'Failed saving Tags',
-						body: err.message
-					}
-				});
-			}
-		}
+		await api.post('/api/tags/bulk', {
+			id: ticketId,
+			type: 'ticket',
+			tags: editableTags || []
+		});
+		invalidate('app:ticket');
+		toast.success('Succesfully saved tags.');
 	}
 
 	let priorityIdString = $state(priorityId.toString());

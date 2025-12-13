@@ -6,10 +6,9 @@
 	import TicketRequester from '$lib/components/tickets/detail/ticket-requester.svelte';
 	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
 	import TicketInput from '$lib/components/tickets/detail/ticket-input.svelte';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import { goto } from '$app/navigation';
+	import api from '$lib/utils/axios';
 
 	const {
 		data
@@ -30,7 +29,7 @@
 		isPrivate: false,
 
 		requesterId: -1,
-		assignedUserId: '',
+		assignedUserId: -1,
 		categoryId: -1,
 		priorityId: -1,
 		responseCount: -1,
@@ -76,55 +75,31 @@
 			formData.append('targetDate', targetDate.toISOString());
 
 			if (ticket.assignedUserId) {
-				formData.append('assignedUserId', ticket.assignedUserId);
+				formData.append('assignedUserId', String(ticket.assignedUserId));
 			}
 
 			ticket.selectedFiles.forEach((file) => {
 				formData.append('files', file);
 			});
 
-			const response = await axios.post('/api/tickets', formData, {
+			const response = await api.post('/api/tickets', formData, {
 				headers: { 'Content-Type': 'multipart/form-data' }
 			});
 
-			if (response.data.success) {
-				ticket.subject = '';
-				ticket.message = '';
-				ticket.selectedFiles = [];
-				ticket.isPrivate = false;
-				ticket.requesterId = -1;
-				ticket.assignedUserId = '';
-				ticket.categoryId = -1;
-				ticket.priorityId = -1;
-				ticket.statusId = -1;
+			ticket.subject = '';
+			ticket.message = '';
+			ticket.isPrivate = false;
+			ticket.requesterId = -1;
+			ticket.assignedUserId = -1;
+			ticket.categoryId = -1;
+			ticket.priorityId = -1;
+			ticket.statusId = -1;
 
-				toast.success(response.data.message);
+			toast.success(response.data.message);
 
-				goto(`/dashboard/tickets/${response.data.data.ticketId}`);
-			} else {
-				toast.error(ToastComponent, {
-					componentProps: {
-						title: response.data.message,
-						body: response.data.error
-					}
-				});
-			}
-		} catch (err) {
+			goto(`/dashboard/tickets/${response.data.data.ticketId}`);
+		} finally {
 			ticket.selectedFiles = [];
-
-			if (axios.isAxiosError(err)) {
-				if (err.response) {
-					const errorMessage = err.response.data?.message || err.response.data?.error;
-					toast.error(errorMessage || `Failed to create ticket (${err.response.status}).`);
-				} else if (err.request) {
-					toast.error('Network error. Please check your connection and try again.');
-				} else {
-					toast.error('Failed to create ticket. Please try again.');
-				}
-			} else {
-				const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-				toast.error(`Failed to create ticket: ${errorMessage}`);
-			}
 		}
 	}
 

@@ -4,12 +4,11 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
 	import { toast } from 'svelte-sonner';
-	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import type { SMTP } from '$lib/types';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import { Spinner } from '$lib/components/ui/spinner';
+	import api from '$lib/utils/axios';
 
 	let smtp: SMTP = $state({
 		senderName: '',
@@ -27,37 +26,11 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await axios.post('/setup/outgoing-email/test', { smtp });
-
-			if (response.data.success) {
-				saveDisabled = false;
-				testLoading = 'hidden';
-				return toast.success(response.data.message);
-			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Test failed',
-					body: response.data.error || response.data.message
-				}
-			});
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				testLoading = 'hidden';
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
+			const response = await api.post('/setup/outgoing-email/test', { smtp });
+			saveDisabled = false;
+			return toast.success(response.data.message);
+		} finally {
+			testLoading = 'hidden';
 		}
 	}
 
@@ -72,16 +45,13 @@
 			);
 		}
 
-		const response = await axios.post('', { smtp });
-		if (response.status < 300) {
-			toast.success('Succesfully saved SMTP settings.');
-			return goto('/setup/incoming-email');
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('', { smtp });
+		toast.success('Succesfully saved SMTP settings.');
+		return goto('/setup/incoming-email');
 	}
 
 	onMount(async () => {
-		let { data } = await axios.get('');
+		let { data } = await api.get('');
 		if (data.data) smtp = data.data;
 	});
 

@@ -7,10 +7,9 @@
 	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
 	import TicketInput from '$lib/components/tickets/detail/ticket-input.svelte';
 	import TicketMessage from '$lib/components/tickets/detail/ticket-message.svelte';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import { invalidate } from '$app/navigation';
+	import api from '$lib/utils/axios';
 
 	const {
 		data
@@ -53,92 +52,41 @@
 				formData.append('files', file);
 			});
 
-			const response = await axios.post('/api/ticket-messages', formData, {
+			const response = await api.post('/api/ticket-messages', formData, {
 				headers: { 'Content-Type': 'multipart/form-data' }
 			});
 
-			if (response.data.success) {
-				selectedFiles = [];
-
-				newTicketMessage = '';
-				selectedFiles = [];
-				invalidate('app:ticket');
-				toast.success(response.data.message);
-			} else {
-				toast.error(ToastComponent, {
-					componentProps: {
-						title: response.data.message,
-						body: response.data.error
-					}
-				});
-			}
-		} catch (err) {
+			newTicketMessage = '';
+			toast.success(response.data.message);
+			invalidate('app:ticket');
+		} finally {
 			selectedFiles = [];
-
-			if (axios.isAxiosError(err)) {
-				if (err.response) {
-					const errorMessage = err.response.data?.message || err.response.data?.error;
-					toast.error(errorMessage || `Failed to send message (${err.response.status}).`);
-				} else if (err.request) {
-					toast.error('Network error. Please check your connection and try again.');
-				} else {
-					toast.error('Failed to send message. Please try again.');
-				}
-			} else {
-				const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-				toast.error(`Failed to send message: ${errorMessage}`);
-			}
 		}
 	}
 
 	async function handleSave() {
-		try {
-			if (selectedFiles.length > 0 || newTicketMessage.length > 0) {
-				toast.info("You haven't sent your message yet.");
-			}
-			const ticketUpdate = {
-				requesterId: ticket.requesterId,
-				assignedUserId: ticket.assignedUserId || null,
-				subject: ticket.subject,
-				channel: ticket.channel,
-				statusId: ticket.statusId,
-				priorityId: ticket.priorityId,
-				categoryId: ticket.categoryId,
-				firstResponseAt: ticket.firstResponseAt,
-				resolvedAt: ticket.resolvedAt,
-				closedAt: ticket.closedAt,
-				targetDate: ticket.targetDate,
-				lastUserResponseAt: ticket.lastUserResponseAt,
-				lastRequesterResponseAt: ticket.lastRequesterResponseAt,
-				responseCount: ticket.responseCount
-			};
-			const response = await axios.patch(`/api/tickets/${data.ticket.id}`, ticketUpdate);
-			if (response.data.success) {
-				invalidate('app:ticket');
-				return toast.success('Ticket updated succesfully');
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Saving ticket failed',
-					body: response.data.error || response.data.message
-				}
-			});
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Saving ticket failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
+		if (selectedFiles.length > 0 || newTicketMessage.length > 0) {
+			toast.info("You haven't sent your message yet.");
 		}
+		const ticketUpdate = {
+			requesterId: ticket.requesterId,
+			assignedUserId: ticket.assignedUserId || null,
+			subject: ticket.subject,
+			channel: ticket.channel,
+			statusId: ticket.statusId,
+			priorityId: ticket.priorityId,
+			categoryId: ticket.categoryId,
+			firstResponseAt: ticket.firstResponseAt,
+			resolvedAt: ticket.resolvedAt,
+			closedAt: ticket.closedAt,
+			targetDate: ticket.targetDate,
+			lastUserResponseAt: ticket.lastUserResponseAt,
+			lastRequesterResponseAt: ticket.lastRequesterResponseAt,
+			responseCount: ticket.responseCount
+		};
+		await api.patch(`/api/tickets/${data.ticket.id}`, ticketUpdate);
+		invalidate('app:ticket');
+		return toast.success('Ticket updated succesfully');
 	}
 </script>
 

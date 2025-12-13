@@ -5,8 +5,8 @@
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
 	import { Switch } from '$lib/components/ui/switch';
-	import axios from 'axios';
 	import type { PageData, Status } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { statuses: Status[] } } = $props();
 
@@ -77,23 +77,15 @@
 			);
 		}
 
-		try {
-			const response = await axios.delete('/api/settings/statuses', {
-				data: { id: status.id }
-			});
+		await api.delete('/api/settings/statuses', {
+			data: { id: status.id }
+		});
 
-			statuses = statuses.filter((s) => s !== status);
-			if (editing === status) {
-				editing = undefined;
-			}
-			toast.success('Status deleted successfully.');
-		} catch (error) {
-			if (axios.isAxiosError(error)) {
-				toast.error(error.response?.data?.message || 'Error deleting status.');
-			} else {
-				toast.error('Error deleting status.');
-			}
+		statuses = statuses.filter((s) => s !== status);
+		if (editing === status) {
+			editing = undefined;
 		}
+		toast.success('Status deleted successfully.');
 	}
 
 	async function handleSave() {
@@ -106,14 +98,8 @@
 		const closedStatuses = statuses.filter((s) => s.isClosed);
 		if (closedStatuses.length < 1) return toast.error('You must have at least 1 closed status.');
 
-		const response = await axios.post('/api/settings/statuses', { statuses });
-
-		if (response.status < 300) {
-			toast.success('Successfully saved status settings.');
-			return;
-		}
-
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/statuses', { statuses });
+		toast.success('Successfully saved status settings.');
 	}
 </script>
 
