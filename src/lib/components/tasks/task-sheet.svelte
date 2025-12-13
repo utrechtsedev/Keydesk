@@ -9,20 +9,19 @@
 	import { Textarea } from '../ui/textarea';
 	import { TagsInput } from '../ui/tags-input';
 	import { Input } from '../ui/input';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import { ChevronRight } from '@lucide/svelte';
 	import type { Priority, Status, Task, User } from '$lib/types';
 	import { formatDate, formatRelativeDate } from '$lib/utils/date';
 	import { goto, invalidate } from '$app/navigation';
 	import CalendarDays from '$lib/icons/calendar-days.svelte';
 	import Ticket from '$lib/icons/ticket.svelte';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
 	import Tags from '$lib/icons/tags.svelte';
 	import Subtitles2 from '$lib/icons/subtitles-2.svelte';
 	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
 	import MediaRecord from '$lib/icons/media-record.svelte';
+	import api from '$lib/utils/axios';
 
 	let {
 		task = $bindable(),
@@ -54,67 +53,42 @@
 	const isNewTask = $derived(!task?.id);
 
 	async function handleSaveTags() {
-		try {
-			const response = await axios.post('/api/tags/bulk', {
-				id: task?.id,
-				type: 'task',
-				tags: editableTags || []
-			});
-			if (response.data.success) {
-				editTags = false;
-				invalidate('app:tasks');
-				editableTask!.tags = response.data.tags;
-			}
+		await api.post('/api/tags/bulk', {
+			id: task?.id,
+			type: 'task',
+			tags: editableTags || []
+		});
 
-			toast.success('Succesfully saved tags.');
-		} catch (err) {
-			if (axios.isAxiosError(err) && err.response) {
-				toast.error(ToastComponent, {
-					componentProps: {
-						title: 'Failed saving Tags',
-						body: err.message
-					}
-				});
-			}
-		}
+		toast.success('Succesfully saved tags.');
+		invalidate('app:tasks');
+		editTags = false;
 	}
 
 	async function handleSave() {
-		try {
-			if (!editableTask?.title?.trim()) {
-				toast.error('Task title is required');
-				highlightTitle = true;
-				return;
+		if (!editableTask?.title?.trim()) {
+			toast.error('Task title is required');
+			highlightTitle = true;
+			return;
+		}
+
+		let response;
+
+		if (isNewTask) {
+			response = await api.post('/api/tasks', { task: editableTask });
+			toast.success('Successfully created task.');
+		} else {
+			response = await api.patch('/api/tasks', { task: editableTask });
+			toast.success('Successfully saved task.');
+		}
+
+		if (response.data.success) {
+			invalidate('app:tasks');
+
+			if (isNewTask && response.data.task) {
+				task = response.data.task;
 			}
 
-			let response;
-
-			if (isNewTask) {
-				response = await axios.post('/api/tasks', { task: editableTask });
-				toast.success('Successfully created task.');
-			} else {
-				response = await axios.patch('/api/tasks', { task: editableTask });
-				toast.success('Successfully saved task.');
-			}
-
-			if (response.data.success) {
-				invalidate('app:tasks');
-
-				if (isNewTask && response.data.task) {
-					task = response.data.task;
-				}
-
-				open = false;
-			}
-		} catch (err) {
-			if (axios.isAxiosError(err) && err.response) {
-				toast.error(ToastComponent, {
-					componentProps: {
-						title: isNewTask ? 'Failed creating Task' : 'Failed saving Task',
-						body: err.message
-					}
-				});
-			}
+			open = false;
 		}
 	}
 

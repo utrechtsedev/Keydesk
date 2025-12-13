@@ -4,9 +4,8 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import { Separator } from '$lib/components/ui/separator';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import type { PageData } from '$lib/types';
-	import axios from 'axios';
+	import api from '$lib/utils/axios';
 	import { toast } from 'svelte-sonner';
 
 	const { data }: { data: PageData } = $props();
@@ -14,38 +13,9 @@
 	let user = $state(data.user);
 
 	async function handleSave() {
-		try {
-			const response = await axios.patch('/api/preferences', { user });
-
-			if (response.status === 200) {
-				toast.success('Succesfully updated preferences.');
-				user = response.data.user;
-				return;
-			}
-
-			toast.error(ToastComponent, {
-				componentProps: {
-					title: response.data.message || 'Connection failed',
-					body: response.data.error || 'Unknown error'
-				}
-			});
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
-		}
+		const response = await api.patch('/api/preferences', { user });
+		toast.success('Succesfully updated preferences.');
+		user = response.data.user;
 	}
 </script>
 

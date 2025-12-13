@@ -1,39 +1,20 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-	import { ToastComponent } from '$lib/components/ui/toast';
-	import axios from 'axios';
+	import api from '$lib/utils/axios';
 	import { toast } from 'svelte-sonner';
 
 	let { open = $bindable(), ids }: { open: boolean; ids: number[] } = $props();
 
 	async function handleDelete() {
-		try {
-			await axios.delete('/api/tickets/bulk', {
-				data: {
-					ids
-				}
-			});
-			invalidate('app:tickets');
-			open = false;
-			return toast.success('Succesfully deleted ticket(s).');
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
+		await api.delete('/api/tickets/bulk', {
+			data: {
+				ids
 			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
-		}
+		});
+		invalidate('app:tickets');
+		open = false;
+		return toast.success('Succesfully deleted ticket(s).');
 	}
 </script>
 

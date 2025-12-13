@@ -3,7 +3,6 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import { Button } from '$lib/components/ui/button';
-	import axios from 'axios';
 	import { timezones } from '$lib/utils/timezones';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -12,6 +11,7 @@
 	import Upload4 from '$lib/icons/upload-4.svelte';
 	import Check2 from '$lib/icons/check-2.svelte';
 	import { CountrySelector } from '$lib/components/ui/country-select';
+	import api from '$lib/utils/axios';
 
 	let organization: Organization = $state({
 		name: '',
@@ -38,16 +38,16 @@
 			formData.append('image', file);
 
 			try {
-				await axios.post('/logo', formData, {
+				await api.post('/logo', formData, {
 					headers: {
 						'Content-Type': 'multipart/form-data'
 					}
 				});
-				await checkLogo();
 			} catch (error) {
 				alert('Image too large');
 			} finally {
 				uploading = false;
+				await checkLogo();
 			}
 		}
 	}
@@ -63,29 +63,22 @@
 			!organization.timezone
 		)
 			return toast.error('Fill in all required fields.');
-		const response = await axios.post('', { organization });
 
-		if (response.status < 300) {
-			toast.success('Succesfully saved organization settings.');
-			return goto('/setup/outgoing-email');
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('', { organization });
+		toast.success('Succesfully saved organization settings.');
+		return goto('/setup/outgoing-email');
 	}
 
 	let hasLogo = $state(false);
+
 	async function checkLogo() {
-		const response = await axios.get('/logo');
-		if (response.status === 200) {
-			hasLogo = true;
-		}
+		await api.get('/logo');
+		hasLogo = true;
 	}
+
 	onMount(async () => {
-		let { data } = await axios.get('');
-
-		if (data.data) {
-			organization = data.data;
-		}
-
+		let { data } = await api.get('');
+		if (data.data) organization = data.data;
 		await checkLogo();
 	});
 </script>

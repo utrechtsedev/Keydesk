@@ -2,11 +2,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
 	import { Switch } from '$lib/components/ui/switch';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
 	import type { Portal } from '$lib/types';
 	import { goto } from '$app/navigation';
+	import api from '$lib/utils/axios';
 
 	let portal: Portal = $state({
 		enabled: true,
@@ -16,15 +16,12 @@
 	});
 
 	async function handleNext() {
-		const response = await axios.post('', { portal });
-		if (response.status < 300) {
-			toast.success('Succesfully saved portal settings.');
-			return goto('/setup/admin-account');
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('', { portal });
+		toast.success('Succesfully saved portal settings.');
+		return goto('/setup/admin-account');
 	}
 	onMount(async () => {
-		const { data } = await axios.get('');
+		const { data } = await api.get('');
 
 		if (data.data) portal = data.data;
 	});

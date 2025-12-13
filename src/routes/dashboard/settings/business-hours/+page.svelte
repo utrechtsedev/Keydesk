@@ -4,20 +4,16 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Separator } from '$lib/components/ui/separator';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import type { BusinessHours, PageData } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { businessHours: BusinessHours } } = $props();
 	let businessHours = $state(data.businessHours);
 
 	async function handleSave() {
-		const response = await axios.post('/api/settings/business-hours', { businessHours });
-		if (response.status < 300) {
-			toast.success('Successfully saved business hours.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/business-hours', { businessHours });
+		toast.success('Successfully saved business hours.');
 	}
 </script>
 

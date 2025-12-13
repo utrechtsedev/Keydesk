@@ -5,10 +5,9 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Separator } from '$lib/components/ui/separator';
 	import { toast } from 'svelte-sonner';
-	import axios from 'axios';
 	import type { PageData, SMTP } from '$lib/types';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import { Spinner } from '$lib/components/ui/spinner';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { smtp: SMTP } } = $props();
 
@@ -20,40 +19,13 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await axios.post('/api/settings/outgoing-email/test', { smtp });
-
-			if (response.data.success) {
-				saveDisabled = false;
-				testLoading = 'hidden';
-				return toast.success(response.data.message);
-			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Test failed',
-					body: response.data.error || response.data.message
-				}
-			});
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				testLoading = 'hidden';
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
+			const response = await api.post('/api/settings/outgoing-email/test', { smtp });
+			saveDisabled = false;
+			return toast.success(response.data.message);
+		} finally {
+			testLoading = 'hidden';
 		}
 	}
-
 	async function handleNext() {
 		if (!smtp.senderName || !smtp.senderEmail || !smtp.host || !smtp.port) {
 			return toast.error('Please enter SMTP sender name, email, host and port.');
@@ -65,12 +37,8 @@
 			);
 		}
 
-		const response = await axios.post('/api/settings/outgoing-email', { smtp });
-		if (response.status < 300) {
-			toast.success('Succesfully saved SMTP settings.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/outgoing-email', { smtp });
+		toast.success('Succesfully saved SMTP settings.');
 	}
 
 	$effect(() => {

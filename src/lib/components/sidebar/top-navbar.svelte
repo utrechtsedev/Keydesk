@@ -11,8 +11,8 @@
 	import VShapedArrowRight from '$lib/icons/v-shaped-arrow-right.svelte';
 	import BellDot from '$lib/icons/bell-dot.svelte';
 	import { goto } from '$app/navigation';
-	import axios from 'axios';
 	import type { UserNotification } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	let { initialNotifications }: { initialNotifications: UserNotification[] } = $props();
 
@@ -26,25 +26,23 @@
 
 		if (unreadIds.length === 0) return;
 
-		try {
-			await axios.patch('/api/notifications/bulk', {
-				ids: unreadIds
-			});
+		await api.patch('/api/notifications/bulk', {
+			ids: unreadIds
+		});
 
-			notifications = notifications.map((n) => {
-				if (unreadIds.includes(n.id)) {
-					n.isRead = true;
-					n.readAt = new Date();
-				}
-				return n;
-			});
-		} catch (error) {}
+		notifications = notifications.map((n) => {
+			if (unreadIds.includes(n.id)) {
+				n.isRead = true;
+				n.readAt = new Date();
+			}
+			return n;
+		});
 	}
 	async function handleNotificationClick(notification: UserNotification) {
 		const actionUrl = notification.notification!.actionUrl;
 
 		try {
-			await axios.patch('/api/notifications', {
+			await api.patch('/api/notifications', {
 				id: notification.id,
 				isRead: true
 			});
@@ -56,11 +54,11 @@
 				}
 				return n;
 			});
-		} catch (error) {}
-
-		if (actionUrl) {
-			goto(actionUrl);
-			isPopoverOpen = false;
+		} finally {
+			if (actionUrl) {
+				goto(actionUrl);
+				isPopoverOpen = false;
+			}
 		}
 	}
 </script>

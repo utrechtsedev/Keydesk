@@ -5,12 +5,11 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import type { Category, Priority, Status, User } from '$lib/types';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import Download from '$lib/icons/download.svelte';
 	import { Spinner } from '$lib/components/ui/spinner';
+	import api from '$lib/utils/axios';
 
 	let {
 		open = $bindable(),
@@ -79,7 +78,7 @@
 		try {
 			const url = buildExportUrl();
 
-			const response = await axios.get(url, {
+			const response = await api.get(url, {
 				responseType: 'blob'
 			});
 
@@ -105,21 +104,6 @@
 			toast.success('Export completed successfully.');
 			open = false;
 			resetFilters();
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Export failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Export failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
 		} finally {
 			isExporting = false;
 		}

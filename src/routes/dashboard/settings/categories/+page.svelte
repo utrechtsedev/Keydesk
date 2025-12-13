@@ -5,8 +5,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { toast } from 'svelte-sonner';
-	import axios from 'axios';
 	import type { Category, PageData } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { categories: Category[] } } = $props();
 	let categories = $state(data.categories);
@@ -47,33 +47,21 @@
 		if (categories.length === 1)
 			return toast.error('Cannot delete last category. At least 1 default category is required.');
 
-		try {
-			const response = await axios.delete('/api/settings/categories', {
-				data: { id: category.id }
-			});
+		await api.delete('/api/settings/categories', {
+			data: { id: category.id }
+		});
 
-			categories = categories.filter((p) => p !== category);
-			if (editing === category) {
-				editing = undefined;
-			}
-			toast.success('Category deleted successfully.');
-		} catch (error) {
-			if (axios.isAxiosError(error)) {
-				toast.error(error.response?.data?.message || 'Error deleting category.');
-			} else {
-				toast.error('Error deleting category.');
-			}
+		categories = categories.filter((p) => p !== category);
+
+		if (editing === category) {
+			editing = undefined;
 		}
+		toast.success('Category deleted successfully.');
 	}
 
 	async function handleSave() {
-		const response = await axios.post('/api/settings/categories', { categories });
-
-		if (response.status < 300) {
-			toast.success('Successfully saved category settings.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/categories', { categories });
+		toast.success('Successfully saved category settings.');
 	}
 </script>
 

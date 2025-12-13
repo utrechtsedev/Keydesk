@@ -3,9 +3,9 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Separator } from '$lib/components/ui/separator';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import type { NotificationSettings, PageData } from '$lib/types';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { notificationConfig: NotificationSettings } } = $props();
 
@@ -96,12 +96,8 @@
 	];
 
 	async function handleSave() {
-		const response = await axios.post('/api/settings/notifications', { notifications });
-		if (response.status < 300) {
-			toast.success('Successfully saved notification settings.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/notifications', { notifications });
+		toast.success('Successfully saved notification settings.');
 	}
 </script>
 

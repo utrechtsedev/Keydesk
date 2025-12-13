@@ -4,10 +4,10 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import type { Requester } from '$lib/types';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import { slide } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
+	import api from '$lib/utils/axios';
 
 	const uid = $props.id();
 
@@ -66,10 +66,9 @@
 
 	async function searchRequesters(query: string) {
 		try {
-			const response = await axios.get(`/api/requesters?search=${encodeURIComponent(query)}`);
+			const response = await api.get(`/api/requesters?search=${encodeURIComponent(query)}`);
 			requesters = response.data.requesters;
 		} catch (error) {
-			toast.error('Failed to search requesters');
 			requesters = [];
 		} finally {
 			loading = false;

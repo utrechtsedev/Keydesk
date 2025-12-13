@@ -4,9 +4,8 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import type { Category, Priority, Status, Tag, User } from '$lib/types';
-	import axios from 'axios';
+	import api from '$lib/utils/axios';
 	import { toast } from 'svelte-sonner';
 
 	const uid = $props.id();
@@ -31,50 +30,26 @@
 	const selected = $derived(items.find((i) => String(i.id) === value));
 
 	async function handleSave() {
-		try {
-			// Handle tags differently - add instead of replace
-			if (itemType === 'tag') {
-				if (!selected?.name) {
-					return toast.error('Please select a tag');
-				}
-
-				await axios.patch('/api/tags/bulk', {
-					ids,
-					tag: selected.name,
-					type: 'ticket'
-				});
-
-				invalidate('app:tickets');
-				open = false;
-				return toast.success(`Successfully added tag to ${ids.length} ticket(s)`);
+		if (itemType === 'tag') {
+			if (!selected?.name) {
+				return toast.error('Please select a tag');
 			}
 
-			// Handle other item types (user, category, status, priority)
-			await axios.patch('/api/tickets/bulk', {
+			await api.patch('/api/tags/bulk', {
+				ids,
+				tag: selected.name,
+				type: 'ticket'
+			});
+		} else {
+			await api.patch('/api/tickets/bulk', {
 				ids,
 				itemId: value,
 				itemType
 			});
-
-			invalidate('app:tickets');
-			open = false;
-			return toast.success('Successfully updated ticket(s)');
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
 		}
+		invalidate('app:tickets');
+		open = false;
+		return toast.success('Successfully updated ticket(s)');
 	}
 </script>
 

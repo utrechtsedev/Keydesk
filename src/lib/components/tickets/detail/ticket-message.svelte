@@ -7,31 +7,12 @@
 	import { page } from '$app/state';
 	import { handleDownloadAttachment } from '$lib/utils/download';
 	import { toast } from 'svelte-sonner';
-	import { ToastComponent } from '$lib/components/ui/toast';
-	import axios from 'axios';
 
 	let { messages = $bindable() }: { messages: TicketMessageDetail[] } = $props();
 
 	async function handleDownload(ticketId: number, fileName: string) {
-		try {
-			await handleDownloadAttachment(ticketId, fileName);
-			return toast.success('File downloaded successfully');
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Download failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Download failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
-		}
+		await handleDownloadAttachment(ticketId, fileName);
+		return toast.success('File downloaded successfully');
 	}
 </script>
 

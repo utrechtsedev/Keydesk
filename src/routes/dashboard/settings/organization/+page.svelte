@@ -4,13 +4,13 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
-	import axios from 'axios';
 	import { timezones } from '$lib/utils/timezones';
 	import { toast } from 'svelte-sonner';
 	import type { Organization, PageData } from '$lib/types';
 	import Upload4 from '$lib/icons/upload-4.svelte';
 	import Check2 from '$lib/icons/check-2.svelte';
 	import { CountrySelector } from '$lib/components/ui/country-select';
+	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { organization: Organization } } = $props();
 
@@ -31,15 +31,13 @@
 			formData.append('image', file);
 
 			try {
-				await axios.post('/logo', formData, {
+				await api.post('/logo', formData, {
 					headers: {
 						'Content-Type': 'multipart/form-data'
 					}
 				});
 
 				previewUrl = `/logo?t=${Date.now()}`;
-			} catch (error) {
-				alert('Image too large');
 			} finally {
 				uploading = false;
 			}
@@ -59,13 +57,8 @@
 		)
 			return toast.error('Fill in all required fields.');
 
-		const response = await axios.post('/api/settings/organization', { organization });
-
-		if (response.status < 300) {
-			toast.success('Succesfully saved organization settings.');
-			return;
-		}
-		return toast.error('Error saving configuration.');
+		await api.post('/api/settings/organization', { organization });
+		toast.success('Succesfully saved organization settings.');
 	}
 </script>
 

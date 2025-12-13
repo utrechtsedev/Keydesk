@@ -2,7 +2,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { ChevronRight } from '@lucide/svelte';
-	import type { Priority, Status, Tag, Task, User } from '$lib/types';
+	import type { Priority, Status, Task, User } from '$lib/types';
 	import { formatRelativeDate } from '$lib/utils/date';
 	import TaskSheet from './task-sheet.svelte';
 	import ChevronDown from '$lib/icons/chevron-down.svelte';
@@ -11,10 +11,9 @@
 	import CircleInfo from '$lib/icons/circle-info.svelte';
 	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
 	import TaskFinishDialog from './task-finish-dialog.svelte';
-	import axios from 'axios';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
-	import { ToastComponent } from '../ui/toast';
+	import api from '$lib/utils/axios';
 
 	const {
 		tasks,
@@ -47,39 +46,14 @@
 			openFinishDialog = true;
 			return;
 		}
-		try {
-			const response = await axios.patch('/api/tasks', {
-				task: { ...task, statusId: closedStatuses[0].id }
-			});
 
-			if (response.status === 200) {
-				toast.success(`Succesfully marked task as ${closedStatuses[0].name}`);
-				invalidate('app:tasks');
-				return;
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: response.data.message || 'Connection failed',
-					body: response.data.error || 'Unknown error'
-				}
-			});
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
+		await api.patch('/api/tasks', {
+			task: { ...task, statusId: closedStatuses[0].id }
+		});
 
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
-		}
+		toast.success(`Succesfully marked task as ${closedStatuses[0].name}`);
+		invalidate('app:tasks');
+		return;
 	}
 
 	let showAllTasks = $state<boolean>(false);

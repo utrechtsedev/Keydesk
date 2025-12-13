@@ -7,7 +7,7 @@
 	import { cn } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
-	import axios from 'axios';
+	import api from '$lib/utils/axios';
 
 	const passwordStrength = usePasswordStrength({ id: 'password' });
 
@@ -20,15 +20,13 @@
 		if (passwordStrength.password.length < 8)
 			return toast.error('Please check the strength of your password and try again');
 
-		const response = await axios.post('', {
+		await api.post('', {
 			user: {
 				name,
 				email,
 				password: passwordStrength.password
 			}
 		});
-
-		if (response.status > 299) return toast.error('Internal error. Please try again.');
 
 		toast.success('Welcome to Ticketing. Please login.');
 		goto('/login');

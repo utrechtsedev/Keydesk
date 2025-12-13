@@ -4,9 +4,8 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
-	import { ToastComponent } from '$lib/components/ui/toast';
 	import type { Status, Task } from '$lib/types';
-	import axios from 'axios';
+	import api from '$lib/utils/axios';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -29,44 +28,18 @@
 
 	const selectedStatus = $derived(statuses.find((s) => String(s.id) === value));
 	async function handleSave() {
-		try {
-			if (!selectedStatus) {
-				toast.error('Please select a status first.');
-				return;
-			}
-			const response = await axios.patch('/api/tasks', {
-				task: { ...task, statusId: selectedStatus.id }
-			});
-
-			if (response.status === 200) {
-				toast.success(`Succesfully marked task as ${selectedStatus.name}`);
-				invalidate('app:tasks');
-				open = false;
-				return;
-			}
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: response.data.message || 'Connection failed',
-					body: response.data.error || 'Unknown error'
-				}
-			});
-		} catch (error) {
-			if (axios.isAxiosError(error) && error.response) {
-				return toast.error(ToastComponent, {
-					componentProps: {
-						title: error.response.data.message || 'Connection failed',
-						body: error.response.data.error || 'Unknown error'
-					}
-				});
-			}
-
-			return toast.error(ToastComponent, {
-				componentProps: {
-					title: 'Request failed',
-					body: error instanceof Error ? error.message : 'Unknown error'
-				}
-			});
+		if (!selectedStatus) {
+			toast.error('Please select a status first.');
+			return;
 		}
+
+		await api.patch('/api/tasks', {
+			task: { ...task, statusId: selectedStatus.id }
+		});
+
+		toast.success(`Succesfully marked task as ${selectedStatus.name}`);
+		invalidate('app:tasks');
+		open = false;
 	}
 </script>
 
