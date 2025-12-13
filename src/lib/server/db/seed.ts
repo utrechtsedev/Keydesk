@@ -12,7 +12,6 @@ import type {
   Ticket,
   Task,
 } from "./schema/index.js";
-import { logger } from "../logger.js";
 
 /**
  * Advanced Database Seeder for Ticket System with Drizzle ORM
@@ -84,8 +83,8 @@ class DatabaseSeeder {
 
   private log(message: string, data: unknown = null): void {
     if (this.options.verbose) {
-      logger.info(`[SEED] ${message}`);
-      if (data) logger.info(data);
+      console.log(`[SEED] ${message}`);
+      if (data) console.log(data);
     }
   }
 
@@ -989,13 +988,13 @@ class DatabaseSeeder {
   }
 
   async seed(): Promise<void> {
-    logger.info("Starting database seeding...\n");
-    logger.info({ Options: this.options }, "Options");
+    console.log("Starting database seeding...\n");
+    console.log({ Options: this.options }, "Options");
 
     try {
       if (this.options.clean) {
         await this.cleanDatabase();
-        logger.info("");
+        console.log("");
       }
 
       await this.fetchExistingData();
@@ -1011,20 +1010,20 @@ class DatabaseSeeder {
 
       await this.createSystemNotifications();
 
-      logger.info("Database seeding completed successfully!");
-      logger.info("Summary:");
-      logger.info(`  - ${this.existingStatuses.length} statuses (existing)`);
-      logger.info(`  - ${this.existingPriorities.length} priorities (existing)`);
-      logger.info(`  - ${this.existingCategories.length} categories (existing)`);
-      logger.info(`  - ${this.createdTags.length} tags`);
-      logger.info(`  - ${this.createdUsers.length} users`);
-      logger.info(`  - ${this.createdRequesters.length} requesters`);
-      logger.info(`  - ${this.createdTickets.length} tickets`);
-      logger.info(`  - ${this.createdTasks.length} tasks (including subtasks)`);
-      logger.info(`  - ${this.createdNotifications.length} notifications`);
+      console.log("Database seeding completed successfully!");
+      console.log("Summary:");
+      console.log(`  - ${this.existingStatuses.length} statuses (existing)`);
+      console.log(`  - ${this.existingPriorities.length} priorities (existing)`);
+      console.log(`  - ${this.existingCategories.length} categories (existing)`);
+      console.log(`  - ${this.createdTags.length} tags`);
+      console.log(`  - ${this.createdUsers.length} users`);
+      console.log(`  - ${this.createdRequesters.length} requesters`);
+      console.log(`  - ${this.createdTickets.length} tickets`);
+      console.log(`  - ${this.createdTasks.length} tasks (including subtasks)`);
+      console.log(`  - ${this.createdNotifications.length} notifications`);
 
     } catch (error) {
-      logger.error({ error }, "Error during database seeding");
+      console.error({ error }, "Error during database seeding");
       throw error;
     }
   }
@@ -1055,10 +1054,10 @@ const seeder = new DatabaseSeeder(options);
 
 seeder.seed()
   .then(() => {
-    logger.info("Seeding complete. Exiting...");
+    console.log("Seeding complete. Exiting...");
     process.exit(0);
   })
   .catch((error: Error) => {
-    logger.error({ error }, "Fatal error during database seed");
+    console.error({ error }, "Fatal error during database seed");
     process.exit(1);
   });

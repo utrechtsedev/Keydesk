@@ -1,12 +1,12 @@
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
-import type { NewStatus } from "$lib/server/db/schema";
-import { AppError, ConflictError, NotFoundError, ValidationError } from "$lib/server/errors";
+import type { NewStatus, Status } from "$lib/server/db/schema";
+import { AppError, ValidationError } from "$lib/server/errors";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-  const { statuses } = await request.json() as { statuses: NewStatus[] };
+  const { statuses } = await request.json() as { statuses: NewStatus[] | Status[] };
 
   if (!statuses)
     throw new ValidationError('Statuses are required.')
@@ -27,19 +27,18 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   if (closedStatuses.length < 1)
     throw new ValidationError('You must have at least 1 closed status.')
 
+  const cleanStatuses = statuses.map(s => ({
+    name: s.name,
+    color: s.color,
+    isDefault: s.isDefault,
+    isClosed: s.isClosed,
+  }));
+
+  await db.execute(sql`TRUNCATE TABLE ${schema.status} RESTART IDENTITY CASCADE`);
+
   const created = await db
     .insert(schema.status)
-    .values(statuses)
-    .onConflictDoUpdate({
-      target: schema.status.id,
-      set: {
-        name: sql`EXCLUDED.name`,
-        color: sql`EXCLUDED.color`,
-        isDefault: sql`EXCLUDED.is_default`,
-        isClosed: sql`EXCLUDED.is_closed`,
-        updatedAt: new Date()
-      }
-    })
+    .values(cleanStatuses)
     .returning();
 
   if (!created || created.length === 0)
@@ -59,57 +58,5 @@ export const GET: RequestHandler = async (): Promise<Response> => {
   return json({
     success: true,
     data: statuses
-  });
-};
-
-export const DELETE: RequestHandler = async ({ request }): Promise<Response> => {
-  const { id } = await request.json() as { id: number };
-
-  if (!id)
-    throw new ValidationError('Status ID is required.')
-
-  const [status] = await db
-    .select()
-    .from(schema.status)
-    .where(eq(schema.status.id, id));
-
-  if (!status)
-    throw new NotFoundError('Status not found.')
-
-  if (status.isDefault)
-    throw new ConflictError('Cannot delete the default status. Set another status as default first.')
-
-  const [ticketCount] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.ticket)
-    .where(eq(schema.ticket.statusId, id));
-
-  if (Number(ticketCount.count) > 0)
-    throw new ConflictError('Cannot delete status with associated tickets. Please reassign or delete all tickets first.')
-
-
-  const [openStatusCount] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.status)
-    .where(eq(schema.status.isClosed, false));
-
-  const [closedStatusCount] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.status)
-    .where(eq(schema.status.isClosed, true));
-
-  if (!status.isClosed && Number(openStatusCount.count) <= 1)
-    throw new ConflictError('Cannot delete the last open status. At least 1 open status is required.')
-
-  if (status.isClosed && Number(closedStatusCount.count) <= 1)
-    throw new ConflictError('Cannot delete the last closed status. At least 1 closed status is required.')
-
-  await db
-    .delete(schema.status)
-    .where(eq(schema.status.id, id));
-
-  return json({
-    success: true,
-    message: 'Status deleted successfully.'
   });
 };

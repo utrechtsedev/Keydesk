@@ -47,9 +47,7 @@
 		if (categories.length === 1)
 			return toast.error('Cannot delete last category. At least 1 default category is required.');
 
-		await api.delete('/api/settings/categories', {
-			data: { id: category.id }
-		});
+		await api.delete(`/api/settings/categories/${category.id}`);
 
 		categories = categories.filter((p) => p !== category);
 

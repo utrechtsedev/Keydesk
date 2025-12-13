@@ -1,12 +1,12 @@
 import { db } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
-import type { NewPriority } from "$lib/server/db/schema";
-import { AppError, ConflictError, NotFoundError, ValidationError } from "$lib/server/errors";
+import type { NewPriority, Priority } from "$lib/server/db/schema";
+import { AppError, ValidationError } from "$lib/server/errors";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-  const { priorities } = await request.json() as { priorities: NewPriority[] };
+  const { priorities } = await request.json() as { priorities: NewPriority[] | Priority[] };
 
   if (!priorities)
     throw new ValidationError('Priorities are required.')
@@ -19,9 +19,18 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   if (defaultPriorities.length !== 1)
     throw new ValidationError('You must only have 1 default priority.')
 
+  const cleanPriorities = priorities.map(p => ({
+    name: p.name,
+    color: p.color,
+    isDefault: p.isDefault,
+    order: p.order
+  }));
+
+  await db.execute(sql`TRUNCATE TABLE ${schema.priority} RESTART IDENTITY CASCADE`);
+
   const created = await db
     .insert(schema.priority)
-    .values(priorities)
+    .values(cleanPriorities)
     .onConflictDoUpdate({
       target: schema.priority.id,
       set: {
@@ -54,45 +63,9 @@ export const GET: RequestHandler = async (): Promise<Response> => {
   });
 };
 
-export const DELETE: RequestHandler = async ({ request }): Promise<Response> => {
-  const { id } = await request.json() as { id: number };
-
-  if (!id)
-    throw new ValidationError('Priority ID is required.')
-
-  const [priority] = await db
-    .select()
-    .from(schema.priority)
-    .where(eq(schema.priority.id, id));
-
-  if (!priority)
-    throw new NotFoundError('Priority not found')
-
-  if (priority.isDefault)
-    throw new ValidationError('Cannot delete the default priority. Set another priority as default first.')
-
-  const [ticketCount] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.ticket)
-    .where(eq(schema.ticket.priorityId, id));
-
-  if (Number(ticketCount.count) > 0)
-    throw new ConflictError('Cannot delete priority with associated tickets. Please reassign or delete all tickets first.')
 
 
-  const [priorityCount] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.priority);
 
-  if (Number(priorityCount.count) <= 1)
-    throw new ValidationError('Cannot delete the last priority. At least 1 priority is required.')
 
-  await db
-    .delete(schema.priority)
-    .where(eq(schema.priority.id, id));
 
-  return json({
-    success: true,
-    message: 'Priority deleted successfully.'
-  });
-};
+

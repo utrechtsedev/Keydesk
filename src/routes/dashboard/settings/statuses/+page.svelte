@@ -77,9 +77,7 @@
 			);
 		}
 
-		await api.delete('/api/settings/statuses', {
-			data: { id: status.id }
-		});
+		await api.delete(`/api/settings/statuses/${status.id}`);
 
 		statuses = statuses.filter((s) => s !== status);
 		if (editing === status) {

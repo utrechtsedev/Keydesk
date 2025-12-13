@@ -66,9 +66,7 @@
 			return toast.error('Cannot delete the last priority. At least 1 priority is required.');
 		}
 
-		await api.delete('/api/settings/priorities', {
-			data: { id: priority.id }
-		});
+		await api.delete(`/api/settings/priorities/${priority.id}`);
 
 		priorities = priorities.filter((p) => p !== priority);
 		if (editing === priority) {
