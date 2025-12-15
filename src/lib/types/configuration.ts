@@ -54,52 +54,6 @@ export interface Holiday {
   updatedAt?: Date;
 }
 
-export interface NotificationSettings {
-  dashboard: {
-    ticket: {
-      created: {
-        notifyAllUsers: boolean;
-      };
-      assigned: {
-        notifyUser: boolean;
-      };
-      updated: {
-        notifyUser: boolean;
-      };
-      resolved: {
-        notifyUser: boolean;
-      };
-      closed: {
-        notifyUser: boolean;
-      };
-    };
-  };
-  email: {
-    ticket: {
-      created: {
-        notifyAllUsers: boolean;
-        notifyRequester: boolean;
-      };
-      assigned: {
-        notifyUser: boolean;
-        notifyRequester: boolean;
-      };
-      updated: {
-        notifyUser: boolean;
-        notifyRequester: boolean;
-      };
-      resolved: {
-        notifyUser: boolean;
-        notifyRequester: boolean;
-      };
-      closed: {
-        notifyUser: boolean;
-        notifyRequester: boolean;
-      };
-    };
-  };
-}
-
 export interface Organization {
   name: string;
   domain: string;
@@ -124,6 +78,50 @@ export interface TicketConfig {
   ticketPrefix: string;
 }
 
+export interface NotificationSettings {
+  dashboard: {
+    item: {
+      assigned: {
+        notifyUser: boolean;
+      };
+      updated: {
+        notifyUser: boolean;
+      };
+      resolved: {
+        notifyUser: boolean;
+      };
+      closed: {
+        notifyUser: boolean;
+      };
+    };
+    notifyAllUsersOnNewTicket: boolean;
+  };
+  email: {
+    item: {
+      created: {
+        notifyRequester: boolean;
+      };
+      assigned: {
+        notifyUser: boolean;
+        notifyRequester: boolean;
+      };
+      updated: {
+        notifyUser: boolean;
+        notifyRequester: boolean;
+      };
+      resolved: {
+        notifyUser: boolean;
+        notifyRequester: boolean;
+      };
+      closed: {
+        notifyUser: boolean;
+        notifyRequester: boolean;
+      };
+    };
+    notifyAllUsersOnNewTicket: boolean;
+  };
+}
+
 export interface NotificationPreferences {
   dashboard: {
     ticketCreated: boolean;
@@ -138,10 +136,3 @@ export interface NotificationPreferences {
     itemClosed: boolean;
   };
 }
-
-
-
-
-
-
-

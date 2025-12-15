@@ -51,6 +51,9 @@ export interface Priority extends BasePriority { }
 export interface Tag extends BaseTag { }
 
 export interface Ticket extends BaseTicket {
+  priority: Priority;
+  category: Category;
+  assignedUser: User;
   requester?: Requester;
   status?: Status;
 }
@@ -79,4 +82,9 @@ export interface Notification extends BaseNotification {
 export interface UserNotification extends BaseUserNotification {
   notification?: Notification;
 }
+
+
+
+
+
 
