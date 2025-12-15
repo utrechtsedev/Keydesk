@@ -1,7 +1,7 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import { createClient } from 'redis';
-import type { NotificationOptions } from '$lib/server/job-queue/handlers/notification.handler';
 import { logger } from '../logger';
+import type { NotificationOptions } from '$lib/types';
 
 // ============================================================================
 // REDIS CONNECTION & DETECTION
@@ -92,7 +92,6 @@ export async function enqueue(
   data: any,
   options?: EnqueueOptions
 ): Promise<void> {
-  // If Redis is available, use queue
   if (isRedisAvailable && queue) {
     await queue.add(type, data, {
       attempts: options?.attempts ?? 3,
@@ -113,7 +112,6 @@ export async function enqueue(
     return;
   }
 
-  // Fallback: Execute immediately
   logger.warn(`Executing job "${type}" directly (no Redis)`);
   const handler = handlers.get(type);
 
@@ -125,7 +123,6 @@ export async function enqueue(
     await handler(data);
   } catch (error) {
     logger.error({ error }, `Failed to execute job "${type}":`);
-    throw error;
   }
 }
 
@@ -184,4 +181,6 @@ export async function startJobWorker(): Promise<Worker | null> {
 export async function sendNotification(data: NotificationOptions, options?: EnqueueOptions): Promise<void> {
   await enqueue('send-notification', data, options);
 }
+
+
 
