@@ -11,10 +11,10 @@
 
 	let notifications = $state(data.notificationConfig);
 
-	type DashboardEventKey = 'created' | 'assigned' | 'updated' | 'resolved' | 'closed';
-	type DashboardOptionKey = 'notifyAllUsers' | 'notifyUser';
+	type DashboardEventKey = 'assigned' | 'updated' | 'resolved' | 'closed';
+	type DashboardOptionKey = 'notifyUser';
 	type EmailEventKey = 'created' | 'assigned' | 'updated' | 'resolved' | 'closed';
-	type EmailOptionKey = 'notifyRequester' | 'notifyAllUsers' | 'notifyUser';
+	type EmailOptionKey = 'notifyRequester' | 'notifyUser';
 
 	const dashboardEvents: {
 		key: DashboardEventKey;
@@ -22,48 +22,35 @@
 		options: { key: DashboardOptionKey; label: string }[];
 	}[] = [
 		{
-			key: 'created',
-			title: 'Ticket Created',
-			options: [{ key: 'notifyAllUsers', label: 'Notify all agents' }]
-		},
-		{
 			key: 'assigned',
-			title: 'Ticket Assigned',
+			title: 'Ticket/Task Assigned',
 			options: [{ key: 'notifyUser', label: 'Notify assigned agent' }]
 		},
 		{
 			key: 'updated',
-			title: 'Ticket Updated',
+			title: 'Ticket/Task Updated',
 			options: [{ key: 'notifyUser', label: 'Notify assigned agent' }]
 		},
 		{
 			key: 'resolved',
-			title: 'Ticket Resolved',
+			title: 'Ticket/Task Resolved',
 			options: [{ key: 'notifyUser', label: 'Notify assigned agent' }]
 		},
 		{
 			key: 'closed',
-			title: 'Ticket Closed',
+			title: 'Ticket/Task Closed',
 			options: [{ key: 'notifyUser', label: 'Notify assigned agent' }]
 		}
 	];
 
 	const emailEvents: {
-		key: EmailEventKey;
+		key: Exclude<EmailEventKey, 'created'>;
 		title: string;
 		options: { key: EmailOptionKey; label: string }[];
 	}[] = [
 		{
-			key: 'created',
-			title: 'Ticket Created',
-			options: [
-				{ key: 'notifyRequester', label: 'Notify customer' },
-				{ key: 'notifyAllUsers', label: 'Notify all agents' }
-			]
-		},
-		{
 			key: 'assigned',
-			title: 'Ticket Assigned',
+			title: 'Ticket/Task Assigned',
 			options: [
 				{ key: 'notifyRequester', label: 'Notify customer' },
 				{ key: 'notifyUser', label: 'Notify assigned agent' }
@@ -71,7 +58,7 @@
 		},
 		{
 			key: 'updated',
-			title: 'Ticket Updated',
+			title: 'Ticket/Task Updated',
 			options: [
 				{ key: 'notifyRequester', label: 'Notify customer' },
 				{ key: 'notifyUser', label: 'Notify assigned agent' }
@@ -79,7 +66,7 @@
 		},
 		{
 			key: 'resolved',
-			title: 'Ticket Resolved',
+			title: 'Ticket/Task Resolved',
 			options: [
 				{ key: 'notifyRequester', label: 'Notify customer' },
 				{ key: 'notifyUser', label: 'Notify assigned agent' }
@@ -87,7 +74,7 @@
 		},
 		{
 			key: 'closed',
-			title: 'Ticket Closed',
+			title: 'Ticket/Task Closed',
 			options: [
 				{ key: 'notifyRequester', label: 'Notify customer' },
 				{ key: 'notifyUser', label: 'Notify assigned agent' }
@@ -112,6 +99,26 @@
 			</div>
 			<div class="sm:max-w-3xl md:col-span-2">
 				<div class="space-y-3">
+					<!-- Special handling for "Ticket Created" with notifyAllUsersOnNewTicket -->
+					<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+						<span class="text-sm font-medium">Ticket Created</span>
+						<div class="flex w-full items-center gap-4 sm:w-[190px] sm:gap-6">
+							<div class="flex shrink-0 items-center gap-2">
+								<Checkbox
+									id="dashboard-created-notifyAllUsers"
+									bind:checked={notifications.dashboard.notifyAllUsersOnNewTicket}
+								/>
+								<Field.Label
+									for="dashboard-created-notifyAllUsers"
+									class="font-normal whitespace-nowrap"
+								>
+									Notify all agents
+								</Field.Label>
+							</div>
+						</div>
+					</div>
+
+					<!-- Other dashboard events -->
 					{#each dashboardEvents as event}
 						<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 							<span class="text-sm font-medium">{event.title}</span>
@@ -120,11 +127,7 @@
 									<div class="flex shrink-0 items-center gap-2">
 										<Checkbox
 											id="dashboard-{event.key}-{option.key}"
-											bind:checked={
-												notifications.dashboard.ticket[event.key][
-													option.key as keyof (typeof notifications.dashboard.ticket)[typeof event.key]
-												]
-											}
+											bind:checked={notifications.dashboard.item[event.key][option.key]}
 										/>
 										<Field.Label
 											for="dashboard-{event.key}-{option.key}"
@@ -152,6 +155,38 @@
 			</div>
 			<div class="sm:max-w-3xl md:col-span-2">
 				<div class="space-y-3">
+					<!-- Special handling for "Ticket Created" -->
+					<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+						<span class="text-sm font-medium">Ticket Created</span>
+						<div class="flex w-full flex-wrap items-center gap-4 sm:w-[340px] sm:gap-6">
+							<div class="flex shrink-0 items-center gap-2">
+								<Checkbox
+									id="email-created-notifyRequester"
+									bind:checked={notifications.email.item.created.notifyRequester}
+								/>
+								<Field.Label
+									for="email-created-notifyRequester"
+									class="font-normal whitespace-nowrap"
+								>
+									Notify customer
+								</Field.Label>
+							</div>
+							<div class="flex shrink-0 items-center gap-2">
+								<Checkbox
+									id="email-created-notifyAllUsers"
+									bind:checked={notifications.email.notifyAllUsersOnNewTicket}
+								/>
+								<Field.Label
+									for="email-created-notifyAllUsers"
+									class="font-normal whitespace-nowrap"
+								>
+									Notify all agents
+								</Field.Label>
+							</div>
+						</div>
+					</div>
+
+					<!-- Other email events -->
 					{#each emailEvents as event}
 						<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 							<span class="text-sm font-medium">{event.title}</span>
@@ -160,11 +195,7 @@
 									<div class="flex shrink-0 items-center gap-2">
 										<Checkbox
 											id="email-{event.key}-{option.key}"
-											bind:checked={
-												notifications.email.ticket[event.key][
-													option.key as keyof (typeof notifications.email.ticket)[typeof event.key]
-												]
-											}
+											bind:checked={notifications.email.item[event.key][option.key]}
 										/>
 										<Field.Label
 											for="email-{event.key}-{option.key}"
