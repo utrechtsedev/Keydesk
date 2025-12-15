@@ -29,7 +29,7 @@ async function getEmailConfig(): Promise<SMTP | null> {
   }
 
   const emailSettings: SMTP = request.value as SMTP;
-  emailSettings.password = decrypt(emailSettings.password);
+  if (emailSettings.password) emailSettings.password = decrypt(emailSettings.password);
 
   configCache = emailSettings;
   lastConfigFetch = now;
