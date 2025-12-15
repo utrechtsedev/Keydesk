@@ -4,6 +4,9 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 const pinoLogger = pino({
   level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
+  serializers: {
+    error: pino.stdSerializers.err
+  },
   transport: isDev
     ? {
       target: 'pino-pretty',
@@ -46,4 +49,6 @@ export const logger = {
     }
   }
 };
+
+
 
