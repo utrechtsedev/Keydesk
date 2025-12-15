@@ -10,15 +10,6 @@ export function formatDate(timestamp: Date): string {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
-/* Get timestamp in format HH:MM:SS */
-export function getLogTimestamp(): string {
-  const now = new Date();
-  const h = now.getHours();
-  const m = now.getMinutes();
-  const s = now.getSeconds();
-  return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
-}
-
 /**
  * Format a date into relative human-readable text
  * @param date - The date to format
