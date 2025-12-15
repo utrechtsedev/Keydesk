@@ -6,6 +6,7 @@ import * as schema from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "$lib/server/auth-helpers";
 import { NotFoundError, ValidationError } from "$lib/server/errors";
+import { sendNotification } from "$lib/server/job-queue";
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
   const { user } = requireAuth(locals);
@@ -105,6 +106,22 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     ...createdTask,
     tags: createdTask.taskTags.map(tt => tt.tag),
   } : null;
+
+  if (createdTask && createdTask.assigneeId !== user.id)
+    sendNotification({
+      channels: ['dashboard', 'email'],
+      title: task.title,
+      message: task.description || '',
+      recipient: { userId: createdTask.assigneeId },
+      notification: {
+        type: "entity", 
+        event: "created", 
+        entity: { 
+          type: "task", 
+          id: createdTask.id 
+        } 
+      },
+    })
 
   return json({
     success: true,

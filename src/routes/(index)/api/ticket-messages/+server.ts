@@ -1,9 +1,8 @@
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { uploadFile } from '$lib/server/file-upload';
-import type { Attachment, NotificationSettings } from '$lib/types';
+import type { Attachment } from '$lib/types';
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { sendNotification } from '$lib/server/job-queue';
 import { eq, sql } from 'drizzle-orm';
 import { requireAuth } from '$lib/server/auth-helpers';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
@@ -94,45 +93,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       status: true,
     },
   });
-
-  // Get notification configuration
-  const [fetchNotificationConfig] = await db
-    .select()
-    .from(schema.config)
-    .where(eq(schema.config.key, 'notifications'));
-
-  if (!fetchNotificationConfig)
-    throw new NotFoundError('Could not find notification configuration.')
-
-  const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
-
-  if (ticket && ticket.assignedUserId && ticket.assignedUserId !== user.id) {
-    if (notificationConfig.dashboard.ticket.updated.notifyUser) {
-      sendNotification({
-        title: "Ticket updated",
-        message: `Ticket ${ticket.id} updated by ${user.name}`,
-        type: "ticket",
-        channel: "dashboard",
-        actionUrl: `/dashboard/tickets/${ticket.id}`,
-        relatedEntityId: ticket.id,
-        relatedEntityType: "ticket",
-        userId: ticket.assignedUserId
-      });
-    }
-
-    if (notificationConfig.email.ticket.updated.notifyUser) {
-      sendNotification({
-        title: "Ticket updated",
-        message: `Ticket ${ticket.id} updated by ${user.name}`,
-        type: "ticket",
-        channel: "email",
-        actionUrl: `/dashboard/tickets/${ticket.id}`,
-        relatedEntityId: ticket.id,
-        relatedEntityType: "ticket",
-        userId: ticket.assignedUserId
-      });
-    }
-  }
 
   return json({
     success: true,

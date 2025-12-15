@@ -4,6 +4,9 @@ import { building, dev } from "$app/environment";
 import { logger } from "$lib/server/logger";
 import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { AppError } from "$lib/server/errors";
+import { initializeQueue } from "$lib/server/job-queue";
+
+await initializeQueue();
 
 export const handle: Handle = async ({ event, resolve }) => {
   const session = await auth.api.getSession({
