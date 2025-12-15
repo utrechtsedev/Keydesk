@@ -38,9 +38,9 @@ export const channelEnum = pgEnum("channel", ["email", "portal", "user", "dashbo
 export const senderTypeEnum = pgEnum("sender_type", ["requester", "user", "system"]);
 export const messageChannelEnum = pgEnum("message_channel", ["email", "portal", "system", "api", "dashboard"]);
 export const uploadedByTypeEnum = pgEnum("uploaded_by_type", ["requester", "user"]);
-export const notificationTypeEnum = pgEnum("notification_type", ["info", "success", "warning", "error", "ticket", "system"]);
+export const notificationTypeEnum = pgEnum("notification_type", ["info", "success", "warning", "error", "ticket", "task", "system"]);
 export const notificationChannelEnum = pgEnum("notification_channel", ["dashboard", "email"]);
-export const relatedEntityTypeEnum = pgEnum("related_entity_type", ["ticket", "user", "system"]);
+export const relatedEntityTypeEnum = pgEnum("related_entity_type", ["ticket", "task", "user", "system"]);
 
 // ============================================================================
 // BETTER-AUTH TABLES
@@ -61,7 +61,7 @@ export const user = pgTable("user", {
   banned: boolean("banned").default(false),
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires"),
-  notificationPreferences: jsonb("notification_preferences"),
+  notificationPreferences: jsonb("notification_preferences").notNull(),
 });
 
 export const session = pgTable(

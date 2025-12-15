@@ -139,10 +139,7 @@ class DatabaseInitializer {
           key: "notifications",
           value: {
             dashboard: {
-              ticket: {
-                created: {
-                  notifyAllUsers: true,
-                },
+              item: {
                 assigned: {
                   notifyUser: true,
                 },
@@ -156,11 +153,11 @@ class DatabaseInitializer {
                   notifyUser: true,
                 },
               },
+              notifyAllUsersOnNewTicket: true,
             },
             email: {
-              ticket: {
+              item: {
                 created: {
-                  notifyAllUsers: true,
                   notifyRequester: true,
                 },
                 assigned: {
@@ -180,6 +177,7 @@ class DatabaseInitializer {
                   notifyRequester: false,
                 },
               },
+              notifyAllUsersOnNewTicket: true,
             },
           },
         });
