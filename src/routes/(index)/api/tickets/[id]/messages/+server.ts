@@ -6,10 +6,10 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { requireAuth } from '$lib/server/auth-helpers';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
+import { sendNotification } from '$lib/server/job-queue';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
-  const { user } = requireAuth(locals)
-
+  const { user } = requireAuth(locals);
   const formData = await request.formData();
   const message = formData.get('message') as string;
   const isPrivate = formData.get('isPrivate') as string;
@@ -17,12 +17,11 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
   const files = formData.getAll('files').filter((file): file is File => file instanceof File);
 
   const result = await db.transaction(async (tx) => {
-
     if (!message || message.trim() === '')
-      throw new ValidationError('Message is required.')
+      throw new ValidationError('Message is required.');
 
     if (!ticketId || isNaN(Number(ticketId)))
-      throw new ValidationError('Valid ticket ID is required.')
+      throw new ValidationError('Valid ticket ID is required.');
 
     const isPrivateValue: boolean = isPrivate === 'true';
 
@@ -33,7 +32,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       .where(eq(schema.config.key, 'attachments'));
 
     if (!attachmentOptions)
-      throw new NotFoundError('Attachment configuration not found. Please configure attachments in Settings.')
+      throw new NotFoundError('Attachment configuration not found. Please configure attachments in Settings.');
 
     let attachmentConfig: Attachment = attachmentOptions.value as Attachment;
 
@@ -66,7 +65,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     // Upload files and create attachment records
     for (const file of files) {
       const fileUpload = await uploadFile(file, attachmentConfig);
-
       await tx.insert(schema.ticketAttachment).values({
         ticketId: Number(ticketId),
         messageId: ticketMessage.id,
@@ -94,6 +92,28 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     },
   });
 
+  // ============================================================================
+  // NOTIFICATION
+  // ============================================================================
+
+  // Notify assignee when someone else adds a message
+  if (ticket?.assignedUserId && ticket.assignedUserId !== user.id) {
+    await sendNotification({
+      title: 'New message',
+      message: `Ticket #${ticket.ticketNumber} received new message from ${user.name}`,
+      recipient: { userId: ticket.assignedUserId },
+      channels: ['dashboard', 'email'],
+      notification: {
+        type: 'entity',
+        event: 'updated',
+        entity: {
+          type: 'ticket',
+          id: Number(ticketId),
+        }
+      }
+    });
+  }
+
   return json({
     success: true,
     data: {
@@ -102,3 +122,5 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     message: 'Message sent successfully.',
   }, { status: 201 });
 };
+
+

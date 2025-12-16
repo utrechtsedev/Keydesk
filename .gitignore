@@ -27,3 +27,4 @@ vite.config.ts.timestamp-*
 .DS_Store
 TODO.md
 LOG.md
+DOCUMENTATION.md

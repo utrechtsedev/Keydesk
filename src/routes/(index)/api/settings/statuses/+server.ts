@@ -3,29 +3,55 @@ import * as schema from "$lib/server/db/schema";
 import type { NewStatus, Status } from "$lib/server/db/schema";
 import { AppError, ValidationError } from "$lib/server/errors";
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { statuses } = await request.json() as { statuses: NewStatus[] | Status[] };
-
+  
   if (!statuses)
-    throw new ValidationError('Statuses are required.')
+    throw new ValidationError('Statuses are required.');
 
-  if (statuses.length < 2)
-    throw new ValidationError('You must at least have 2 statuses. 1 for open tickets, 1 for closed tickets')
-
+  // Validate system statuses exist
   const defaultStatuses = statuses.filter((s) => s.isDefault);
-
   if (defaultStatuses.length !== 1)
-    throw new ValidationError('You must only have 1 default status.')
+    throw new ValidationError('You must have exactly 1 default status.');
 
-  const openStatuses = statuses.filter((s) => !s.isClosed);
-  if (openStatuses.length < 1)
-    throw new ValidationError('You must have at least 1 open status.')
+  const resolvedStatuses = statuses.filter((s) => s.isResolved);
+  if (resolvedStatuses.length !== 1)
+    throw new ValidationError('You must have exactly 1 resolved status.');
 
   const closedStatuses = statuses.filter((s) => s.isClosed);
-  if (closedStatuses.length < 1)
-    throw new ValidationError('You must have at least 1 closed status.')
+  if (closedStatuses.length !== 1)
+    throw new ValidationError('You must have exactly 1 closed status.');
+
+  // Process each status
+  for (const status of statuses) {
+    if ('id' in status && status.id) {
+      // UPDATING existing status
+      const [existing] = await db
+        .select()
+        .from(schema.status)
+        .where(eq(schema.status.id, status.id));
+
+      if (existing) {
+        // Prevent changing special flags
+        if (existing.isDefault !== status.isDefault)
+          throw new ValidationError('Cannot change isDefault flag.');
+        if (existing.isResolved !== status.isResolved)
+          throw new ValidationError('Cannot change isResolved flag.');
+        if (existing.isClosed !== status.isClosed)
+          throw new ValidationError('Cannot change isClosed flag.');
+      }
+    } else {
+      // CREATING new status - force special flags to false
+      if (status.isDefault)
+        throw new ValidationError('Cannot create new status with isDefault flag.');
+      if (status.isResolved)
+        throw new ValidationError('Cannot create new status with isResolved flag.');
+      if (status.isClosed)
+        throw new ValidationError('Cannot create new status with isClosed flag.');
+    }
+  }
 
   const created = await db
     .insert(schema.status)
@@ -39,29 +65,17 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
       set: {
         name: sql`EXCLUDED.name`,
         color: sql`EXCLUDED.color`,
-        isDefault: sql`EXCLUDED.is_default`,
-        isClosed: sql`EXCLUDED.is_closed`,
+        // DO NOT update isDefault, isResolved, isClosed
         updatedAt: new Date()
       }
     })
     .returning();
 
   if (!created || created.length === 0)
-    throw new AppError('Something went wrong while inserting fields into the database.', 500)
+    throw new AppError('Something went wrong while inserting fields into the database.', 500);
 
   return json({
     success: true,
     data: created,
   }, { status: 201 });
-};
-
-export const GET: RequestHandler = async (): Promise<Response> => {
-  const statuses = await db
-    .select()
-    .from(schema.status);
-
-  return json({
-    success: true,
-    data: statuses
-  });
 };

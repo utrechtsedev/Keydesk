@@ -4,10 +4,11 @@ import { startJobWorker } from "$lib/server/job-queue";
 import { logger } from "$lib/server/logger";
 
 async function main() {
-  startEmailMonitoring();
-
   registerAllHandlers();
-  await startJobWorker();
+  await Promise.all([
+    startEmailMonitoring(),
+    startJobWorker()
+  ]);
 }
 
 async function run() {
