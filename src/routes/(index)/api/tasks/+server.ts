@@ -110,8 +110,8 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
   if (createdTask && createdTask.assigneeId !== user.id)
     sendNotification({
       channels: ['dashboard', 'email'],
-      title: task.title,
-      message: task.description || '',
+      title: 'New task',
+      message: `Assigned to you by ${user.name}: ${task.title}`,
       recipient: { userId: createdTask.assigneeId },
       notification: {
         type: "entity", 
@@ -129,72 +129,4 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
   }, { status: 201 });
 };
 
-export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
-  const { task } = await request.json() as { task: TaskType };
 
-  if (!task?.id)
-    throw new ValidationError('Task ID is required');
-
-  if (!task.assigneeId)
-    throw new ValidationError('Assignee ID is required');
-
-  // Find the task
-  const [findTask] = await db
-    .select()
-    .from(schema.task)
-    .where(eq(schema.task.id, task.id));
-
-  if (!findTask)
-    throw new NotFoundError('Task not found');
-
-  // Verify parent task if provided
-  if (task.parentTaskId) {
-    const [parentTask] = await db
-      .select()
-      .from(schema.task)
-      .where(eq(schema.task.id, task.parentTaskId));
-
-    if (!parentTask)
-      throw new NotFoundError('Parent task not found');
-
-    if (parentTask.parentTaskId)
-      throw new ValidationError('Task cannot be subtask of subtask');
-
-    if (parentTask.id === findTask.id)
-      throw new ValidationError('Task cannot be its own parent');
-  }
-
-  // Update the task - convert date strings to Date objects
-  const [updatedTask] = await db
-    .update(schema.task)
-    .set({
-      title: task.title,
-      description: task.description,
-      assigneeId: task.assigneeId,
-      ticketId: task.ticketId,
-      parentTaskId: task.parentTaskId || null,
-      statusId: task.statusId,
-      priorityId: task.priorityId,
-      dueDate: task.dueDate ? new Date(task.dueDate) : new Date(),
-      startDate: task.startDate ? new Date(task.startDate) : null,
-      completedAt: task.completedAt ? new Date(task.completedAt) : null,
-      position: task.position,
-    })
-    .where(eq(schema.task.id, task.id))
-    .returning();
-
-  // Check if status is closed, and if so, close all subtasks
-  const [updatedStatus] = await db
-    .select()
-    .from(schema.status)
-    .where(eq(schema.status.id, task.statusId));
-
-  if (updatedStatus?.isClosed) {
-    await db
-      .update(schema.task)
-      .set({ statusId: task.statusId })
-      .where(eq(schema.task.parentTaskId, task.id));
-  }
-
-  return json({ success: true, task: updatedTask });
-};

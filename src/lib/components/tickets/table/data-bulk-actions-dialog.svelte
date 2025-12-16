@@ -43,7 +43,7 @@
 		} else {
 			await api.patch('/api/tickets/bulk', {
 				ids,
-				itemId: value,
+				itemId: Number(value),
 				itemType
 			});
 		}

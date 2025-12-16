@@ -3,11 +3,12 @@ import * as schema from "$lib/server/db/schema";
 import { NotFoundError, ValidationError } from "$lib/server/errors";
 import { json, type RequestHandler } from "@sveltejs/kit";
 import { eq, inArray } from "drizzle-orm";
+import { sendNotification } from "$lib/server/job-queue";
 
 export const PATCH: RequestHandler = async ({ request }) => {
   const { ids, itemId, itemType } = await request.json() as {
     ids: number[],
-    itemId: string,
+    itemId: number,
     itemType: 'user' | 'category' | 'status' | 'priority' | 'tag'
   };
 
@@ -20,14 +21,14 @@ export const PATCH: RequestHandler = async ({ request }) => {
     case 'user': {
       const result = await db
         .update(schema.ticket)
-        .set({ assignedUserId: parseInt(itemId, 10) })
+        .set({ assignedUserId: itemId })
         .where(inArray(schema.ticket.id, ids))
         .returning();
       updatedCount = result.length;
       break;
     }
     case 'category': {
-      const categoryId = Number(itemId);
+      const categoryId = itemId;
       if (isNaN(categoryId)) throw new ValidationError('Invalid category ID');
 
       const result = await db
@@ -39,7 +40,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
       break;
     }
     case 'status': {
-      const statusId = Number(itemId);
+      const statusId = itemId;
       if (isNaN(statusId)) throw new ValidationError('Invalid status ID');
 
       const result = await db
@@ -51,7 +52,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
       break;
     }
     case 'priority': {
-      const priorityId = Number(itemId);
+      const priorityId = itemId;
       if (isNaN(priorityId)) throw new ValidationError('Invalid priority ID');
 
       const result = await db
@@ -63,7 +64,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
       break;
     }
     case 'tag': {
-      const tagId = Number(itemId);
+      const tagId = itemId;
       if (isNaN(tagId)) throw new ValidationError('Invalid tag ID');
 
       // Verify tag exists
@@ -96,6 +97,22 @@ export const PATCH: RequestHandler = async ({ request }) => {
 
   if (updatedCount === 0)
     throw new NotFoundError('No tickets were updated. Ticket(s) may not exist or you may not have permission.');
+
+  if (itemType === 'user')
+    await sendNotification({
+      title: 'Ticket Updated',
+      message: updatedCount === 1 ? '' : '',
+      recipient: { userId: itemId },
+      channels: ['dashboard', 'email'],
+      notification: {
+        type: 'entity',
+        event: 'updated',
+        entity: {
+          type: 'ticket',
+          id: 123
+        }
+      }
+    });
 
 
   return json({

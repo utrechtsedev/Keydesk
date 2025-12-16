@@ -4,16 +4,15 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
-	import { Switch } from '$lib/components/ui/switch';
-	import type { PageData, Status } from '$lib/types';
+	import type { PageData, Status, NewStatus } from '$lib/types';
 	import api from '$lib/utils/axios';
 
 	const { data }: { data: PageData & { statuses: Status[] } } = $props();
 
-	let statuses = $state(data.statuses);
-	let editing = $state<Status>();
+	let statuses = $state<(Status | NewStatus)[]>(data.statuses);
+	let editing = $state<Status | NewStatus | undefined>();
 
-	function startEdit(status: Status) {
+	function startEdit(status: Status | NewStatus) {
 		editing = status;
 	}
 
@@ -26,58 +25,36 @@
 		if (!currentStatus || currentStatus.name.length < 1)
 			return toast.error('Status name must be at least 1 character');
 
-		if (currentStatus.isDefault && currentStatus.isClosed) {
-			return toast.error(
-				'A status cannot be both default and closed. New tickets must start as open.'
-			);
-		}
-
-		if (currentStatus.isDefault) {
-			statuses.forEach((s) => {
-				if (s !== currentStatus) {
-					s.isDefault = false;
-				}
-			});
-		}
-
 		editing = undefined;
 	}
-	function addStatus() {
-		const maxId = statuses.length > 0 ? Math.max(...statuses.map((s) => s.id)) : 0;
-		const now = new Date();
 
-		const newItem: Status = {
-			id: maxId + 1,
+	function addStatus() {
+		const newItem: NewStatus = {
 			name: 'New Status',
 			color: '#3B82F6',
 			isDefault: false,
+			isResolved: false,
 			isClosed: false,
-			createdAt: now,
-			updatedAt: now
 		};
 		statuses.push(newItem);
 		editing = newItem;
 	}
 
-	async function deleteStatus(status: Status) {
-		if (status.isDefault) {
-			return toast.error('Cannot delete the default status. Set another status as default first.');
+	// Type guard to check if status is a Status (has id) or NewStatus
+	function isStatus(status: Status | NewStatus): status is Status {
+		return 'id' in status;
+	}
+
+	async function deleteStatus(status: Status | NewStatus) {
+		// Prevent deletion of system statuses
+		if (status.isDefault || status.isResolved || status.isClosed) {
+			return toast.error('Cannot delete system statuses (Default, Resolved, or Closed).');
 		}
 
-		const openStatuses = statuses.filter((s) => !s.isClosed);
-		const closedStatuses = statuses.filter((s) => s.isClosed);
-
-		if (!status.isClosed && openStatuses.length <= 1) {
-			return toast.error('Cannot delete the last open status. At least 1 open status is required.');
+		// Only call API if status has an id (exists in database)
+		if (isStatus(status)) {
+			await api.delete(`/api/settings/statuses/${status.id}`);
 		}
-
-		if (status.isClosed && closedStatuses.length <= 1) {
-			return toast.error(
-				'Cannot delete the last closed status. At least 1 closed status is required.'
-			);
-		}
-
-		await api.delete(`/api/settings/statuses/${status.id}`);
 
 		statuses = statuses.filter((s) => s !== status);
 		if (editing === status) {
@@ -87,17 +64,29 @@
 	}
 
 	async function handleSave() {
+		// Validate required system statuses
 		const defaultStatuses = statuses.filter((s) => s.isDefault);
-		if (defaultStatuses.length !== 1) return toast.error('You must have exactly 1 default status.');
+		if (defaultStatuses.length !== 1) 
+			return toast.error('You must have exactly 1 default status.');
 
-		const openStatuses = statuses.filter((s) => !s.isClosed);
-		if (openStatuses.length < 1) return toast.error('You must have at least 1 open status.');
+		const resolvedStatuses = statuses.filter((s) => s.isResolved);
+		if (resolvedStatuses.length !== 1) 
+			return toast.error('You must have exactly 1 resolved status.');
 
 		const closedStatuses = statuses.filter((s) => s.isClosed);
-		if (closedStatuses.length < 1) return toast.error('You must have at least 1 closed status.');
+		if (closedStatuses.length !== 1) 
+			return toast.error('You must have exactly 1 closed status.');
+
+		const openStatuses = statuses.filter((s) => !s.isClosed && !s.isResolved);
+		if (openStatuses.length < 1) 
+			return toast.error('You must have at least 1 open status.');
 
 		await api.post('/api/settings/statuses', { statuses });
 		toast.success('Successfully saved status settings.');
+	}
+
+	function isSystemStatus(status: Status | NewStatus): boolean {
+		return status.isDefault || status.isResolved || status.isClosed;
 	}
 </script>
 
@@ -105,7 +94,9 @@
 	<div class="flex justify-between px-4 pb-3">
 		<div>
 			<h1 class="text-2xl font-bold">Status Settings</h1>
-			<p class="text-sm text-muted-foreground">Configure ticket statuses</p>
+			<p class="text-sm text-muted-foreground">
+				Configure ticket statuses. System statuses (Default, Resolved, Closed) can be renamed but not deleted.
+			</p>
 		</div>
 		<div class="flex items-start gap-2">
 			<Button onclick={addStatus} variant="secondary">
@@ -120,6 +111,7 @@
 		{#each statuses as status, index}
 			{@const isFirst = index === 0}
 			{@const isEditing = editing === status}
+			{@const isSystem = isSystemStatus(status)}
 
 			{#if isEditing}
 				<!-- Editing mode -->
@@ -136,17 +128,14 @@
 						class="h-10 w-24 cursor-pointer"
 					/>
 				</div>
-				<div class="flex justify-between border-b px-4 py-3">
-					<Label for="status-default-{index}" class="text-md">Set as Default</Label>
-					<Switch id="status-default-{index}" bind:checked={status.isDefault} />
-				</div>
-				<div class="flex justify-between border-b px-4 py-3">
-					<Label for="status-closed-{index}" class="text-md">Closed Status</Label>
-					<Switch id="status-closed-{index}" bind:checked={status.isClosed} />
-				</div>
 				<div class="flex justify-between border-b bg-muted/30 px-4 py-3">
 					<div class="flex gap-2">
-						<Button onclick={() => deleteStatus(status)} variant="destructive" size="sm">
+						<Button 
+							onclick={() => deleteStatus(status)} 
+							variant="destructive" 
+							size="sm"
+							disabled={isSystem}
+						>
 							<Trash class="h-4 w-4" />
 							Delete
 						</Button>
@@ -174,19 +163,29 @@
 							<span class="text-md font-semibold">{status.name}</span>
 							<span class="text-sm text-muted-foreground">
 								{#if status.isDefault}
-									<Check class="inline h-4 w-4" /> Default status
+									<Check class="inline h-4 w-4" /> Default
+								{/if}
+								{#if status.isResolved}
+									{#if status.isDefault}•{/if}
+									Resolved
 								{/if}
 								{#if status.isClosed}
-									• Closed status
+									{#if status.isDefault || status.isResolved}•{/if}
+									Closed
 								{/if}
-								{#if !status.isDefault && !status.isClosed}
+								{#if !isSystem}
 									{status.color}
 								{/if}
 							</span>
 						</div>
 					</div>
 					<div class="flex gap-2">
-						<Button onclick={() => deleteStatus(status)} variant="destructive" size="sm">
+						<Button 
+							onclick={() => deleteStatus(status)} 
+							variant="destructive" 
+							size="sm"
+							disabled={isSystem}
+						>
 							<Trash class="h-4 w-4" />
 						</Button>
 						<Button onclick={() => startEdit(status)} variant="secondary" size="sm">

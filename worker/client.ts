@@ -4,7 +4,6 @@ import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { type IMAP } from "$lib/types";
 import { decrypt } from '$lib/server/db/encrypt';
-import { getLogTimestamp } from '$lib/utils/date';
 
 let client: ImapFlow | null = null;
 
@@ -19,7 +18,7 @@ export async function getClient(): Promise<ImapFlow> {
     .where(eq(schema.config.key, 'imap'));
 
   if (!imap) {
-    throw new Error(`[${getLogTimestamp()}] IMAP configuration not found in database, exiting...`);
+    throw new Error('IMAP configuration not found in database');
   }
 
   const config = imap.value as IMAP;
@@ -38,3 +37,4 @@ export async function getClient(): Promise<ImapFlow> {
 
   return client;
 }
+

@@ -1,16 +1,16 @@
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { sendNotification } from '$lib/server/job-queue';
 import { getFileExtension, generateRandomString } from '$lib/utils/string';
 import { getTicketPrefix, generateTicketNumber } from '$lib/server/ticket';
-import { NotificationSettings, type Attachment } from '$lib/types';
+import { type Attachment } from '$lib/types';
 import { MailParser } from "mailparser";
 import { sanitize } from "./sanitize";
 import { getClient } from "./client";
 import { logger } from '$lib/server/logger';
 import path from "path";
 import fs from "fs";
+import { sendNotification } from '$lib/server/job-queue';
 
 const client = await getClient();
 
@@ -132,6 +132,7 @@ export async function processMessage(
 
           if (existingTicket) {
             ticket = existingTicket;
+            
           }
         }
 
@@ -300,67 +301,36 @@ export async function processMessage(
       await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
       logger.info({ uid }, 'Marked UID as seen');
 
-      // Get notification config
-      const [fetchNotificationConfig] = await db
-        .select()
-        .from(schema.config)
-        .where(eq(schema.config.key, 'notifications'));
-
-      if (!fetchNotificationConfig) {
-        logger.error('Could not create notifications, notification config not found');
-        throw new Error('Notification config not found');
-      }
-
-      const notificationConfig = fetchNotificationConfig.value as NotificationSettings;
-
-      if (notificationConfig.dashboard.ticket.created.notifyAllUsers && createdTicket) {
+      // if this message is just an update to an existing ticket
+      if (!createdTicket && ticket && ticket.assignedUserId) {
         await sendNotification({
-          title: "New Ticket",
-          message: `${ticket.ticketNumber}: ${ticket.subject}`,
-          allUsers: true,
-          type: "ticket",
-          channel: "dashboard",
-          relatedEntityType: "ticket",
-          relatedEntityId: ticket.id,
-          actionUrl: `/dashboard/tickets/${ticket.id}`,
-        });
-      }
-
-      if (notificationConfig.email.ticket.created.notifyAllUsers && createdTicket) {
+          title: `Ticket Updated`,
+          message: `New message from ${requester.name}`,
+          recipient: { userId: ticket.assignedUserId },
+          channels: ['dashboard', 'email'],
+          notification: {
+            type: 'entity',
+            event: 'updated',
+            entity: {
+              type: 'ticket',
+              id: ticket.id
+            }
+          }
+        })
+      } else if (createdTicket && ticket) {
         await sendNotification({
-          title: "New Ticket",
-          message: `${ticket.ticketNumber}: ${ticket.subject}`,
-          allUsers: true,
-          type: "ticket",
-          channel: "email",
-          relatedEntityType: "ticket",
-          relatedEntityId: ticket.id,
-          actionUrl: `/dashboard/tickets/${ticket.id}`,
-        });
-      }
-
-      if (notificationConfig.email.ticket.created.notifyRequester && createdTicket) {
-        await sendNotification({
-          title: "Your ticket #{ticketNumber} received",
-          message: `We've received your request: ${ticket.subject}`,
-          type: "ticket",
-          channel: "email",
-          email: from.address,
-          relatedEntityType: "ticket",
-          relatedEntityId: ticket.id,
-        });
-      }
-
-      if (notificationConfig.dashboard.ticket.updated.notifyUser && !createdTicket && ticket.assignedUserId) {
-        await sendNotification({
-          title: "Ticket Updated",
-          message: `Ticket ${ticket.id} has received a new response`,
-          userId: ticket.assignedUserId,
-          type: "ticket",
-          channel: "email",
-          relatedEntityType: "ticket",
-          relatedEntityId: ticket.id,
-          actionUrl: `/dashboard/tickets/${ticket.id}`
+          title: `Ticket Created`,
+          message: `Reported by ${requester.name}`,
+          recipient: { allUsers: true },
+          channels: ['dashboard', 'email'],
+          notification: {
+            type: 'entity',
+            event: 'created',
+            entity: {
+              type: 'ticket',
+              id: ticket.id
+            }
+          }
         });
       }
 

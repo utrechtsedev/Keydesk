@@ -77,7 +77,7 @@
 			response = await api.post('/api/tasks', { task: editableTask });
 			toast.success('Successfully created task.');
 		} else {
-			response = await api.patch('/api/tasks', { task: editableTask });
+			response = await api.patch(`/api/tasks/${editableTask.id}`, { task: editableTask });
 			toast.success('Successfully saved task.');
 		}
 

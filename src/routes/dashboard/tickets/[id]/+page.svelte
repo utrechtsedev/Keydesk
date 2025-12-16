@@ -52,7 +52,7 @@
 				formData.append('files', file);
 			});
 
-			const response = await api.post('/api/ticket-messages', formData, {
+			const response = await api.post(`/api/tickets/${ticket.id}/messages`, formData, {
 				headers: { 'Content-Type': 'multipart/form-data' }
 			});
 

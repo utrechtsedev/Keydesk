@@ -401,6 +401,20 @@ class DatabaseSeeder {
         banned: false,
         banReason: null,
         banExpires: null,
+        notificationPreferences: {
+          dashboard: {
+            ticketCreated: true,
+            itemAssigned: true,
+            itemUpdated: true,
+            itemClosed: true
+          },
+          email: {
+            ticketCreated: true,
+            itemAssigned: true,
+            itemUpdated: true,
+            itemClosed: true
+          }
+        }
       }).returning();
 
       this.createdUsers.push(user);

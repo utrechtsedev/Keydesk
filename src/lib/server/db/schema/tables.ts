@@ -167,6 +167,7 @@ export const status = pgTable("status", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 50 }).notNull(),
   color: varchar("color", { length: 7 }).notNull(),
+  isResolved: boolean("is_resolved").notNull(),
   isDefault: boolean("is_default").notNull(),
   isClosed: boolean("is_closed").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),

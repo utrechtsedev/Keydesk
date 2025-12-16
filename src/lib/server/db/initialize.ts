@@ -227,12 +227,12 @@ class DatabaseInitializer {
 
       if (existing.length === 0) {
         const statuses = [
-          { name: "New", color: "#3B82F6", isDefault: true, isClosed: false },
-          { name: "Open", color: "#10B981", isDefault: false, isClosed: false },
-          { name: "Pending", color: "#F59E0B", isDefault: false, isClosed: false },
-          { name: "On Hold", color: "#8B5CF6", isDefault: false, isClosed: false },
-          { name: "Resolved", color: "#059669", isDefault: false, isClosed: true },
-          { name: "Closed", color: "#6B7280", isDefault: false, isClosed: true },
+          { name: "New", color: "#3B82F6", isResolved: false, isDefault: true, isClosed: false },
+          { name: "Open", color: "#10B981", isResolved: false, isDefault: false, isClosed: false },
+          { name: "Pending", color: "#F59E0B", isResolved: false, isDefault: false, isClosed: false },
+          { name: "On Hold", color: "#8B5CF6", isResolved: false, isDefault: false, isClosed: false },
+          { name: "Resolved", color: "#059669", isResolved: true, isDefault: false, isClosed: false },
+          { name: "Closed", color: "#6B7280", isResolved: false, isDefault: false, isClosed: true },
         ];
 
         for (const status of statuses) {
