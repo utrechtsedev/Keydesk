@@ -41,10 +41,10 @@ export const columns: ColumnDef<TicketList>[] = [
     accessorKey: "ticketNumber",
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: "No."
+        onclick: column.getToggleSortingHandler(), text: "No.",
       }),
     meta: {
-      title: "Ticket Number"
+      title: "No."
     },
     enableHiding: false
   },

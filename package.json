@@ -55,6 +55,9 @@
     "vite": "^7.0.4"
   },
   "dependencies": {
+    "@dnd-kit-svelte/sortable": "^0.0.11",
+    "@dnd-kit-svelte/svelte": "^0.1.5",
+    "@dnd-kit-svelte/utilities": "^0.0.11",
     "@fontsource-variable/figtree": "^5.2.10",
     "@tanstack/table-core": "^8.21.3",
     "axios": "^1.12.2",

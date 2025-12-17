@@ -12,8 +12,23 @@
 		type RowSelectionState,
 		type SortingState,
 		type VisibilityState,
+		type ColumnOrderState,
 		getCoreRowModel
 	} from '@tanstack/table-core';
+	import {
+		DndContext,
+		DragOverlay,
+		type DragEndEvent,
+		type DragStartEvent,
+		type DragOverEvent
+	} from '@dnd-kit-svelte/core';
+	import {
+		SortableContext,
+		arrayMove,
+		horizontalListSortingStrategy
+	} from '@dnd-kit-svelte/sortable';
+	import { sensors } from '$lib/utils/sensors';
+	import SortableTableHeader from './sortable-table-header.svelte';
 	import Change from '$lib/icons/change.svelte';
 	import Connection2 from '$lib/icons/connection-2.svelte';
 	import Flag7 from '$lib/icons/flag-7.svelte';
@@ -37,6 +52,7 @@
 	import DataDeleteDialog from './data-delete-dialog.svelte';
 	import DataFilterDialog from './data-filter-dialog.svelte';
 	import Gear3 from '$lib/icons/gear-3.svelte';
+
 	type DataTableProps<TData, TValue> = {
 		columns: ColumnDef<TData, TValue>[];
 		data: TData[];
@@ -48,6 +64,7 @@
 		priorities: Priority[];
 		tags: Tag[];
 	};
+
 	let {
 		data,
 		columns,
@@ -60,21 +77,51 @@
 		tags
 	}: DataTableProps<TData, TValue> = $props();
 
+	// LocalStorage keys
+	const COLUMN_ORDER_KEY = 'table-column-order';
+	const COLUMN_VISIBILITY_KEY = 'table-column-visibility';
+
+	// Helper functions for localStorage
+	function saveToLocalStorage(key: string, value: any) {
+		try {
+			localStorage.setItem(key, JSON.stringify(value));
+		} catch (error) {
+			console.error('Failed to save to localStorage:', error);
+		}
+	}
+
+	function loadFromLocalStorage<T>(key: string, defaultValue: T): T {
+		try {
+			const item = localStorage.getItem(key);
+			return item ? JSON.parse(item) : defaultValue;
+		} catch (error) {
+			console.error('Failed to load from localStorage:', error);
+			return defaultValue;
+		}
+	}
+
+	// URL params
 	const currentPage = Number(page.url.searchParams.get('page')) || 1;
 	const currentPageSize = Number(page.url.searchParams.get('pageSize')) || 10;
 	const currentSortBy = page.url.searchParams.get('sortBy') || 'createdAt';
 	const currentSortOrder = page.url.searchParams.get('sortOrder') || 'DESC';
 	const currentSearch = page.url.searchParams.get('search') || '';
+
+	// State
+	let activeColumn = $state<string | null>(null);
 	let pageSizeValue = $state(String(currentPageSize));
 	let columnFilters = $state<ColumnFiltersState>([]);
 	let rowSelection = $state<RowSelectionState>({});
 	let globalFilter = $state<string>(currentSearch);
-	let columnVisibility = $state<VisibilityState>({
-		updatedAt: false,
-		priority_name: false,
-		firstResponseAt: false,
-		resolvedAt: false
-	});
+	let columnOrder = $state<ColumnOrderState>(loadFromLocalStorage(COLUMN_ORDER_KEY, []));
+	let columnVisibility = $state<VisibilityState>(
+		loadFromLocalStorage(COLUMN_VISIBILITY_KEY, {
+			updatedAt: false,
+			'priority-name': false,
+			'first-response-at': false,
+			'resolved-at': false
+		})
+	);
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let sorting = $state<SortingState>([
 		{ id: currentSortBy, desc: currentSortOrder.toUpperCase() === 'DESC' }
@@ -104,11 +151,35 @@
 		itemType: 'user'
 	});
 
+	// Effects
 	$effect(() => {
 		const urlPageSize = Number(page.url.searchParams.get('pageSize')) || 10;
 		pageSizeValue = String(urlPageSize);
 	});
 
+	// Initialize column order after table is created
+	$effect(() => {
+		if (columnOrder.length === 0) {
+			columnOrder = table
+				.getAllColumns()
+				.map((col) => col.id)
+				.filter((id) => id !== 'select' && id !== 'actions');
+		}
+	});
+
+	// Save column order to localStorage
+	$effect(() => {
+		if (columnOrder.length > 0) {
+			saveToLocalStorage(COLUMN_ORDER_KEY, columnOrder);
+		}
+	});
+
+	// Save column visibility to localStorage
+	$effect(() => {
+		saveToLocalStorage(COLUMN_VISIBILITY_KEY, columnVisibility);
+	});
+
+	// Helper functions
 	function getFilterParams(): string {
 		const filters: string[] = [];
 		const statusFilter = page.url.searchParams.get('status');
@@ -128,6 +199,30 @@
 		return filters.length > 0 ? `&${filters.join('&')}` : '';
 	}
 
+	function handleDragStart({ active }: DragStartEvent) {
+		activeColumn = active.id as string;
+	}
+
+	function handleDragOver({ active, over }: DragOverEvent) {
+		// Optional: Add visual feedback during drag
+    	if (!over || active.id === over.id) return;
+	
+	// Skip if over non-draggable columns
+	if (over.id === 'select' || over.id === 'actions') return;
+
+	const oldIndex = columnOrder.indexOf(active.id as string);
+	const newIndex = columnOrder.indexOf(over.id as string);
+
+	// Reorder in real-time as you drag over
+	if (oldIndex !== -1 && newIndex !== -1) {
+		columnOrder = arrayMove(columnOrder, oldIndex, newIndex);
+	}
+	}
+
+	function handleDragEnd({ active, over }: DragEndEvent) {
+			activeColumn = null;
+	}
+
 	function handlePageSizeChange(value: string | undefined) {
 		if (!value) return;
 
@@ -140,6 +235,7 @@
 		goto(`?page=1&pageSize=${newPageSize}${sortParams}${searchParam}${filterParams}`);
 	}
 
+	// Table instance
 	const table = createSvelteTable({
 		get data() {
 			return data;
@@ -170,6 +266,9 @@
 			},
 			get globalFilter() {
 				return globalFilter;
+			},
+			get columnOrder() {
+				return columnOrder;
 			}
 		},
 		manualPagination: true,
@@ -254,6 +353,13 @@
 					noScroll: true
 				});
 			}, 300);
+		},
+		onColumnOrderChange: (updater) => {
+			if (typeof updater === 'function') {
+				columnOrder = updater(columnOrder);
+			} else {
+				columnOrder = updater;
+			}
 		}
 	});
 </script>
@@ -402,49 +508,120 @@
 	</div>
 
 	<div class="rounded-md border">
-		<Table.Root>
-			<Table.Header>
-				{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-					<Table.Row>
-						{#each headerGroup.headers as header (header.id)}
-							<Table.Head class="[&:has([role=checkbox])]:pl-3">
-								{#if !header.isPlaceholder}
-									<FlexRender
-										content={header.column.columnDef.header}
-										context={header.getContext()}
-									/>
-								{/if}
-							</Table.Head>
-						{/each}
-					</Table.Row>
-				{/each}
-			</Table.Header>
+		<DndContext
+			{sensors}
+			onDragStart={handleDragStart}
+			onDragOver={handleDragOver}
+			onDragEnd={handleDragEnd}
+		>
+			<Table.Root>
+<Table.Header>
+	{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
+		{@const selectHeader = headerGroup.headers.find((h) => h.id === 'select')}
+		{@const actionsHeader = headerGroup.headers.find((h) => h.id === 'actions')}
+		{@const draggableHeaders = headerGroup.headers.filter(
+			(h) => h.id !== 'select' && h.id !== 'actions'
+		)}
 
-			<Table.Body>
-				{#each table.getRowModel().rows as row (row.id)}
-					<Table.Row
-						data-state={row.getIsSelected() && 'selected'}
-						onclick={(e: MouseEvent) => {
-							const target = e.target as HTMLElement;
-							if (target.closest('[role="checkbox"]') || target.closest('[data-cell-actions]')) {
-								return;
-							}
-							goto(`/dashboard/tickets/${(row.original as Ticket).id}`);
-						}}
-					>
-						{#each row.getVisibleCells() as cell (cell.id)}
-							<Table.Cell class="[&:has([role=checkbox])]:pl-3">
-								<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
-							</Table.Cell>
-						{/each}
-					</Table.Row>
-				{:else}
-					<Table.Row>
-						<Table.Cell colspan={columns.length} class="h-24 text-center">No results.</Table.Cell>
-					</Table.Row>
+		<Table.Row>
+			<!-- Select column (non-draggable, ALWAYS FIRST) -->
+			{#if selectHeader}
+				<Table.Head class="[&:has([role=checkbox])]:pl-3">
+					{#if !selectHeader.isPlaceholder}
+						<FlexRender
+							content={selectHeader.column.columnDef.header}
+							context={selectHeader.getContext()}
+						/>
+					{/if}
+				</Table.Head>
+			{/if}
+
+			<!-- Draggable columns in the middle -->
+			<SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
+				{#each draggableHeaders as header (header.id)}
+					<SortableTableHeader id={header.id}>
+						{#if !header.isPlaceholder}
+							<FlexRender
+								content={header.column.columnDef.header}
+								context={header.getContext()}
+							/>
+						{/if}
+					</SortableTableHeader>
 				{/each}
-			</Table.Body>
-		</Table.Root>
+			</SortableContext>
+
+			<!-- Actions column (non-draggable, ALWAYS LAST) -->
+			{#if actionsHeader}
+				<Table.Head>
+					{#if !actionsHeader.isPlaceholder}
+						<FlexRender
+							content={actionsHeader.column.columnDef.header}
+							context={actionsHeader.getContext()}
+						/>
+					{/if}
+				</Table.Head>
+			{/if}
+		</Table.Row>
+	{/each}
+</Table.Header><Table.Body>
+	{#each table.getRowModel().rows as row (row.id)}
+		{@const selectCell = row.getVisibleCells().find((c) => c.column.id === 'select')}
+		{@const actionsCell = row.getVisibleCells().find((c) => c.column.id === 'actions')}
+		{@const draggableCells = row
+			.getVisibleCells()
+			.filter((c) => c.column.id !== 'select' && c.column.id !== 'actions')}
+		
+		<Table.Row
+			data-state={row.getIsSelected() && 'selected'}
+			onclick={(e) => {
+				const target = e.target as HTMLElement;
+				if (
+					target.closest('[role="checkbox"]') ||
+					target.closest('[data-cell-actions]')
+				) {
+					return;
+				}
+				goto(`/dashboard/tickets/${(row.original as Ticket).id}`);
+			}}
+		>
+			<!-- Select cell (always first) -->
+			{#if selectCell}
+				<Table.Cell class="[&:has([role=checkbox])]:pl-3">
+					<FlexRender content={selectCell.column.columnDef.cell} context={selectCell.getContext()} />
+				</Table.Cell>
+			{/if}
+
+			<!-- Draggable cells in order -->
+			{#each draggableCells as cell (cell.id)}
+				<Table.Cell class="[&:has([role=checkbox])]:pl-3">
+					<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+				</Table.Cell>
+			{/each}
+
+			<!-- Actions cell (always last) -->
+			{#if actionsCell}
+				<Table.Cell>
+					<FlexRender content={actionsCell.column.columnDef.cell} context={actionsCell.getContext()} />
+				</Table.Cell>
+			{/if}
+		</Table.Row>
+	{:else}
+		<Table.Row>
+			<Table.Cell colspan={columns.length} class="h-24 text-center">No results.</Table.Cell>
+		</Table.Row>
+	{/each}
+</Table.Body>			</Table.Root>
+
+			<DragOverlay>
+				{#if activeColumn}
+					{@const column = table.getAllColumns().find((col) => col.id === activeColumn)}
+					{@const title = column?.columnDef.meta?.title || activeColumn}
+					<div class="bg-background border rounded-md shadow-lg px-4 py-2 opacity-90 font-medium">
+						{title}
+					</div>
+				{/if}
+			</DragOverlay>
+		</DndContext>
 	</div>
 
 	<div class="flex items-center justify-between pt-4">

@@ -23,8 +23,6 @@ export const load: PageServerLoad = async ({ url, depends }) => {
 
   if (statusFilter) {
     conditions.push(eq(schema.ticket.statusId, Number(statusFilter)));
-  } else {
-    conditions.push(inArray(schema.ticket.statusId, [0, 1, 2, 3]));
   }
 
   if (priorityFilter) {
@@ -103,7 +101,6 @@ export const load: PageServerLoad = async ({ url, depends }) => {
       orderByClause = orderFn(schema.ticket.createdAt);
   }
 
-  // Use select with joins instead of query API for proper sorting
   const tickets = await db
     .select({
       id: schema.ticket.id,
