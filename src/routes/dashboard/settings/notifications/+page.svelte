@@ -119,11 +119,11 @@
 					</div>
 
 					<!-- Other dashboard events -->
-					{#each dashboardEvents as event}
+					{#each dashboardEvents as event, i (i)}
 						<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 							<span class="text-sm font-medium">{event.title}</span>
 							<div class="flex w-full items-center gap-4 sm:w-[190px] sm:gap-6">
-								{#each event.options as option}
+								{#each event.options as option, i (i)}
 									<div class="flex shrink-0 items-center gap-2">
 										<Checkbox
 											id="dashboard-{event.key}-{option.key}"
@@ -187,11 +187,11 @@
 					</div>
 
 					<!-- Other email events -->
-					{#each emailEvents as event}
+					{#each emailEvents as event, i (i)}
 						<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 							<span class="text-sm font-medium">{event.title}</span>
 							<div class="flex w-full flex-wrap items-center gap-4 sm:w-[340px] sm:gap-6">
-								{#each event.options as option}
+								{#each event.options as option, i (i)}
 									<div class="flex shrink-0 items-center gap-2">
 										<Checkbox
 											id="email-{event.key}-{option.key}"

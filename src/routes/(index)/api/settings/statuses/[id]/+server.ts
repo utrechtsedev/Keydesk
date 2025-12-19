@@ -1,12 +1,12 @@
-import type { RequestHandler } from "./$types";
-import * as schema from "$lib/server/db/schema"
-import { db } from "$lib/server/db/database";
-import { eq, sql } from "drizzle-orm";
-import { json } from "@sveltejs/kit";
+import type { RequestHandler } from './$types';
+import * as schema from '$lib/server/db/schema';
+import { db } from '$lib/server/db/database';
+import { eq, sql } from 'drizzle-orm';
+import { json } from '@sveltejs/kit';
 import {
   ConflictError,
   NotFoundError,
-  ValidationError } from "$lib/server/errors";
+  ValidationError } from '$lib/server/errors';
 
 export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
   const id = Number(params.id);

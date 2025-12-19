@@ -1,12 +1,12 @@
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import type { Task as TaskType } from "$lib/types";
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { eq } from "drizzle-orm";
-import { requireAuth } from "$lib/server/auth-helpers";
-import { NotFoundError, ValidationError } from "$lib/server/errors";
-import { sendNotification } from "$lib/server/job-queue";
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import type { Task as TaskType } from '$lib/types';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
+import { requireAuth } from '$lib/server/auth-helpers';
+import { NotFoundError, ValidationError } from '$lib/server/errors';
+import { sendNotification } from '$lib/server/job-queue';
 
 export const PATCH: RequestHandler = async ({ request, locals, params }): Promise<Response> => {
   const taskId = Number(params.id);
@@ -232,4 +232,5 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
     task: updatedTask.task 
   });
 };
+
 

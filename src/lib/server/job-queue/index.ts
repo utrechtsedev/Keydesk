@@ -31,11 +31,11 @@ async function checkRedisConnection(): Promise<boolean> {
     await client.connect();
     await client.ping();
     await client.quit();
-    isRedisAvailable = true
+    isRedisAvailable = true;
 
     logger.info('Redis connection successful - Queue mode enabled');
     return true;
-  } catch (error) {
+  } catch {
     logger.warn('Redis not available - Running in direct execution mode');
     return false;
   }
@@ -57,7 +57,7 @@ export async function initializeQueue(): Promise<void> {
 // JOB HANDLER REGISTRY
 // ============================================================================
 
-type JobHandler = (data: any) => Promise<void>;
+type JobHandler = (data: unknown) => Promise<void>;
 const handlers = new Map<string, JobHandler>();
 
 /**
@@ -89,7 +89,7 @@ interface EnqueueOptions {
  */
 export async function enqueue(
   type: string,
-  data: any,
+  data: unknown,
   options?: EnqueueOptions
 ): Promise<void> {
   if (isRedisAvailable && queue) {
@@ -134,7 +134,7 @@ export async function enqueue(
  * Start the worker (only if Redis is available)
  */
 export async function startJobWorker(): Promise<Worker | null> {
-  await checkRedisConnection()
+  await checkRedisConnection();
   if (!isRedisAvailable) {
     logger.warn('Worker not started - Redis not available');
     return null;
@@ -181,6 +181,3 @@ export async function startJobWorker(): Promise<Worker | null> {
 export async function sendNotification(data: NotificationOptions, options?: EnqueueOptions): Promise<void> {
   await enqueue('send-notification', data, options);
 }
-
-
-

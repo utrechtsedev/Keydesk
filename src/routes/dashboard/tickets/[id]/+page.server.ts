@@ -1,8 +1,8 @@
-import type { PageServerLoad } from "./$types";
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { eq, desc } from "drizzle-orm";
-import { redirect } from "@sveltejs/kit";
+import type { PageServerLoad } from './$types';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { eq, desc } from 'drizzle-orm';
+import { redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, depends }) => {
   depends('app:ticket');

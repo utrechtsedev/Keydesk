@@ -4,12 +4,12 @@ import { eq, sql, and, gte } from 'drizzle-orm';
 import { getFileExtension, generateRandomString } from '$lib/utils/string';
 import { getTicketPrefix, generateTicketNumber } from '$lib/server/ticket';
 import { type Attachment } from '$lib/types';
-import { MailParser } from "mailparser";
-import { sanitize } from "./sanitize";
-import { getClient } from "./client";
+import { MailParser } from 'mailparser';
+import { sanitize } from './sanitize';
+import { getClient } from './client';
 import { logger } from '$lib/server/logger';
-import path from "path";
-import fs from "fs";
+import path from 'path';
+import fs from 'fs';
 import { sendNotification } from '$lib/server/job-queue';
 import { archiveEmail, markEmailFailed, updateArchivedEmail } from './archive';
 
@@ -54,8 +54,8 @@ export async function processMessage(
   options: Attachment,
 ): Promise<void> {
 
-  const [openStatus] = await db.select().from(schema.status).where(eq(schema.status.isDefault, true))
-  if (!openStatus) throw new Error('Status configuration is not available. Cancelling all email processing')
+  const [openStatus] = await db.select().from(schema.status).where(eq(schema.status.isDefault, true));
+  if (!openStatus) throw new Error('Status configuration is not available. Cancelling all email processing');
 
   for (const uid of unseenUIDs) {
     let archivedEmail: schema.Email | null = null;
@@ -139,7 +139,7 @@ export async function processMessage(
               requesterId: requester.id,
               assignedUserId: null,
               subject: message.envelope!.subject!,
-              channel: "email",
+              channel: 'email',
               statusId: openStatus.id,
               priorityId: 1,
               firstResponseAt: null,
@@ -198,14 +198,14 @@ export async function processMessage(
         .insert(schema.ticketMessage)
         .values({
           ticketId: ticket.id,
-          senderType: "requester",
+          senderType: 'requester',
           requesterId: requester.id,
           senderName: requester.name || null,
           senderEmail: requester.email,
           userId: null,
           message: sanitize(emailContent.html, emailContent.text),
           isPrivate: false,
-          channel: "email",
+          channel: 'email',
           isFirstResponse: false,
           hasAttachments: attachmentData.length > 0,
         })
@@ -220,7 +220,7 @@ export async function processMessage(
           filePath: attachment.filePath,
           fileSize: attachment.size,
           mimeType: attachment.mimeType,
-          uploadedByType: "requester",
+          uploadedByType: 'requester',
           uploadedById: requester.id,
           uploadedByName: requester.name || requester.email,
           downloadCount: 0,
@@ -241,7 +241,7 @@ export async function processMessage(
       // if this message is just an update to an existing ticket
       if (!createdTicket && ticket && ticket.assignedUserId) {
         await sendNotification({
-          title: `Ticket Updated`,
+          title: 'Ticket Updated',
           message: `New message from ${requester.name}`,
           recipient: { userId: ticket.assignedUserId },
           channels: ['dashboard', 'email'],
@@ -253,10 +253,10 @@ export async function processMessage(
               id: ticket.id
             }
           }
-        })
+        });
       } else if (createdTicket && ticket) {
         await sendNotification({
-          title: `Ticket Created`,
+          title: 'Ticket Created',
           message: `Reported by ${requester.name}`,
           recipient: { allUsers: true },
           channels: ['dashboard', 'email'],
@@ -300,8 +300,8 @@ async function parseEmailContent(
   return new Promise((resolve, reject) => {
     const parser = new MailParser();
 
-    let emailContent = { html: '', text: '' };
-    let attachmentData: Array<{
+    const emailContent = { html: '', text: '' };
+    const attachmentData: Array<{
       fileId: string;
       storedFilename: string;
       originalFilename: string;

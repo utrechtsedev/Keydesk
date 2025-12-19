@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations } from 'drizzle-orm';
 import {
   user,
   session,
@@ -16,7 +16,7 @@ import {
   taskTag,
   notification,
   userNotification,
-} from "./tables";
+} from './tables';
 
 // ============================================================================
 // RELATIONS
@@ -43,7 +43,7 @@ export const accountRelations = relations(account, ({ one }) => ({
 
 export const requesterRelations = relations(requester, ({ many }) => ({
   requestedTickets: many(ticket),
-  requesterMessages: many(ticketMessage, { relationName: "message_requester" }),
+  requesterMessages: many(ticketMessage, { relationName: 'message_requester' }),
 }));
 
 export const categoryRelations = relations(category, ({ many }) => ({
@@ -68,7 +68,7 @@ export const ticketRelations = relations(ticket, ({ one, many }) => ({
   assignedUser: one(user, {
     fields: [ticket.assignedUserId],
     references: [user.id],
-    relationName: "assigned_user",
+    relationName: 'assigned_user',
   }),
   status: one(status, {
     fields: [ticket.statusId],
@@ -97,12 +97,12 @@ export const ticketMessageRelations = relations(ticketMessage, ({ one, many }) =
   messageUser: one(user, {
     fields: [ticketMessage.userId],
     references: [user.id],
-    relationName: "message_user",
+    relationName: 'message_user',
   }),
   messageRequester: one(requester, {
     fields: [ticketMessage.requesterId],
     references: [requester.id],
-    relationName: "message_requester",
+    relationName: 'message_requester',
   }),
   messageAttachments: many(ticketAttachment),
 }));
@@ -142,18 +142,18 @@ export const taskRelations = relations(task, ({ one, many }) => ({
   parentTask: one(task, {
     fields: [task.parentTaskId],
     references: [task.id],
-    relationName: "task_parent",
+    relationName: 'task_parent',
   }),
-  subtasks: many(task, { relationName: "task_parent" }),
+  subtasks: many(task, { relationName: 'task_parent' }),
   assignee: one(user, {
     fields: [task.assigneeId],
     references: [user.id],
-    relationName: "task_assignee",
+    relationName: 'task_assignee',
   }),
   creator: one(user, {
     fields: [task.createdById],
     references: [user.id],
-    relationName: "task_creator",
+    relationName: 'task_creator',
   }),
   status: one(status, {
     fields: [task.statusId],
@@ -181,7 +181,7 @@ export const notificationRelations = relations(notification, ({ one, many }) => 
   creator: one(user, {
     fields: [notification.createdById],
     references: [user.id],
-    relationName: "notification_creator",
+    relationName: 'notification_creator',
   }),
   relatedTicket: one(ticket, {
     fields: [notification.relatedEntityId],

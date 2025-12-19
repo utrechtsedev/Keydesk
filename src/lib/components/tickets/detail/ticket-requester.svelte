@@ -23,7 +23,7 @@
 		email: string;
 		phone: string | null | undefined;
 		requester: Requester;
-		handleSave?: () => Promise<any>;
+		handleSave?: () => Promise<void>;
 		highlight?: boolean;
 	} = $props();
 

@@ -14,7 +14,7 @@
 	let attachments: Attachment = $state(data.attachments);
 
 	async function handleSave() {
-		const response = await api.post('/api/settings/attachments', { attachments });
+		await api.post('/api/settings/attachments', { attachments });
 		toast.success('Successfully saved attachment settings.');
 	}
 </script>

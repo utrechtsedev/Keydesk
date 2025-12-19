@@ -81,10 +81,10 @@
 </script>
 
 <div class="flex flex-col gap-4 md:flex-row">
-	<Card.Root class="w-full self-start md:w-auto md:max-w-[300px] md:min-w-[250px]">
+	<Card.Root class="w-full self-start md:w-auto md:max-w-75 md:min-w-62.5">
 		<Card.Content class="px-3">
 			<nav class="space-y-1">
-				{#each routes as route}
+				{#each routes as route, i (i)}
 					{@const isActive = page.url.pathname === route.path}
 					<a
 						href={route.path}

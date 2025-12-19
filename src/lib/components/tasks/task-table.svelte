@@ -16,13 +16,11 @@
 	import api from '$lib/utils/axios';
 
 	const {
-		tasks,
 		users,
 		priorities,
 		parentTasks,
 		statuses
 	}: {
-		tasks: Task[];
 		users: User[];
 		statuses: Status[];
 		parentTasks: Task[];
@@ -78,11 +76,11 @@
 				</Table.Row>
 			</Table.Header>
 			<Table.Body>
-				{#each displayedTasks as task}
+				{#each displayedTasks as task (task.id)}
 					<Table.Row>
-						<Table.Cell class="max-w-[300px] min-w-[300px] truncate">{task.title}</Table.Cell>
+						<Table.Cell class="max-w-75 min-w-75 truncate">{task.title}</Table.Cell>
 						{#if task.assignee}
-							<Table.Cell class="max-w-[200px] min-w-[200px] truncate font-light">
+							<Table.Cell class="max-w-75 min-w-75 truncate font-light">
 								{task.assignee.name}
 							</Table.Cell>
 						{:else}-{/if}
@@ -146,14 +144,14 @@
 					</Table.Row>
 
 					{#if expandedTasks[task.id] && task.subtasks}
-						{#each task.subtasks as subtask}
+						{#each task.subtasks as subtask (subtask.id)}
 							<Table.Row class="bg-muted/20">
 								<Table.Cell>
 									<span class="text-muted-foreground">└─</span>
 									{subtask.title}
 								</Table.Cell>
 								{#if subtask.assignee}
-									<Table.Cell class="max-w-[200px] min-w-[200px] truncate font-light">
+									<Table.Cell class="max-w-50 min-w-50 truncate font-light">
 										{subtask.assignee.name}
 									</Table.Cell>
 								{:else}-{/if}

@@ -1,9 +1,9 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { ValidationError } from "$lib/server/errors";
-import type { Holiday } from "$lib/types";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { ValidationError } from '$lib/server/errors';
+import type { Holiday } from '$lib/types';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
 
 type HolidayType = Omit<Holiday, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -11,7 +11,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { holidays } = await request.json() as { holidays: HolidayType[] };
 
   if (!holidays)
-    throw new ValidationError('Holiday settings are required')
+    throw new ValidationError('Holiday settings are required');
 
   const [config] = await db
     .insert(schema.config)

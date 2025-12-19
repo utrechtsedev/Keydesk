@@ -1,4 +1,4 @@
-import { scryptAsync } from "@noble/hashes/scrypt.js";
+import { scryptAsync } from '@noble/hashes/scrypt.js';
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -38,7 +38,7 @@ const config = {
 };
 
 async function generateKey(password: string, salt: string) {
-  return await scryptAsync(password.normalize("NFKC"), salt, {
+  return await scryptAsync(password.normalize('NFKC'), salt, {
     N: config.N,
     p: config.p,
     r: config.r,
@@ -60,9 +60,9 @@ export const verifyPassword = async ({
   hash: string;
   password: string;
 }) => {
-  const [salt, key] = hash.split(":");
+  const [salt, key] = hash.split(':');
   if (!salt || !key) {
-    throw new Error("Invalid password hash");
+    throw new Error('Invalid password hash');
   }
   const targetKey = await generateKey(password, salt);
   return constantTimeEqual(targetKey, hexToBytes(key));

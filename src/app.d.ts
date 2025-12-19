@@ -1,5 +1,5 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
-import type { Session, User as BetterAuthUser } from "better-auth";
+import type { Session, User as BetterAuthUser } from 'better-auth';
 
 interface User extends Omit<BetterAuthUser, 'id'> {
   id: number;
@@ -20,4 +20,5 @@ declare global {
 }
 
 export { };
+
 

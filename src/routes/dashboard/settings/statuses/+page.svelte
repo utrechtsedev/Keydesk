@@ -108,7 +108,7 @@
 	</div>
 
 	<div class="grid">
-		{#each statuses as status, index}
+		{#each statuses as status, index (index)}
 			{@const isFirst = index === 0}
 			{@const isEditing = editing === status}
 			{@const isSystem = isSystemStatus(status)}

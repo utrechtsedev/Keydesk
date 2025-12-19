@@ -28,7 +28,6 @@
 
 	<div class="w-full">
 		<TaskTable
-			{tasks}
 			priorities={data.priorities}
 			statuses={data.statuses}
 			{parentTasks}

@@ -1,12 +1,12 @@
-import { requireAuth } from "$lib/server/auth-helpers";
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { NotFoundError, ValidationError } from "$lib/server/errors";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import { eq, and, inArray } from "drizzle-orm";
+import { requireAuth } from '$lib/server/auth-helpers';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { NotFoundError, ValidationError } from '$lib/server/errors';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { eq, and, inArray } from 'drizzle-orm';
 
 export const PATCH: RequestHandler = async ({ request, locals }) => {
-  const { user } = requireAuth(locals)
+  const { user } = requireAuth(locals);
 
   const { ids } = await request.json() as { ids: number[] };
 
@@ -42,7 +42,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 };
 
 export const DELETE: RequestHandler = async ({ request, locals }) => {
-  const { user } = requireAuth(locals)
+  const { user } = requireAuth(locals);
 
   const { ids } = await request.json() as { ids: number[] };
 
@@ -63,7 +63,7 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
   const deletedCount = deleted.length;
 
   if (deletedCount === 0)
-    throw new NotFoundError('No notifications were deleted. They may not exist or you may not have permission.')
+    throw new NotFoundError('No notifications were deleted. They may not exist or you may not have permission.');
 
 
   return json({

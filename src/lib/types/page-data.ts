@@ -1,5 +1,5 @@
-import type { TicketList } from "./ticket-list";
-import type { Category, Priority, Status, Tag, Task, User, UserNotification } from "./core";
+import type { TicketList } from './ticket-list';
+import type { Category, Priority, Status, Tag, Task, User, UserNotification } from './core';
 
 export interface PageData {
   user: User;

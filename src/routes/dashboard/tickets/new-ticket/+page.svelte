@@ -2,7 +2,7 @@
 	import * as Rename from '$lib/components/ui/rename';
 	import { Button } from '$lib/components/ui/button';
 	import TicketIcon from '$lib/icons/ticket.svelte';
-	import type { Category, Priority, Status, TicketDetail, User } from '$lib/types';
+	import type { TicketDetail } from '$lib/types';
 	import TicketRequester from '$lib/components/tickets/detail/ticket-requester.svelte';
 	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
 	import TicketInput from '$lib/components/tickets/detail/ticket-input.svelte';
@@ -13,13 +13,7 @@
 	const {
 		data
 	}: {
-		data: {
-			ticket: TicketDetail;
-			priorities: Priority[];
-			users: User[];
-			statuses: Status[];
-			categories: Category[];
-		};
+		data: TicketDetail;
 	} = $props();
 
 	let ticket = $state({

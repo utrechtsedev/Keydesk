@@ -9,7 +9,7 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
-  const { user } = requireAuth(locals)
+  const { user } = requireAuth(locals);
 
   const formData = await request.formData();
   const subject = formData.get('subject') as string;
@@ -28,7 +28,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 
     // Validation
     if (!subject || subject.trim() === '')
-      throw new ValidationError('Subject is required.')
+      throw new ValidationError('Subject is required.');
 
 
     if (!message || message.trim() === '')
@@ -49,7 +49,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     if (!targetDate)
       throw new ValidationError('Target date is required.');
 
-    let isPrivateValue = JSON.parse(isPrivate);
+    const isPrivateValue = JSON.parse(isPrivate);
 
     if (typeof isPrivateValue !== 'boolean')
       throw new ValidationError('Invalid privacy setting format.');
@@ -77,7 +77,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
         requesterId: Number(requesterId),
         assignedUserId: assignedUserId ? parseInt(assignedUserId, 10) : null,
         subject,
-        channel: channel as "email" | "portal" | "user",
+        channel: channel as 'email' | 'portal' | 'user',
         statusId: Number(statusId),
         priorityId: Number(priorityId),
         categoryId: Number(categoryId),

@@ -1,15 +1,15 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { ValidationError } from "$lib/server/errors";
-import type { Portal } from "$lib/types";
-import { error, json, type RequestHandler } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { ValidationError } from '$lib/server/errors';
+import type { Portal } from '$lib/types';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { portal } = await request.json() as { portal: Portal };
 
   if (!portal)
-    throw new ValidationError('Portal settings are required.')
+    throw new ValidationError('Portal settings are required.');
 
   const [config] = await db
     .insert(schema.config)

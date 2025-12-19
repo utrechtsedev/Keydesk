@@ -43,7 +43,7 @@
 						'Content-Type': 'multipart/form-data'
 					}
 				});
-			} catch (error) {
+			} catch {
 				alert('Image too large');
 			} finally {
 				uploading = false;

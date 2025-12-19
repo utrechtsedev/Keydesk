@@ -1,12 +1,12 @@
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import type { Task as TaskType } from "$lib/types";
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { eq } from "drizzle-orm";
-import { requireAuth } from "$lib/server/auth-helpers";
-import { NotFoundError, ValidationError } from "$lib/server/errors";
-import { sendNotification } from "$lib/server/job-queue";
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import type { Task as TaskType } from '$lib/types';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
+import { requireAuth } from '$lib/server/auth-helpers';
+import { NotFoundError, ValidationError } from '$lib/server/errors';
+import { sendNotification } from '$lib/server/job-queue';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
   const { user } = requireAuth(locals);
@@ -114,19 +114,20 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
       message: `Assigned to you by ${user.name}: ${task.title}`,
       recipient: { userId: createdTask.assigneeId },
       notification: {
-        type: "entity", 
-        event: "created", 
+        type: 'entity', 
+        event: 'created', 
         entity: { 
-          type: "task", 
+          type: 'task', 
           id: createdTask.id 
         } 
       },
-    })
+    });
 
   return json({
     success: true,
     task: taskWithTags
   }, { status: 201 });
 };
+
 
 

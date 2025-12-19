@@ -79,7 +79,7 @@
 	</div>
 
 	<div class="grid">
-		{#each categories as category, index}
+		{#each categories as category, index (index)}
 			{@const isFirst = index === 0}
 			{@const isEditing = editing === category}
 

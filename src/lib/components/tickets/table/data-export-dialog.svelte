@@ -119,16 +119,10 @@
 		dateTo = '';
 		includeResolved = true;
 	}
-
-	function handleOpenChange(newOpen: boolean) {
-		if (!newOpen && !isExporting) {
-			resetFilters();
-		}
-	}
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
+	<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-150">
 		<Dialog.Header>
 			<Dialog.Title>Export Tickets</Dialog.Title>
 			<Dialog.Description>Configure filters and export tickets to CSV format.</Dialog.Description>

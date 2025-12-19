@@ -18,7 +18,6 @@
 	import {
 		DndContext,
 		DragOverlay,
-		type DragEndEvent,
 		type DragStartEvent,
 		type DragOverEvent
 	} from '@dnd-kit-svelte/core';
@@ -82,7 +81,7 @@
 	const COLUMN_VISIBILITY_KEY = 'table-column-visibility';
 
 	// Helper functions for localStorage
-	function saveToLocalStorage(key: string, value: any) {
+	function saveToLocalStorage(key: string, value: unknown) {
 		try {
 			localStorage.setItem(key, JSON.stringify(value));
 		} catch (error) {
@@ -219,7 +218,7 @@
 	}
 	}
 
-	function handleDragEnd({ active, over }: DragEndEvent) {
+	function handleDragEnd() {
 			activeColumn = null;
 	}
 
@@ -240,7 +239,7 @@
 		get data() {
 			return data;
 		},
-		columns,
+				columns,
 		get pageCount() {
 			return pageCount;
 		},

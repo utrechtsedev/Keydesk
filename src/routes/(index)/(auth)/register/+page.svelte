@@ -100,7 +100,7 @@
 					>
 						<div
 							class={cn(
-								`h-full transition-all duration-500 ease-out`,
+								'h-full transition-all duration-500 ease-out',
 								passwordStrength.strengthColor
 							)}
 							style:width="{(passwordStrength.strengthScore / 4) * 100}%"

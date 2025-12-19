@@ -16,7 +16,7 @@
 	}
 </script>
 
-{#each messages as message}
+{#each messages as message (message.id)}
 	<Card.Root>
 		<Card.Content class="flex flex-col space-y-2">
 			{#if message.messageUser}
@@ -45,12 +45,13 @@
 					<span class="text-sm font-light">{formatDate(message.createdAt)}</span>
 				</div>
 			{/if}
-			<div class="max-w-full min-w-0 overflow-hidden font-light break-words">
+			<div class="max-w-full min-w-0 overflow-hidden font-light wrap-break-word">
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				{@html message.message}
 			</div>
 			{#if message.messageAttachments.length > 0}
 				<div class="mt-auto flex gap-1 overflow-x-auto">
-					{#each message.messageAttachments as attachment}
+					{#each message.messageAttachments as attachment (attachment.id)}
 						<div
 							class="flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border bg-gray-100 px-2 py-1 whitespace-nowrap shadow-lg dark:bg-input/30"
 							role="button"

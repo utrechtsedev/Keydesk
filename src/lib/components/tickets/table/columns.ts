@@ -1,13 +1,14 @@
-import { renderComponent, renderSnippet } from "$lib/components/ui/data-table";
-import type { TicketList } from "$lib/types";
-import type { ColumnDef } from "@tanstack/table-core";
-import { createRawSnippet } from "svelte";
+import { renderComponent, renderSnippet } from '$lib/components/ui/data-table';
+import type { TicketList } from '$lib/types';
+import type { ColumnDef } from '@tanstack/table-core';
+import { createRawSnippet } from 'svelte';
 import DataTableCheckbox from './data-table-checkbox.svelte';
 import DataTableActions from './data-table-actions.svelte';
-import { darkenColor } from "$lib/utils/color";
-import DataTableSortButton from "./data-table-sort-button.svelte";
+import { darkenColor } from '$lib/utils/color';
+import DataTableSortButton from './data-table-sort-button.svelte';
 
 declare module '@tanstack/table-core' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData, TValue> {
     title?: string;
   }
@@ -37,49 +38,49 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
-    id: "ticket-number",
-    accessorKey: "ticketNumber",
+    id: 'ticket-number',
+    accessorKey: 'ticketNumber',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: "No.",
+        onclick: column.getToggleSortingHandler(), text: 'No.',
       }),
     meta: {
-      title: "No."
+      title: 'No.'
     },
     enableHiding: false
   },
   {
-    id: "requester-name",
-    accessorKey: "requester.name",
+    id: 'requester-name',
+    accessorKey: 'requester.name',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: "Requester"
+        onclick: column.getToggleSortingHandler(), text: 'Requester'
       }),
     cell: ({ row }) => {
-      if (!row.original.requester.name) return "-"
-      return row.original.requester.name
+      if (!row.original.requester.name) return '-';
+      return row.original.requester.name;
     },
     meta: {
-      title: "Requester"
+      title: 'Requester'
     },
   },
   {
-    id: "subject",
-    accessorKey: "subject",
+    id: 'subject',
+    accessorKey: 'subject',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Subject`
+        onclick: column.getToggleSortingHandler(), text: 'Subject'
       }),
     meta: {
       title: 'Subject'
     }
   },
   {
-    id: "category-name",
-    accessorKey: "category.name",
+    id: 'category-name',
+    accessorKey: 'category.name',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Category`
+        onclick: column.getToggleSortingHandler(), text: 'Category'
       }),
     enableGlobalFilter: false,
     meta: {
@@ -87,15 +88,15 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
-    id: "user-name",
-    accessorKey: "user.name",
+    id: 'user-name',
+    accessorKey: 'user.name',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Assignee`
+        onclick: column.getToggleSortingHandler(), text: 'Assignee'
       }),
     cell: ({ row }) => {
-      if (!row.original.assignedUser) return '-'
-      return row.original.assignedUser.name
+      if (!row.original.assignedUser) return '-';
+      return row.original.assignedUser.name;
     },
     enableGlobalFilter: false,
     meta: {
@@ -103,17 +104,17 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
-    id: "status-name",
-    accessorKey: "status.name",
+    id: 'status-name',
+    accessorKey: 'status.name',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Status`
+        onclick: column.getToggleSortingHandler(), text: 'Status'
       }),
     cell: ({ row }) => {
       const statusCellSnippet = createRawSnippet(() => ({
         render: () => `<div class="flex items-center" style="color: ${row.original.status.color};"><div style="background-color: ${darkenColor(row.original.status.color, 20)};" class="w-1.5 h-1.5 rounded-full mr-1"></div><span>${row.original.status.name}</span></div>`
-      }))
-      return renderSnippet(statusCellSnippet)
+      }));
+      return renderSnippet(statusCellSnippet);
     },
     enableGlobalFilter: false,
     meta: {
@@ -121,17 +122,17 @@ export const columns: ColumnDef<TicketList>[] = [
     },
   },
   {
-    id: "priority-name",
-    accessorKey: "priority.name",
+    id: 'priority-name',
+    accessorKey: 'priority.name',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Priority`
+        onclick: column.getToggleSortingHandler(), text: 'Priority'
       }),
     cell: ({ row }) => {
       const statusCellSnippet = createRawSnippet(() => ({
         render: () => `<div class="flex items-center" style="color: ${row.original.priority.color};"><div style="background-color: ${darkenColor(row.original.priority.color, 20)};" class="w-1.5 h-1.5 rounded-full mr-1"></div><span>${row.original.priority.name}</span></div>`
-      }))
-      return renderSnippet(statusCellSnippet)
+      }));
+      return renderSnippet(statusCellSnippet);
     },
     enableGlobalFilter: false,
     meta: {
@@ -139,15 +140,15 @@ export const columns: ColumnDef<TicketList>[] = [
     },
   },
   {
-    id: "resolved-at",
-    accessorKey: "resolvedAt",
+    id: 'resolved-at',
+    accessorKey: 'resolvedAt',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Resolved At`
+        onclick: column.getToggleSortingHandler(), text: 'Resolved At'
       }),
     cell: ({ row }) => {
       const timestamp = row.original.resolvedAt;
-      if (!timestamp) return "-";
+      if (!timestamp) return '-';
 
       const date = new Date(timestamp);
       const year = date.getFullYear();
@@ -164,15 +165,15 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
-    id: "first-response-at",
-    accessorKey: "firstResponseAt",
+    id: 'first-response-at',
+    accessorKey: 'firstResponseAt',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `First Response`
+        onclick: column.getToggleSortingHandler(), text: 'First Response'
       }),
     cell: ({ row }) => {
       const timestamp = row.original.firstResponseAt;
-      if (!timestamp) return "-";
+      if (!timestamp) return '-';
 
       const date = new Date(timestamp);
       const year = date.getFullYear();
@@ -189,15 +190,15 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
-    id: "created-at",
-    accessorKey: "createdAt",
+    id: 'created-at',
+    accessorKey: 'createdAt',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Received At`
+        onclick: column.getToggleSortingHandler(), text: 'Received At'
       }),
     cell: ({ row }) => {
       const timestamp = row.original.createdAt;
-      if (!timestamp) return "-";
+      if (!timestamp) return '-';
 
       const date = new Date(timestamp);
       const year = date.getFullYear();
@@ -214,15 +215,15 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
-    id: "updated-at",
-    accessorKey: "updatedAt",
+    id: 'updated-at',
+    accessorKey: 'updatedAt',
     header: ({ column }) =>
       renderComponent(DataTableSortButton, {
-        onclick: column.getToggleSortingHandler(), text: `Updated At`
+        onclick: column.getToggleSortingHandler(), text: 'Updated At'
       }),
     cell: ({ row }) => {
       const timestamp = row.original.updatedAt;
-      if (!timestamp) return "-";
+      if (!timestamp) return '-';
 
       const date = new Date();
       const year = date.getFullYear();
@@ -239,7 +240,7 @@ export const columns: ColumnDef<TicketList>[] = [
     }
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: ({ row }) => {
       return renderComponent(DataTableActions, { id: row.original.ticketNumber });
     },

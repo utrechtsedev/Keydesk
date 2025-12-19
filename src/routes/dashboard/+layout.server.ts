@@ -1,11 +1,11 @@
-import { redirect } from "@sveltejs/kit";
-import type { LayoutServerLoad } from "./$types";
-import { eq, and, desc } from "drizzle-orm";
-import * as schema from "$lib/server/db/schema";
-import { db } from "$lib/server/db/database";
+import { redirect } from '@sveltejs/kit';
+import type { LayoutServerLoad } from './$types';
+import { eq, and, desc } from 'drizzle-orm';
+import * as schema from '$lib/server/db/schema';
+import { db } from '$lib/server/db/database';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
-  if (!locals.session || !locals.user) return redirect(303, '/login')
+  if (!locals.session || !locals.user) return redirect(303, '/login');
 
   const notifications = await db.query.userNotification.findMany({
     where: and(
@@ -23,5 +23,5 @@ export const load: LayoutServerLoad = async ({ locals }) => {
   return {
     user: locals.user,
     notifications
-  }
-}
+  };
+};

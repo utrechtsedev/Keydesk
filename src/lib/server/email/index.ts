@@ -1,2 +1,2 @@
-export * from './template-parser'
-export * from './email'
+export * from './template-parser';
+export * from './email';

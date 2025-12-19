@@ -1,6 +1,6 @@
-import { db } from "./database.js";
-import { sql } from "drizzle-orm";
-import * as schema from "./schema/index.js";
+import { db } from './database.js';
+import { sql } from 'drizzle-orm';
+import * as schema from './schema/index.js';
 import type {
   User,
   Requester,
@@ -11,7 +11,7 @@ import type {
   Notification,
   Ticket,
   Task,
-} from "./schema/index.js";
+} from './schema/index.js';
 
 /**
  * Advanced Database Seeder for Ticket System with Drizzle ORM
@@ -90,39 +90,39 @@ class DatabaseSeeder {
 
   private getSampleSubjects(): string[] {
     return [
-      "Unable to login to customer portal",
-      "Question about invoice #INV-2024-{num}",
-      "Feature request: Dark mode for mobile app",
-      "Password reset not working",
-      "Email notifications not arriving",
-      "API returning 500 errors",
-      "Account upgrade issue",
-      "Missing payment confirmation",
-      "Bug: Dashboard displays incorrect data",
-      "Integration with {service} failing",
-      "Export function timing out",
-      "Two-factor authentication problem",
-      "Slow page load times",
-      "Unable to upload files larger than 10MB",
-      "Request for data deletion (GDPR)",
-      "Discount code not applying at checkout",
-      "Mobile app crashes on startup",
-      "Incorrect timezone in reports",
-      "Need help configuring webhooks",
-      "User permissions not saving",
+      'Unable to login to customer portal',
+      'Question about invoice #INV-2024-{num}',
+      'Feature request: Dark mode for mobile app',
+      'Password reset not working',
+      'Email notifications not arriving',
+      'API returning 500 errors',
+      'Account upgrade issue',
+      'Missing payment confirmation',
+      'Bug: Dashboard displays incorrect data',
+      'Integration with {service} failing',
+      'Export function timing out',
+      'Two-factor authentication problem',
+      'Slow page load times',
+      'Unable to upload files larger than 10MB',
+      'Request for data deletion (GDPR)',
+      'Discount code not applying at checkout',
+      'Mobile app crashes on startup',
+      'Incorrect timezone in reports',
+      'Need help configuring webhooks',
+      'User permissions not saving',
     ];
   }
 
   private getSampleDescriptions(): string[] {
     return [
       "I've been trying to resolve this issue for the past hour but haven't had any success. Can you please help?",
-      "This has been an ongoing problem for several days now. Multiple team members are affected.",
+      'This has been an ongoing problem for several days now. Multiple team members are affected.',
       "I noticed this issue when trying to complete a critical task. It's blocking our workflow.",
       "Could you please look into this at your earliest convenience? It's affecting our production environment.",
       "We need this resolved urgently as it's impacting our customer-facing operations.",
       "I've tried the troubleshooting steps in the documentation but the problem persists.",
-      "This started happening after the recent update. Everything was working fine before.",
-      "Several users have reported the same issue. It seems to be a widespread problem.",
+      'This started happening after the recent update. Everything was working fine before.',
+      'Several users have reported the same issue. It seems to be a widespread problem.',
       "I'm not sure if this is a bug or expected behavior. Could you clarify?",
       "This feature would greatly improve our team's productivity and workflow.",
     ];
@@ -135,186 +135,186 @@ class DatabaseSeeder {
   } {
     return {
       requester: [
-        "Thank you for your help! That solved the issue.",
+        'Thank you for your help! That solved the issue.',
         "I'm still experiencing the same problem. Could you provide more details?",
-        "This workaround works for now, but is there a permanent fix coming?",
-        "Perfect! Everything is working as expected now.",
+        'This workaround works for now, but is there a permanent fix coming?',
+        'Perfect! Everything is working as expected now.',
         "I tried your suggestion but I'm getting a different error now.",
         "Could you clarify what you mean by that? I'm not sure I understand.",
         "That makes sense. I'll try it and let you know how it goes.",
-        "This is quite urgent for us. When can we expect a resolution?",
+        'This is quite urgent for us. When can we expect a resolution?',
       ],
       user: [
         "Thank you for reaching out. I'm looking into this issue now.",
         "I've identified the problem and I'm working on a solution.",
-        "Could you provide some additional information to help troubleshoot this?",
+        'Could you provide some additional information to help troubleshoot this?',
         "I've escalated this to our development team for further investigation.",
-        "This issue has been resolved. Please try again and let me know if you encounter any problems.",
+        'This issue has been resolved. Please try again and let me know if you encounter any problems.',
         "I've applied a fix on our end. The changes should take effect within a few minutes.",
-        "Let me walk you through the steps to resolve this.",
+        'Let me walk you through the steps to resolve this.',
         "I've forwarded this request to the appropriate team for review.",
       ],
       system: [
-        "Ticket automatically assigned based on category.",
-        "Ticket forwarded to {team} for review.",
-        "SLA warning: Response time approaching target.",
-        "Ticket merged with #{ticket}.",
-        "Priority automatically escalated due to age.",
+        'Ticket automatically assigned based on category.',
+        'Ticket forwarded to {team} for review.',
+        'SLA warning: Response time approaching target.',
+        'Ticket merged with #{ticket}.',
+        'Priority automatically escalated due to age.',
       ],
     };
   }
 
   private getSampleTaskTitles(): string[] {
     return [
-      "Update API documentation",
-      "Review customer feedback from last sprint",
-      "Fix memory leak in notification service",
-      "Prepare Q4 performance report",
-      "Conduct security audit",
-      "Optimize database queries",
-      "Update dependencies to latest versions",
-      "Create user guide for new feature",
-      "Set up CI/CD pipeline",
-      "Refactor authentication module",
-      "Design new dashboard layout",
-      "Investigate slow page load times",
-      "Add unit tests for payment module",
-      "Configure monitoring alerts",
-      "Review and merge pending PRs",
-      "Update team wiki documentation",
-      "Schedule customer onboarding call",
-      "Analyze server logs for errors",
-      "Prepare demo for stakeholders",
-      "Research competitor features",
-      "Clean up technical debt in codebase",
-      "Configure backup automation",
-      "Update privacy policy documentation",
-      "Train new team member on system",
-      "Migrate legacy data to new format",
-      "Implement caching layer",
-      "Review accessibility compliance",
-      "Update error handling",
-      "Optimize image loading",
-      "Create API client library",
+      'Update API documentation',
+      'Review customer feedback from last sprint',
+      'Fix memory leak in notification service',
+      'Prepare Q4 performance report',
+      'Conduct security audit',
+      'Optimize database queries',
+      'Update dependencies to latest versions',
+      'Create user guide for new feature',
+      'Set up CI/CD pipeline',
+      'Refactor authentication module',
+      'Design new dashboard layout',
+      'Investigate slow page load times',
+      'Add unit tests for payment module',
+      'Configure monitoring alerts',
+      'Review and merge pending PRs',
+      'Update team wiki documentation',
+      'Schedule customer onboarding call',
+      'Analyze server logs for errors',
+      'Prepare demo for stakeholders',
+      'Research competitor features',
+      'Clean up technical debt in codebase',
+      'Configure backup automation',
+      'Update privacy policy documentation',
+      'Train new team member on system',
+      'Migrate legacy data to new format',
+      'Implement caching layer',
+      'Review accessibility compliance',
+      'Update error handling',
+      'Optimize image loading',
+      'Create API client library',
     ];
   }
 
   private getSampleTaskDescriptions(): string[] {
     return [
-      "This needs to be completed before the end of the sprint.",
-      "High priority - blocking other work.",
+      'This needs to be completed before the end of the sprint.',
+      'High priority - blocking other work.',
       "Follow up on the discussion from yesterday's meeting.",
-      "Make sure to test thoroughly before deploying.",
-      "Coordinate with the backend team on this.",
-      "Should be straightforward, similar to what we did last month.",
-      "Need to review the requirements document first.",
-      "Low priority - can be deferred if needed.",
-      "This is part of the larger initiative we discussed.",
-      "Breaking this down into smaller subtasks would help.",
+      'Make sure to test thoroughly before deploying.',
+      'Coordinate with the backend team on this.',
+      'Should be straightforward, similar to what we did last month.',
+      'Need to review the requirements document first.',
+      'Low priority - can be deferred if needed.',
+      'This is part of the larger initiative we discussed.',
+      'Breaking this down into smaller subtasks would help.',
     ];
   }
 
   private getSampleSubtaskTitles(): string[] {
     return [
-      "Research approach",
-      "Create initial draft",
-      "Review with team",
-      "Implement feedback",
-      "Final testing",
-      "Update documentation",
-      "Deploy changes",
-      "Verify in production",
-      "Code review",
-      "Write tests",
-      "Update changelog",
-      "Notify stakeholders",
+      'Research approach',
+      'Create initial draft',
+      'Review with team',
+      'Implement feedback',
+      'Final testing',
+      'Update documentation',
+      'Deploy changes',
+      'Verify in production',
+      'Code review',
+      'Write tests',
+      'Update changelog',
+      'Notify stakeholders',
     ];
   }
 
   private getNotificationTemplates(): {
-    type: "info" | "success" | "warning" | "error" | "ticket" | "system";
+    type: 'info' | 'success' | 'warning' | 'error' | 'ticket' | 'system';
     title: string;
     message: string;
-    channel: "email" | "dashboard";
+    channel: 'email' | 'dashboard';
   }[] {
     return [
       {
-        type: "ticket",
-        title: "New ticket assigned to you",
-        message: "You have been assigned ticket #{ticketNumber}: {subject}",
-        channel: "email",
+        type: 'ticket',
+        title: 'New ticket assigned to you',
+        message: 'You have been assigned ticket #{ticketNumber}: {subject}',
+        channel: 'email',
       },
       {
-        type: "ticket",
-        title: "Ticket updated",
-        message: "Ticket #{ticketNumber} has been updated by {userName}",
-        channel: "dashboard",
+        type: 'ticket',
+        title: 'Ticket updated',
+        message: 'Ticket #{ticketNumber} has been updated by {userName}',
+        channel: 'dashboard',
       },
       {
-        type: "ticket",
-        title: "New response on your ticket",
-        message: "{userName} responded to ticket #{ticketNumber}",
-        channel: "email",
+        type: 'ticket',
+        title: 'New response on your ticket',
+        message: '{userName} responded to ticket #{ticketNumber}',
+        channel: 'email',
       },
       {
-        type: "warning",
-        title: "SLA deadline approaching",
-        message: "Ticket #{ticketNumber} is approaching its SLA deadline",
-        channel: "dashboard",
+        type: 'warning',
+        title: 'SLA deadline approaching',
+        message: 'Ticket #{ticketNumber} is approaching its SLA deadline',
+        channel: 'dashboard',
       },
       {
-        type: "error",
-        title: "SLA deadline exceeded",
-        message: "Ticket #{ticketNumber} has exceeded its SLA deadline",
-        channel: "dashboard",
+        type: 'error',
+        title: 'SLA deadline exceeded',
+        message: 'Ticket #{ticketNumber} has exceeded its SLA deadline',
+        channel: 'dashboard',
       },
       {
-        type: "success",
-        title: "Ticket resolved",
-        message: "Ticket #{ticketNumber} has been marked as resolved",
-        channel: "dashboard",
+        type: 'success',
+        title: 'Ticket resolved',
+        message: 'Ticket #{ticketNumber} has been marked as resolved',
+        channel: 'dashboard',
       },
       {
-        type: "ticket",
-        title: "Priority changed",
-        message: "The priority of ticket #{ticketNumber} has been changed to {priority}",
-        channel: "dashboard",
+        type: 'ticket',
+        title: 'Priority changed',
+        message: 'The priority of ticket #{ticketNumber} has been changed to {priority}',
+        channel: 'dashboard',
       },
       {
-        type: "system",
-        title: "System maintenance scheduled",
-        message: "The ticket system will undergo maintenance on {date}",
-        channel: "email",
+        type: 'system',
+        title: 'System maintenance scheduled',
+        message: 'The ticket system will undergo maintenance on {date}',
+        channel: 'email',
       },
       {
-        type: "info",
-        title: "New feature available",
-        message: "A new feature has been added to the ticket system: {feature}",
-        channel: "dashboard",
+        type: 'info',
+        title: 'New feature available',
+        message: 'A new feature has been added to the ticket system: {feature}',
+        channel: 'dashboard',
       },
       {
-        type: "warning",
-        title: "High ticket volume",
-        message: "Your team has {count} unassigned tickets requiring attention",
-        channel: "dashboard",
+        type: 'warning',
+        title: 'High ticket volume',
+        message: 'Your team has {count} unassigned tickets requiring attention',
+        channel: 'dashboard',
       },
     ];
   }
 
   private getDutchNames(): { firstNames: string[]; lastNames: string[] } {
     const firstNames = [
-      "Jan", "Pieter", "Klaas", "Daan", "Sven", "Lars", "Bram", "Thijs",
-      "Emma", "Sophie", "Lisa", "Anna", "Eva", "Sarah", "Julia", "Mila",
+      'Jan', 'Pieter', 'Klaas', 'Daan', 'Sven', 'Lars', 'Bram', 'Thijs',
+      'Emma', 'Sophie', 'Lisa', 'Anna', 'Eva', 'Sarah', 'Julia', 'Mila',
     ];
     const lastNames = [
-      "van de Berg", "de Vries", "Jansen", "Bakker", "Visser", "Smit",
-      "Meijer", "de Boer", "Mulder", "de Groot", "Bos", "Vos", "Peters",
+      'van de Berg', 'de Vries', 'Jansen', 'Bakker', 'Visser', 'Smit',
+      'Meijer', 'de Boer', 'Mulder', 'de Groot', 'Bos', 'Vos', 'Peters',
     ];
     return { firstNames, lastNames };
   }
 
   private async cleanDatabase(): Promise<void> {
-    this.log("Cleaning user data from database...");
+    this.log('Cleaning user data from database...');
 
     try {
       await db.delete(schema.userNotification);
@@ -329,15 +329,15 @@ class DatabaseSeeder {
       await db.delete(schema.requester);
       await db.delete(schema.user);
 
-      this.log("✓ User data cleaned successfully");
+      this.log('✓ User data cleaned successfully');
     } catch (error) {
-      this.log("Error cleaning database:", (error as Error).message);
+      this.log('Error cleaning database:', (error as Error).message);
       throw error;
     }
   }
 
   private async fetchExistingData(): Promise<void> {
-    this.log("Fetching existing statuses, priorities, and categories...");
+    this.log('Fetching existing statuses, priorities, and categories...');
 
     try {
       this.existingStatuses = await db.select().from(schema.status);
@@ -356,18 +356,18 @@ class DatabaseSeeder {
 
       this.log(`✓ Found ${this.existingStatuses.length} statuses, ${this.existingPriorities.length} priorities, ${this.existingCategories.length} categories`);
     } catch (error) {
-      this.log("Error fetching existing data:", (error as Error).message);
+      this.log('Error fetching existing data:', (error as Error).message);
       throw error;
     }
   }
 
   private async createTags(): Promise<void> {
-    this.log("Creating tags...");
+    this.log('Creating tags...');
 
     const tags = [
-      "login", "portal", "invoice", "question", "feature-request",
-      "mobile", "ui", "api", "urgent", "bug", "password", "email",
-      "integration", "performance", "security", "documentation",
+      'login', 'portal', 'invoice', 'question', 'feature-request',
+      'mobile', 'ui', 'api', 'urgent', 'bug', 'password', 'email',
+      'integration', 'performance', 'security', 'documentation',
     ];
 
     for (const tagName of tags) {
@@ -397,7 +397,7 @@ class DatabaseSeeder {
         email,
         emailVerified: true,
         image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
-        role: i === 0 ? "admin" : "user",
+        role: i === 0 ? 'admin' : 'user',
         banned: false,
         banReason: null,
         banExpires: null,
@@ -427,7 +427,7 @@ class DatabaseSeeder {
     this.log(`Creating ${this.options.requesterCount} requesters...`);
 
     const { firstNames, lastNames } = this.getDutchNames();
-    const companies = ["example.com", "business.nl", "company.com", "tech.nl"];
+    const companies = ['example.com', 'business.nl', 'company.com', 'tech.nl'];
 
     for (let i = 0; i < this.options.requesterCount; i++) {
       const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
@@ -472,8 +472,8 @@ class DatabaseSeeder {
     const subjects = this.getSampleSubjects();
     const descriptions = this.getSampleDescriptions();
     const messages = this.getSampleMessages();
-    const ticketChannels: ("email" | "portal" | "user" | "dashboard")[] = ["email", "portal", "user", "dashboard"];
-    const messageChannels: ("email" | "portal" | "system" | "api" | "dashboard")[] = ["email", "portal", "dashboard"];
+    const ticketChannels: ('email' | 'portal' | 'user' | 'dashboard')[] = ['email', 'portal', 'user', 'dashboard'];
+    const messageChannels: ('email' | 'portal' | 'system' | 'api' | 'dashboard')[] = ['email', 'portal', 'dashboard'];
 
     let ticketsCreated = 0;
 
@@ -493,15 +493,15 @@ class DatabaseSeeder {
       const messageChannel = this.getRandomElement(messageChannels);
 
       let subject = this.getRandomElement(subjects);
-      subject = subject.replace("{num}", String(Math.floor(Math.random() * 9000 + 1000)));
-      subject = subject.replace("{service}", ["Slack", "GitHub", "Salesforce"][Math.floor(Math.random() * 3)]);
+      subject = subject.replace('{num}', String(Math.floor(Math.random() * 9000 + 1000)));
+      subject = subject.replace('{service}', ['Slack', 'GitHub', 'Salesforce'][Math.floor(Math.random() * 3)]);
 
       const description = this.getRandomElement(descriptions);
 
       const targetDate = new Date(createdAt);
-      const hoursToAdd = priority.name === "Critical" ? 4 :
-        priority.name === "High" ? 8 :
-          priority.name === "Medium" ? 24 : 48;
+      const hoursToAdd = priority.name === 'Critical' ? 4 :
+        priority.name === 'High' ? 8 :
+          priority.name === 'Medium' ? 24 : 48;
       targetDate.setHours(targetDate.getHours() + hoursToAdd);
 
       const [ticket] = await db.insert(schema.ticket).values({
@@ -524,10 +524,10 @@ class DatabaseSeeder {
       let messageCount = 0;
       const [firstMessage] = await db.insert(schema.ticketMessage).values({
         ticketId: ticket.id,
-        senderType: "requester",
+        senderType: 'requester',
         requesterId: requester.id,
         userId: null,
-        senderName: requester.name || "Unknown",
+        senderName: requester.name || 'Unknown',
         senderEmail: requester.email,
         message: description,
         isPrivate: false,
@@ -540,15 +540,15 @@ class DatabaseSeeder {
       messageCount++;
 
       if (firstMessage.hasAttachments && !this.options.quick) {
-        await this.createAttachments(ticket.id, firstMessage.id, requester, "requester", createdAt);
+        await this.createAttachments(ticket.id, firstMessage.id, requester, 'requester', createdAt);
       }
 
       if (assignedUser) {
         await this.createTicketNotification(
-          "ticket",
-          "New ticket assigned to you",
+          'ticket',
+          'New ticket assigned to you',
           `You have been assigned ticket ${ticket.ticketNumber}: ${subject}`,
-          "email",
+          'email',
           ticket,
           [assignedUser],
           createdAt
@@ -568,7 +568,7 @@ class DatabaseSeeder {
         );
       }
 
-      if (status.name !== "New" && !this.options.quick) {
+      if (status.name !== 'New' && !this.options.quick) {
         const numMessages = Math.floor(Math.random() * 5) + 2;
         let currentDate = new Date(createdAt);
         let isFirstResponse = true;
@@ -580,14 +580,14 @@ class DatabaseSeeder {
           if (isUser && assignedUser) {
             const [userMessage] = await db.insert(schema.ticketMessage).values({
               ticketId: ticket.id,
-              senderType: "user",
+              senderType: 'user',
               requesterId: null,
               userId: assignedUser.id,
               senderName: assignedUser.name.split(' ')[0],
               senderEmail: assignedUser.email,
               message: this.getRandomElement(messages.user),
               isPrivate: Math.random() > 0.8,
-              channel: "email",
+              channel: 'email',
               isFirstResponse: isFirstResponse,
               hasAttachments: Math.random() > 0.9,
               createdAt: currentDate,
@@ -607,15 +607,15 @@ class DatabaseSeeder {
             messageCount++;
 
             if (userMessage.hasAttachments) {
-              await this.createAttachments(ticket.id, userMessage.id, assignedUser, "user", currentDate);
+              await this.createAttachments(ticket.id, userMessage.id, assignedUser, 'user', currentDate);
             }
           } else {
             await db.insert(schema.ticketMessage).values({
               ticketId: ticket.id,
-              senderType: "requester",
+              senderType: 'requester',
               requesterId: requester.id,
               userId: null,
-              senderName: requester.name || "Unknown",
+              senderName: requester.name || 'Unknown',
               senderEmail: requester.email,
               message: this.getRandomElement(messages.requester),
               isPrivate: false,
@@ -633,10 +633,10 @@ class DatabaseSeeder {
 
             if (assignedUser && Math.random() > 0.5) {
               await this.createTicketNotification(
-                "ticket",
-                "New response on your ticket",
+                'ticket',
+                'New response on your ticket',
                 `${requester.name} responded to ticket ${ticket.ticketNumber}`,
-                "dashboard",
+                'dashboard',
                 ticket,
                 [assignedUser],
                 currentDate
@@ -652,20 +652,20 @@ class DatabaseSeeder {
           })
           .where(sql`${schema.ticket.id} = ${ticket.id}`);
 
-        if (["Resolved", "Closed"].includes(status.name)) {
+        if (['Resolved', 'Closed'].includes(status.name)) {
           await db.update(schema.ticket)
             .set({
               resolvedAt: currentDate,
-              closedAt: status.name === "Closed" ? currentDate : null,
+              closedAt: status.name === 'Closed' ? currentDate : null,
             })
             .where(sql`${schema.ticket.id} = ${ticket.id}`);
 
           if (assignedUser) {
             await this.createTicketNotification(
-              "success",
-              "Ticket resolved",
+              'success',
+              'Ticket resolved',
               `Ticket ${ticket.ticketNumber} has been marked as resolved`,
-              "dashboard",
+              'dashboard',
               ticket,
               [assignedUser],
               currentDate
@@ -676,10 +676,10 @@ class DatabaseSeeder {
         if (Math.random() > 0.7 && assignedUser) {
           const warningDate = new Date(currentDate.getTime() - (2 * 60 * 60 * 1000));
           await this.createTicketNotification(
-            "warning",
-            "SLA deadline approaching",
+            'warning',
+            'SLA deadline approaching',
             `Ticket ${ticket.ticketNumber} is approaching its SLA deadline`,
-            "email",
+            'email',
             ticket,
             [assignedUser],
             warningDate
@@ -700,20 +700,20 @@ class DatabaseSeeder {
     ticketId: number,
     messageId: number,
     uploader: User | Requester,
-    uploaderType: "requester" | "user",
+    uploaderType: 'requester' | 'user',
     createdAt: Date
   ): Promise<void> {
     const fileTypes = [
-      { ext: "png", mime: "image/png", minSize: 100000, maxSize: 1000000 },
-      { ext: "jpg", mime: "image/jpeg", minSize: 150000, maxSize: 800000 },
-      { ext: "pdf", mime: "application/pdf", minSize: 100000, maxSize: 2000000 },
-      { ext: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", minSize: 50000, maxSize: 500000 },
-      { ext: "txt", mime: "text/plain", minSize: 1000, maxSize: 50000 },
+      { ext: 'png', mime: 'image/png', minSize: 100000, maxSize: 1000000 },
+      { ext: 'jpg', mime: 'image/jpeg', minSize: 150000, maxSize: 800000 },
+      { ext: 'pdf', mime: 'application/pdf', minSize: 100000, maxSize: 2000000 },
+      { ext: 'xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', minSize: 50000, maxSize: 500000 },
+      { ext: 'txt', mime: 'text/plain', minSize: 1000, maxSize: 50000 },
     ];
 
     const fileNames = [
-      "screenshot", "error-log", "invoice", "report", "diagram",
-      "console-output", "configuration", "debug-info", "example",
+      'screenshot', 'error-log', 'invoice', 'report', 'diagram',
+      'console-output', 'configuration', 'debug-info', 'example',
     ];
 
     const numAttachments = Math.floor(Math.random() * 2) + 1;
@@ -734,7 +734,7 @@ class DatabaseSeeder {
         mimeType: fileType.mime,
         uploadedByType: uploaderType,
         uploadedById: uploader.id,
-        uploadedByName: uploader.name || "Unknown",
+        uploadedByName: uploader.name || 'Unknown',
         downloadCount: Math.floor(Math.random() * 5),
         createdAt,
         updatedAt: createdAt,
@@ -743,10 +743,10 @@ class DatabaseSeeder {
   }
 
   private async createTicketNotification(
-    type: "info" | "success" | "warning" | "error" | "ticket" | "system",
+    type: 'info' | 'success' | 'warning' | 'error' | 'ticket' | 'system',
     title: string,
     message: string,
-    channel: "email" | "dashboard",
+    channel: 'email' | 'dashboard',
     ticket: Ticket,
     recipients: User[],
     createdAt: Date
@@ -756,7 +756,7 @@ class DatabaseSeeder {
       message,
       type,
       channel,
-      relatedEntityType: "ticket",
+      relatedEntityType: 'ticket',
       relatedEntityId: ticket.id,
       actionUrl: `/dashboard/tickets/${ticket.id}`,
       createdById: null,
@@ -767,7 +767,7 @@ class DatabaseSeeder {
     this.createdNotifications.push(notification);
 
     for (const user of recipients) {
-      const shouldSendEmail = channel === "email";
+      const shouldSendEmail = channel === 'email';
       const emailSent = shouldSendEmail && Math.random() > 0.1;
 
       await db.insert(schema.userNotification).values({
@@ -777,7 +777,7 @@ class DatabaseSeeder {
         readAt: Math.random() > 0.6 ? new Date(createdAt.getTime() + Math.random() * 2 * 60 * 60 * 1000) : null,
         sentViaEmail: emailSent,
         emailSentAt: emailSent ? new Date(createdAt.getTime() + Math.random() * 5 * 60 * 1000) : null,
-        emailError: !emailSent && shouldSendEmail ? "SMTP connection timeout" : null,
+        emailError: !emailSent && shouldSendEmail ? 'SMTP connection timeout' : null,
         createdAt,
         updatedAt: createdAt,
       });
@@ -788,7 +788,7 @@ class DatabaseSeeder {
     this.log(`Creating ${this.options.notificationCount} system notifications...`);
 
     const templates = this.getNotificationTemplates();
-    const systemTemplates = templates.filter(t => t.type === "system" || t.type === "info");
+    const systemTemplates = templates.filter(t => t.type === 'system' || t.type === 'info');
 
     let notificationsCreated = 0;
 
@@ -798,16 +798,16 @@ class DatabaseSeeder {
       const createdAt = this.getRealisticDate(daysAgo, 0.2);
 
       let message = template.message;
-      message = message.replace("{date}", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString());
-      message = message.replace("{feature}", ["Advanced Search", "Bulk Actions", "Custom Fields", "Email Templates"][Math.floor(Math.random() * 4)]);
-      message = message.replace("{count}", String(Math.floor(Math.random() * 20) + 5));
+      message = message.replace('{date}', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString());
+      message = message.replace('{feature}', ['Advanced Search', 'Bulk Actions', 'Custom Fields', 'Email Templates'][Math.floor(Math.random() * 4)]);
+      message = message.replace('{count}', String(Math.floor(Math.random() * 20) + 5));
 
       const [notification] = await db.insert(schema.notification).values({
         title: template.title,
         message,
         type: template.type,
         channel: template.channel,
-        relatedEntityType: "system",
+        relatedEntityType: 'system',
         relatedEntityId: null,
         actionUrl: null,
         createdById: null,
@@ -821,7 +821,7 @@ class DatabaseSeeder {
       const recipients = this.shuffleArray([...this.createdUsers]).slice(0, numRecipients);
 
       for (const user of recipients) {
-        const shouldSendEmail = template.channel === "email";
+        const shouldSendEmail = template.channel === 'email';
         const emailSent = shouldSendEmail && Math.random() > 0.05;
 
         await db.insert(schema.userNotification).values({
@@ -831,7 +831,7 @@ class DatabaseSeeder {
           readAt: Math.random() > 0.5 ? new Date(createdAt.getTime() + Math.random() * 24 * 60 * 60 * 1000) : null,
           sentViaEmail: emailSent,
           emailSentAt: emailSent ? new Date(createdAt.getTime() + Math.random() * 10 * 60 * 1000) : null,
-          emailError: !emailSent && shouldSendEmail ? ["Network error", "Invalid email", "Recipient blocked"][Math.floor(Math.random() * 3)] : null,
+          emailError: !emailSent && shouldSendEmail ? ['Network error', 'Invalid email', 'Recipient blocked'][Math.floor(Math.random() * 3)] : null,
           createdAt,
           updatedAt: createdAt,
         });
@@ -844,7 +844,7 @@ class DatabaseSeeder {
   }
 
   private async createTasks(): Promise<void> {
-    this.log(`Creating tasks for users...`);
+    this.log('Creating tasks for users...');
 
     const titles = this.getSampleTaskTitles();
     const descriptions = this.getSampleTaskDescriptions();
@@ -887,7 +887,7 @@ class DatabaseSeeder {
 
       // Completed date for resolved/closed tasks
       let completedAt = null;
-      if (["Resolved", "Closed"].includes(status.name)) {
+      if (['Resolved', 'Closed'].includes(status.name)) {
         completedAt = new Date(createdAt);
         completedAt.setDate(completedAt.getDate() + Math.floor(Math.random() * 7) + 1);
       }
@@ -962,7 +962,7 @@ class DatabaseSeeder {
           : new Date(createdAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000);
 
         let completedAt = null;
-        if (["Resolved", "Closed"].includes(status.name)) {
+        if (['Resolved', 'Closed'].includes(status.name)) {
           completedAt = new Date(createdAt);
           completedAt.setDate(completedAt.getDate() + Math.floor(Math.random() * 5) + 1);
         }
@@ -1002,13 +1002,13 @@ class DatabaseSeeder {
   }
 
   async seed(): Promise<void> {
-    console.log("Starting database seeding...\n");
-    console.log({ Options: this.options }, "Options");
+    console.log('Starting database seeding...\n');
+    console.log({ Options: this.options }, 'Options');
 
     try {
       if (this.options.clean) {
         await this.cleanDatabase();
-        console.log("");
+        console.log('');
       }
 
       await this.fetchExistingData();
@@ -1024,8 +1024,8 @@ class DatabaseSeeder {
 
       await this.createSystemNotifications();
 
-      console.log("Database seeding completed successfully!");
-      console.log("Summary:");
+      console.log('Database seeding completed successfully!');
+      console.log('Summary:');
       console.log(`  - ${this.existingStatuses.length} statuses (existing)`);
       console.log(`  - ${this.existingPriorities.length} priorities (existing)`);
       console.log(`  - ${this.existingCategories.length} categories (existing)`);
@@ -1037,7 +1037,7 @@ class DatabaseSeeder {
       console.log(`  - ${this.createdNotifications.length} notifications`);
 
     } catch (error) {
-      console.error({ error }, "Error during database seeding");
+      console.error({ error }, 'Error during database seeding');
       throw error;
     }
   }
@@ -1068,10 +1068,10 @@ const seeder = new DatabaseSeeder(options);
 
 seeder.seed()
   .then(() => {
-    console.log("Seeding complete. Exiting...");
+    console.log('Seeding complete. Exiting...');
     process.exit(0);
   })
   .catch((error: Error) => {
-    console.error({ error }, "Fatal error during database seed");
+    console.error({ error }, 'Fatal error during database seed');
     process.exit(1);
   });

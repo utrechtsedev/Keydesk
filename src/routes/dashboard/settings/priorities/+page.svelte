@@ -101,7 +101,7 @@
 	</div>
 
 	<div class="grid">
-		{#each priorities as priority, index}
+		{#each priorities as priority, index (index)}
 			{@const isFirst = index === 0}
 			{@const isEditing = editing === priority}
 

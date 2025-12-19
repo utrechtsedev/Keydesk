@@ -1,9 +1,9 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import type { NewStatus, Status } from "$lib/server/db/schema";
-import { AppError, ValidationError } from "$lib/server/errors";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import { sql, eq } from "drizzle-orm";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import type { NewStatus, Status } from '$lib/server/db/schema';
+import { AppError, ValidationError } from '$lib/server/errors';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { sql, eq } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { statuses } = await request.json() as { statuses: NewStatus[] | Status[] };

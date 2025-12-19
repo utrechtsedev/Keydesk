@@ -11,10 +11,10 @@ export const GET: RequestHandler = async ({ params }): Promise<Response> => {
   const { id: ticketId, fileName } = params;
 
   if (!ticketId || isNaN(Number(ticketId)))
-    throw new ValidationError('Valid ticket ID is required.')
+    throw new ValidationError('Valid ticket ID is required.');
 
   if (!fileName || fileName.trim() === '')
-    throw new ValidationError('File name is required.')
+    throw new ValidationError('File name is required.');
 
   const [attachment] = await db
     .select()
@@ -27,7 +27,7 @@ export const GET: RequestHandler = async ({ params }): Promise<Response> => {
     );
 
   if (!attachment)
-    throw new NotFoundError('Attachment not found.')
+    throw new NotFoundError('Attachment not found.');
 
   const filePath = path.resolve(attachment.filePath);
   const uploadsDir = path.resolve('./uploads');

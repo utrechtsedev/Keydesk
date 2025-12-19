@@ -1,11 +1,11 @@
-import { auth } from "$lib/server/auth";
-import { svelteKitHandler } from "better-auth/svelte-kit";
-import { building, dev } from "$app/environment";
-import { logger } from "$lib/server/logger";
-import type { Handle, HandleServerError } from "@sveltejs/kit";
-import { AppError } from "$lib/server/errors";
-import { initializeQueue } from "$lib/server/job-queue";
-import { ensureTicketSequence } from "$lib/server/ticket";
+import { auth } from '$lib/server/auth';
+import { svelteKitHandler } from 'better-auth/svelte-kit';
+import { building, dev } from '$app/environment';
+import { logger } from '$lib/server/logger';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
+import { AppError } from '$lib/server/errors';
+import { initializeQueue } from '$lib/server/job-queue';
+import { ensureTicketSequence } from '$lib/server/ticket';
 
 await ensureTicketSequence();
 await initializeQueue();

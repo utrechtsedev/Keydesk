@@ -23,7 +23,7 @@
 		isPrivate: boolean;
 		selectedFiles: File[];
 		highlightMessageInput?: boolean;
-		handleNewMessage?: () => Promise<any>;
+		handleNewMessage?: () => Promise<void>;
 	} = $props();
 
 	let fileInputId = 'file-input-' + Math.random().toString(36).slice(2);

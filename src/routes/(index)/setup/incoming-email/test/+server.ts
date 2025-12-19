@@ -1,7 +1,7 @@
-import { ImapFlow } from "imapflow";
-import { type IMAP } from "$lib/types";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import { logger } from "$lib/server/logger";
+import { ImapFlow } from 'imapflow';
+import { type IMAP } from '$lib/types';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { logger } from '$lib/server/logger';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { imap } = await request.json() as { imap: IMAP };
@@ -43,4 +43,4 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
     message: `Connection successful! Found ${mailboxInfo.messages} messages in Inbox.`
   }, { status: 200 });
 
-}
+};

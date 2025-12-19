@@ -1,26 +1,26 @@
-import { defineConfig } from "drizzle-kit";
+import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
-  out: "./drizzle",
-  dialect: "postgresql",
-  schema: "./src/lib/server/db/schema",
+  out: './drizzle',
+  dialect: 'postgresql',
+  schema: './src/lib/server/db/schema',
 
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
 
-  extensionsFilters: ["postgis"],
-  schemaFilter: "public",
-  tablesFilter: "*",
+  extensionsFilters: ['postgis'],
+  schemaFilter: 'public',
+  tablesFilter: '*',
 
   introspect: {
-    casing: "camel",
+    casing: 'camel',
   },
 
   migrations: {
-    prefix: "timestamp",
-    table: "__drizzle_migrations__",
-    schema: "public",
+    prefix: 'timestamp',
+    table: '__drizzle_migrations__',
+    schema: 'public',
   },
 
   entities: {

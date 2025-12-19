@@ -1,5 +1,5 @@
-export * from "./tables";
-export * from "./relations";
+export * from './tables';
+export * from './relations';
 import {
   user,
   account,
@@ -19,7 +19,7 @@ import {
   config,
   image,
   email,
-} from "./tables";
+} from './tables';
 
 // ============================================================================
 // TYPE EXPORTS

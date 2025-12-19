@@ -29,9 +29,9 @@
 			</div>
 			<div class="sm:max-w-3xl md:col-span-2">
 				<div class="space-y-3">
-					{#each Object.entries(businessHours.schedule) as [day, hours]}
+					{#each Object.entries(businessHours.schedule) as [day, hours], i (i)}
 						<div
-							class="flex min-h-[60px] items-center justify-between rounded-lg border bg-card p-4"
+							class="flex min-h-15 items-center justify-between rounded-lg border bg-card p-4"
 						>
 							<div class="flex items-center gap-4">
 								<Field.Label class="w-28 text-base font-medium capitalize">{day}</Field.Label>

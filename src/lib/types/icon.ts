@@ -12,8 +12,9 @@ export interface IconProps extends Attrs {
   children?: Snippet;
 }
 export type IconEvents = {
-  [evt: string]: CustomEvent<any>;
+  [evt: string]: CustomEvent<unknown>;
 };
 export type IconSlots = {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   default: {};
 };

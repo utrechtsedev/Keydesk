@@ -1,26 +1,20 @@
 <script lang="ts">
-	import * as Rename from '$lib/components/ui/rename';
-	import { Button } from '$lib/components/ui/button';
-	import TicketIcon from '$lib/icons/ticket.svelte';
-	import type { Category, Priority, Status, TicketDetail, User } from '$lib/types';
-	import TicketRequester from '$lib/components/tickets/detail/ticket-requester.svelte';
-	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
+	import { invalidate } from '$app/navigation';
 	import TicketInput from '$lib/components/tickets/detail/ticket-input.svelte';
 	import TicketMessage from '$lib/components/tickets/detail/ticket-message.svelte';
-	import { toast } from 'svelte-sonner';
-	import { invalidate } from '$app/navigation';
+	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
+	import TicketRequester from '$lib/components/tickets/detail/ticket-requester.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import * as Rename from '$lib/components/ui/rename';
+	import TicketIcon from '$lib/icons/ticket.svelte';
+	import type { TicketDetail } from '$lib/types';
 	import api from '$lib/utils/axios';
+	import { toast } from 'svelte-sonner';
 
 	const {
 		data
 	}: {
-		data: {
-			ticket: TicketDetail;
-			priorities: Priority[];
-			users: User[];
-			statuses: Status[];
-			categories: Category[];
-		};
+		data: TicketDetail
 	} = $props();
 
 	let ticket = $state(data.ticket);
@@ -31,7 +25,7 @@
 		ticket = data.ticket;
 	});
 
-	async function handleNewMessage() {
+	async function handleNewMessage(): Promise<void> {
 		try {
 			if (!newTicketMessage || newTicketMessage.trim() === '') {
 				toast.error('Message cannot be empty.');
@@ -86,7 +80,7 @@
 		};
 		await api.patch(`/api/tickets/${data.ticket.id}`, ticketUpdate);
 		invalidate('app:ticket');
-		return toast.success('Ticket updated succesfully');
+		toast.success('Ticket updated succesfully');
 	}
 </script>
 

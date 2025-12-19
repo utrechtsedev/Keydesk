@@ -1,9 +1,9 @@
-import type { PageServerLoad } from "./$types";
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema"
-import type { SMTP } from "$lib/types";
-import { decrypt } from "$lib/server/db/encrypt";
-import { eq } from "drizzle-orm";
+import type { PageServerLoad } from './$types';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import type { SMTP } from '$lib/types';
+import { decrypt } from '$lib/server/db/encrypt';
+import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async () => {
   const [config] = await db
@@ -25,4 +25,4 @@ export const load: PageServerLoad = async () => {
   return {
     smtp: response,
   };
-}
+};

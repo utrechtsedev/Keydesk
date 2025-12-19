@@ -29,7 +29,6 @@
 	const currentDateFrom = page.url.searchParams.get('dateFrom') || '';
 	const currentDateTo = page.url.searchParams.get('dateTo') || '';
 
-	let search = $state('');
 	let selectedStatus = $state<string>(currentStatus);
 	let selectedPriority = $state<string>(currentPriority);
 	let selectedCategory = $state<string>(currentCategory);
@@ -96,7 +95,6 @@
 
 		goto(`?${params.toString()}`);
 
-		search = '';
 		selectedStatus = 'all';
 		selectedPriority = 'all';
 		selectedCategory = 'all';
@@ -109,7 +107,7 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
+	<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-150">
 		<Dialog.Header>
 			<Dialog.Title>Filter Tickets</Dialog.Title>
 			<Dialog.Description>Apply filters to narrow down your ticket view.</Dialog.Description>

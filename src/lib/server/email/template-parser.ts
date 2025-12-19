@@ -3,7 +3,9 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import type {
   NotificationOptions,
-  Organization } from '$lib/types';
+  Organization, 
+  Task, 
+  Ticket } from '$lib/types';
 
 // Template directory path
 const templateDir = join(process.cwd(), 'src/lib/server/email/templates');
@@ -108,7 +110,7 @@ function getFooterText(options: NotificationOptions): string {
 /**
  * Extract entity-specific data for templates
  */
-function getEntityData(options: NotificationOptions): Record<string, any> {
+function getEntityData(options: NotificationOptions) {
   if (options.notification.type !== 'entity') {
     return {};
   }
@@ -121,25 +123,25 @@ function getEntityData(options: NotificationOptions): Record<string, any> {
   }
   
   if (entity.type === 'ticket') {
-    const ticket = entity.data as any; // Type assertion since we know it's fetched data
+    const ticket = entity.data as Ticket; // Type assertion since we know it's fetched data
     return {
       ticketNumber: ticket.ticketNumber,
       ticketSubject: ticket.subject,
       ticketStatus: ticket.status?.name || 'Open',
       requesterName: ticket.requester?.name || ticket.requester?.email || 'Customer',
-      assignedTo: ticket.assignedTo?.name || 'Unassigned', // Changed from assignedUser
+      assignedTo: ticket.assignedUser?.name || 'Unassigned', // Changed from assignedUser
       priority: ticket.priority?.name || 'Medium',
       createdAt: formatDate(ticket.createdAt),
     };
   }
   
   if (entity.type === 'task') {
-    const task = entity.data as any; // Type assertion since we know it's fetched data
+    const task = entity.data as Task;
     return {
       taskTitle: task.title,
       taskDescription: task.description || '',
       taskStatus: task.status?.name || 'pending',
-      assignedTo: task.assignedTo?.name || 'Unassigned', // Changed from assignee
+      assignedTo: task.assignee?.name || 'Unassigned', // Changed from assignee
       dueDate: task.dueDate ? formatDate(task.dueDate) : 'Not set',
       createdAt: formatDate(task.createdAt),
     };
@@ -164,4 +166,9 @@ function formatDate(date: Date | string | undefined): string {
     minute: '2-digit'
   });
 }
+
+
+
+
+
 

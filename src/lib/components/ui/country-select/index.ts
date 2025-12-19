@@ -1,4 +1,4 @@
-import Root from "./country-selector.svelte";
+import Root from './country-selector.svelte';
 
 export {
   Root,

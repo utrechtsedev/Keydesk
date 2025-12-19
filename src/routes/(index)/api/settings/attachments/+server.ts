@@ -1,15 +1,15 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import type { Attachment } from "$lib/types";
-import { eq } from "drizzle-orm";
-import { ValidationError } from "$lib/server/errors";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import type { Attachment } from '$lib/types';
+import { eq } from 'drizzle-orm';
+import { ValidationError } from '$lib/server/errors';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { attachments } = await request.json() as { attachments: Attachment };
 
   if (!attachments)
-    throw new ValidationError('Attachments are required.')
+    throw new ValidationError('Attachments are required.');
 
   const [config] = await db
     .insert(schema.config)

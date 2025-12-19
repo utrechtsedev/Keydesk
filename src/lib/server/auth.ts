@@ -1,11 +1,11 @@
-import { betterAuth, type User } from "better-auth";
-import { admin, magicLink } from "better-auth/plugins";
-import { sendEmail } from "./email/email";
-import { sveltekitCookies } from "better-auth/svelte-kit";
-import { getRequestEvent } from "$app/server";
-import { db } from "./db/database";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import * as schema from "./db/schema/index.js";
+import { betterAuth, type User } from 'better-auth';
+import { admin, magicLink } from 'better-auth/plugins';
+import { sendEmail } from './email/email';
+import { sveltekitCookies } from 'better-auth/svelte-kit';
+import { getRequestEvent } from '$app/server';
+import { db } from './db/database';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import * as schema from './db/schema/index.js';
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -19,13 +19,13 @@ export const auth = betterAuth({
   }),
   advanced: {
     database: {
-      generateId: "serial"
+      generateId: 'serial'
     }
   },
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }: { email: string, url: string }): Promise<void> => {
-        sendEmail(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`)
+        sendEmail(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`);
       }
     }),
     admin(),
@@ -39,13 +39,13 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url }: { user: User, url: string }): Promise<void> => {
-      sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`)
+      sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
     },
   },
   user: {
     additionalFields: {
       notificationPreferences: {
-        type: "json",
+        type: 'json',
         required: false,
         defaultValue: {
           dashboard: {
@@ -64,4 +64,4 @@ export const auth = betterAuth({
       }
     }
   }
-})
+});

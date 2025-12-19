@@ -1,15 +1,15 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { NotFoundError, ValidationError } from "$lib/server/errors";
-import { error, json, type RequestHandler } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { NotFoundError, ValidationError } from '$lib/server/errors';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request }) => {
   const formData = await request.formData();
   const file = formData.get('image') as File;
 
   if (!file)
-    throw new ValidationError('No file provided')
+    throw new ValidationError('No file provided');
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
@@ -45,7 +45,7 @@ export const GET: RequestHandler = async () => {
     .where(eq(schema.image.id, 1));
 
   if (!image)
-    throw new NotFoundError('Image not found')
+    throw new NotFoundError('Image not found');
 
 
   return new Response(new Uint8Array(image.fileData), {

@@ -1,20 +1,20 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { NotFoundError, ValidationError } from "$lib/server/errors";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import { and, eq, inArray } from "drizzle-orm";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { NotFoundError, ValidationError } from '$lib/server/errors';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { and, eq, inArray } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { tags, type, id } = await request.json() as {
     tags: string[],
-    type: "ticket" | "task",
+    type: 'ticket' | 'task',
     id: number
   };
 
   if (!type || !id)
     throw new ValidationError('Type and ID are required');
 
-  if (type !== "ticket" && type !== "task")
+  if (type !== 'ticket' && type !== 'task')
     throw new ValidationError('Type must be either "ticket" or "task"');
 
   let entity;
@@ -98,7 +98,7 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
   const { ids, tag, type } = await request.json() as {
     ids: number[],
     tag: string,
-    type: "ticket" | "task"
+    type: 'ticket' | 'task'
   };
 
   if (!type || !ids || !Array.isArray(ids) || ids.length === 0)
@@ -107,7 +107,7 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
   if (!tag || !tag.trim())
     throw new ValidationError('Tag is required');
 
-  if (type !== "ticket" && type !== "task")
+  if (type !== 'ticket' && type !== 'task')
     throw new ValidationError('Type must be either "ticket" or "task"');
 
   const normalizedTag = tag.trim().toLowerCase();

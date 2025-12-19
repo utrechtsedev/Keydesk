@@ -1,19 +1,19 @@
-import { decrypt, encrypt } from "$lib/server/db/encrypt";
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import { type SMTP } from "$lib/types";
-import { eq } from "drizzle-orm";
-import { ValidationError } from "$lib/server/errors";
+import { decrypt, encrypt } from '$lib/server/db/encrypt';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { type SMTP } from '$lib/types';
+import { eq } from 'drizzle-orm';
+import { ValidationError } from '$lib/server/errors';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { smtp } = await request.json() as { smtp: SMTP };
 
   if (!smtp.senderName || !smtp.senderEmail || !smtp.host || !smtp.port)
-    throw new ValidationError('Please enter SMTP sender name, email, host and port.')
+    throw new ValidationError('Please enter SMTP sender name, email, host and port.');
 
   if (smtp.enableAuthentication && (!smtp.username || !smtp.password))
-    throw new ValidationError('Please enter an SMTP username and password or disable SMTP authentication.')
+    throw new ValidationError('Please enter an SMTP username and password or disable SMTP authentication.');
 
   if (smtp.password) {
     smtp.password = encrypt(smtp.password);

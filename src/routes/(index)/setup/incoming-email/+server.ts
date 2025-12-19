@@ -1,16 +1,16 @@
-import { decrypt, encrypt } from "$lib/server/db/encrypt";
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import { eq, sql } from "drizzle-orm";
-import { type IMAP } from "$lib/types";
-import { ValidationError } from "$lib/server/errors";
+import { decrypt, encrypt } from '$lib/server/db/encrypt';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
+import { type IMAP } from '$lib/types';
+import { ValidationError } from '$lib/server/errors';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
   const { imap } = await request.json() as { imap: IMAP };
 
   if (!imap.host || !imap.port || !imap.username || !imap.password)
-    throw new ValidationError('Please enter IMAP details.')
+    throw new ValidationError('Please enter IMAP details.');
 
   if (imap.password) imap.password = encrypt(imap.password);
 

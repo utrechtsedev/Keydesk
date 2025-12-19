@@ -1,11 +1,11 @@
 import crypto from 'crypto';
-const { ENCRYPTION_KEY } = process.env
+const { ENCRYPTION_KEY } = process.env;
 
 const ALGORITHM = 'aes-256-gcm';
 
 export function encrypt(text: string): string {
   if (!text) return '';
-  if (!ENCRYPTION_KEY) return ''
+  if (!ENCRYPTION_KEY) return '';
 
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(
@@ -23,7 +23,7 @@ export function encrypt(text: string): string {
 
 export function decrypt(encrypted: string): string {
   if (!encrypted) return '';
-  if (!ENCRYPTION_KEY) return ''
+  if (!ENCRYPTION_KEY) return '';
 
   const parts = encrypted.split(':');
   const iv = Buffer.from(parts[0], 'hex');

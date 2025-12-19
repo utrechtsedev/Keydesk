@@ -1,11 +1,11 @@
-import nodemailer from "nodemailer";
-import type { Transporter } from "nodemailer";
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { eq } from "drizzle-orm";
-import { decrypt } from "$lib/server/db/encrypt";
-import type { SMTP } from "$lib/types";
-import { logger } from "../logger";
+import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
+import { decrypt } from '$lib/server/db/encrypt';
+import type { SMTP } from '$lib/types';
+import { logger } from '../logger';
 
 let transporter: Transporter | null = null;
 let configCache: SMTP | null = null;
@@ -49,8 +49,8 @@ export async function getTransporter(): Promise<Transporter | null> {
     host: config.host,
     port: config.port,
     auth: {
-      user: config.username ?? "",
-      pass: config.password ?? "",
+      user: config.username ?? '',
+      pass: config.password ?? '',
     },
     secure: config.SSL,
     pool: true,

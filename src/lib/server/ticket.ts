@@ -1,9 +1,9 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import type { TicketConfig } from "$lib/types";
-import { eq, desc } from "drizzle-orm";
-import type { PgTransaction } from "drizzle-orm/pg-core";
-import type { PostgresJsQueryResultHKT } from "drizzle-orm/postgres-js";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import type { TicketConfig } from '$lib/types';
+import { eq, desc } from 'drizzle-orm';
+import type { PgTransaction } from 'drizzle-orm/pg-core';
+import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import { sql } from 'drizzle-orm';
 
 type DrizzleTransaction = PgTransaction<
@@ -78,7 +78,7 @@ export async function ensureTicketSequence(): Promise<void> {
       const [config] = await db
         .select()
         .from(schema.config)
-        .where(eq(schema.config.key, "tickets"));
+        .where(eq(schema.config.key, 'tickets'));
 
       let configStartNumber = 1;
       if (config) {

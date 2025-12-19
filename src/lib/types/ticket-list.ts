@@ -1,4 +1,4 @@
-import type { Category, Priority, Requester, Status, Ticket, User } from "./core";
+import type { Category, Priority, Requester, Status, Ticket, User } from './core';
 
 export type TicketList = Ticket & {
   requester: Requester;

@@ -39,7 +39,6 @@
 		users: User[];
 	} = $props();
 
-	let highlightTitle = $state<boolean>(false);
 	let editableTask = $state<Task>();
 	let statusIdString = $state('');
 	let priorityIdString = $state('');
@@ -67,7 +66,6 @@
 	async function handleSave() {
 		if (!editableTask?.title?.trim()) {
 			toast.error('Task title is required');
-			highlightTitle = true;
 			return;
 		}
 
@@ -147,7 +145,7 @@
 </script>
 
 <Sheet.Root bind:open>
-	<Sheet.Content class="w-full overflow-y-auto sm:max-w-[600px]">
+	<Sheet.Content class="w-full overflow-y-auto sm:max-w-150">
 		{#if editableTask}
 			<Sheet.Description class="flex items-center gap-2 px-4 pt-4">
 				{#if isNewTask}
@@ -315,7 +313,7 @@
 							<TagsInput bind:value={editableTags} />
 						{:else if editableTask.tags && editableTask.tags.length > 0}
 							<div class="flex flex-wrap gap-2">
-								{#each editableTask.tags as tag}
+								{#each editableTask.tags as tag (tag.id)}
 									<Badge variant="outline">{tag.name}</Badge>
 								{/each}
 							</div>
@@ -351,7 +349,7 @@
 						<Select.Content>
 							<Select.Item value="none">None (Standalone task)</Select.Item>
 							<Select.Separator />
-							{#each parentTasks.filter( (t) => (!isNewTask ? t.id !== editableTask!.id : true) ) as task}
+							{#each parentTasks.filter( (t) => (!isNewTask ? t.id !== editableTask!.id : true) ) as task (task.id)}
 								<Select.Item value={task.id.toString()}>
 									{task.title}
 								</Select.Item>
@@ -391,7 +389,7 @@
 								.length}/{editableTask.subtasks.length})
 						</Label>
 						<div class="space-y-2">
-							{#each editableTask.subtasks as subtask}
+							{#each editableTask.subtasks as subtask (subtask.id)}
 								<div
 									class="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
 								>

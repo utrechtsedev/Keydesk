@@ -89,7 +89,7 @@
 		</div>
 	{:else}
 		<div class="grid">
-			{#each holidays as holiday, index}
+			{#each holidays as holiday, index (index)}
 				{@const isFirst = index === 0}
 				{@const isEditing = editing === holiday}
 

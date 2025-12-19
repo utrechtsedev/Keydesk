@@ -1,4 +1,4 @@
-import Root from "./message-input.svelte";
+import Root from './message-input.svelte';
 
 export {
   Root,

@@ -1,7 +1,7 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import type { PageServerLoad } from "./$types";
-import { eq, and, or, gte, lte, inArray, isNull, ilike, desc, asc, sql, SQL } from "drizzle-orm";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import type { PageServerLoad } from './$types';
+import { eq, and, or, gte, lte, isNull, ilike, desc, asc, sql, SQL } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ url, depends }) => {
   depends('app:tickets');

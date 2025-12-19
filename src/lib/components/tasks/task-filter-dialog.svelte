@@ -7,7 +7,7 @@
 	import type { Priority, Status, User } from '$lib/types';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	let {
 		open = $bindable(),
 		statuses,
@@ -26,7 +26,6 @@
 	const currentDateFrom = page.url.searchParams.get('dateFrom') || '';
 	const currentDateTo = page.url.searchParams.get('dateTo') || '';
 
-	let search = $state('');
 	let selectedStatus = $state<string>(currentStatus);
 	let selectedPriority = $state<string>(currentPriority);
 	let selectedAssignee = $state<string>(currentAssignee);
@@ -52,7 +51,7 @@
 	);
 
 	function handleApplyFilters() {
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 
 		params.delete('status');
 		params.delete('priority');
@@ -71,7 +70,7 @@
 	}
 
 	function handleReset() {
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams);
 
 		params.delete('status');
 		params.delete('priority');
@@ -81,7 +80,6 @@
 
 		goto(`?${params.toString()}`);
 
-		search = '';
 		selectedStatus = 'all';
 		selectedPriority = 'all';
 		selectedAssignee = 'all';

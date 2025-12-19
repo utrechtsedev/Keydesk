@@ -6,7 +6,6 @@
 		name,
 		color = '#212121',
 		size = 24,
-		absoluteStrokeWidth = false,
 		iconNode = [],
 		children,
 		class: className,
@@ -23,7 +22,7 @@
 	class={cn('dark:invert', name, className)}
 	viewBox="0 0 18 18"
 >
-	{#each iconNode as [tag, attrs]}
+	{#each iconNode as [tag, attrs], i (i)}
 		<svelte:element this={tag} {...attrs} />
 	{/each}
 	{@render children?.()}

@@ -4,7 +4,6 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import type { Requester } from '$lib/types';
-	import { toast } from 'svelte-sonner';
 	import { slide } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
 	import api from '$lib/utils/axios';
@@ -28,7 +27,7 @@
 		phone: string | null | undefined;
 		email?: string;
 		requesterId?: number;
-		handleSave?: () => Promise<any>;
+		handleSave?: () => Promise<void>;
 	} = $props();
 
 	let searchQuery = $state('');
@@ -68,7 +67,7 @@
 		try {
 			const response = await api.get(`/api/requesters?search=${encodeURIComponent(query)}`);
 			requesters = response.data.requesters;
-		} catch (error) {
+		} catch {
 			requesters = [];
 		} finally {
 			loading = false;
@@ -102,7 +101,7 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="sm:max-w-[425px]">
+	<Dialog.Content class="sm:max-w-106.25">
 		<Dialog.Header>
 			<Dialog.Title>Change Requester</Dialog.Title>
 			<Dialog.Description>Search and select a new requester for this ticket</Dialog.Description>
@@ -132,17 +131,17 @@
 						{:else if requesters.length === 0}
 							<div class="px-4 py-3 text-sm text-muted-foreground">No requesters found</div>
 						{:else}
-							{#each requesters as req}
+							{#each requesters as requester (requester.id)}
 								<button
 									type="button"
 									class="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-									onclick={() => selectRequester(req)}
+									onclick={() => selectRequester(requester)}
 								>
-									<div class="font-medium">{req.name || 'No name'}</div>
+									<div class="font-medium">{requester.name || 'No name'}</div>
 									<div class="text-xs text-muted-foreground">
-										{req.email}
-										{#if req.phone}
-											• {req.phone}
+										{requester.email}
+										{#if requester.phone}
+											• {requester.phone}
 										{/if}
 									</div>
 								</button>

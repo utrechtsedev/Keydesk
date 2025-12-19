@@ -35,7 +35,6 @@ const POLLING_INTERVAL_MS = 60000; // Poll every 60 seconds as fallback
  * // Start the email monitoring service
  * startEmailMonitoring().catch(console.error);
  * ```
- * 
  * @remarks
  * **Connection Strategy:**
  * - Attempts IDLE mode (push notifications) by default for real-time email delivery
@@ -119,7 +118,7 @@ export async function startEmailMonitoring(): Promise<void> {
       // Try to close and cleanup before retry
       try {
         client.close();
-      } catch (closeError) {
+      } catch {
         // Ignore close errors
       }
     }

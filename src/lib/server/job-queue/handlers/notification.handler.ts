@@ -1,9 +1,9 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { eq, inArray } from "drizzle-orm";
-import type { NotificationOptions, NotificationPreferences, NotificationSettings, Organization } from "$lib/types";
-import { logger } from "$lib/server/logger";
-import { generateEmailTemplate, sendEmail } from "$lib/server/email";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { eq, inArray } from 'drizzle-orm';
+import type { NotificationOptions, NotificationPreferences, NotificationSettings, Organization } from '$lib/types';
+import { logger } from '$lib/server/logger';
+import { generateEmailTemplate, sendEmail } from '$lib/server/email';
 
 /**
  * Handler for sending notifications
@@ -213,7 +213,7 @@ async function sendExternalEmailNotification(
     await sendEmail(options.recipient.email, options.title, emailHtml);
     logger.info(`External email sent successfully to ${options.recipient.email}`);
   } catch (emailError) {
-    logger.error({ err: emailError, email: options.recipient.email }, `Failed to send external email`);
+    logger.error({ err: emailError, email: options.recipient.email }, 'Failed to send external email');
     throw emailError;
   }
 }
@@ -320,9 +320,9 @@ async function fetchUsers(options: NotificationOptions): Promise<typeof schema.u
  * Extract notification data for database storage
  */
 function extractNotificationData(options: NotificationOptions): {
-  relatedEntityType: "ticket" | "task" | "user" | "system" | null;
+  relatedEntityType: 'ticket' | 'task' | 'user' | 'system' | null;
   relatedEntityId: number | null;
-  notificationType: "info" | "success" | "warning" | "error" | "ticket" | "task" | "system";
+  notificationType: 'info' | 'success' | 'warning' | 'error' | 'ticket' | 'task' | 'system';
 } {
   if (options.notification.type === 'entity') {
     const entityType = options.notification.entity.type;
@@ -534,6 +534,7 @@ export function shouldSendNotification(
 
   return false;
 }
+
 
 
 

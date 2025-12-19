@@ -34,7 +34,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     if (!attachmentOptions)
       throw new NotFoundError('Attachment configuration not found. Please configure attachments in Settings.');
 
-    let attachmentConfig: Attachment = attachmentOptions.value as Attachment;
+    const attachmentConfig: Attachment = attachmentOptions.value as Attachment;
 
     // Count existing messages for this ticket
     const [messageCount] = await tx
@@ -122,5 +122,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
     message: 'Message sent successfully.',
   }, { status: 201 });
 };
+
 
 

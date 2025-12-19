@@ -1,9 +1,9 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { eq, and, gte, lte, asc, SQL } from "drizzle-orm";
-import type { PageServerLoad } from "./$types";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { eq, and, gte, lte, asc, SQL } from 'drizzle-orm';
+import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ depends, locals, url }) => {
+export const load: PageServerLoad = async ({ depends, url }) => {
   depends('app:tasks');
 
   const statusFilter = url.searchParams.get('status');

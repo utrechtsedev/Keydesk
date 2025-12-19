@@ -1,9 +1,9 @@
-import { db } from "$lib/server/db/database";
-import * as schema from "$lib/server/db/schema";
-import { NotFoundError, ValidationError } from "$lib/server/errors";
-import { json, type RequestHandler } from "@sveltejs/kit";
-import { eq, inArray } from "drizzle-orm";
-import { sendNotification } from "$lib/server/job-queue";
+import { db } from '$lib/server/db/database';
+import * as schema from '$lib/server/db/schema';
+import { NotFoundError, ValidationError } from '$lib/server/errors';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { eq, inArray } from 'drizzle-orm';
+import { sendNotification } from '$lib/server/job-queue';
 
 export const PATCH: RequestHandler = async ({ request }) => {
   const { ids, itemId, itemType } = await request.json() as {
@@ -13,7 +13,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
   };
 
   if (!ids || !Array.isArray(ids) || ids.length < 1 || !itemId || !itemType)
-    throw new ValidationError('Some fields are missing. Please retry your request.')
+    throw new ValidationError('Some fields are missing. Please retry your request.');
 
   let updatedCount = 0;
 
@@ -126,7 +126,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
   const { ids } = await request.json() as { ids: number[] };
 
   if (!ids || !Array.isArray(ids) || ids.length < 1)
-    throw new ValidationError('Some fields are missing. Please retry your request.')
+    throw new ValidationError('Some fields are missing. Please retry your request.');
 
   const deleted = await db
     .delete(schema.ticket)
@@ -134,7 +134,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
     .returning();
 
   if (!deleted || deleted.length === 0)
-    throw new NotFoundError('No tickets were found.')
+    throw new NotFoundError('No tickets were found.');
 
   return json({
     success: true,

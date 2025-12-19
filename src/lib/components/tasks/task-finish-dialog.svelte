@@ -44,7 +44,7 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="sm:max-w-[425px]">
+	<Dialog.Content class="max-w-106.25">
 		<Dialog.Header>
 			<Dialog.Title>Mark Task as Finished</Dialog.Title>
 			<Dialog.Description>...</Dialog.Description>
