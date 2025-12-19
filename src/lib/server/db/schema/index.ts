@@ -1,10 +1,5 @@
-// Export all tables
 export * from "./tables";
-
-// Export all relations
 export * from "./relations";
-
-// Import tables for type inference
 import {
   user,
   account,
@@ -23,6 +18,7 @@ import {
   userNotification,
   config,
   image,
+  email,
 } from "./tables";
 
 // ============================================================================
@@ -81,3 +77,6 @@ export type NewConfig = typeof config.$inferInsert;
 
 export type Image = typeof image.$inferSelect;
 export type NewImage = typeof image.$inferInsert;
+
+export type Email = typeof email.$inferSelect;
+export type NewEmail = typeof email.$inferInsert;

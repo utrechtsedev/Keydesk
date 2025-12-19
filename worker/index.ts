@@ -1,7 +1,7 @@
-import { startEmailMonitoring } from "./monitor";
-import { registerAllHandlers } from "$lib/server/job-queue/handlers"
-import { startJobWorker } from "$lib/server/job-queue";
-import { logger } from "$lib/server/logger";
+import { startEmailMonitoring } from './monitor';
+import { registerAllHandlers } from '$lib/server/job-queue/handlers';
+import { startJobWorker } from '$lib/server/job-queue';
+import { logger } from '$lib/server/logger';
 
 async function main() {
   registerAllHandlers();

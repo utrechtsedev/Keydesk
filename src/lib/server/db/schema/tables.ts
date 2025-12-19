@@ -12,6 +12,7 @@ import {
   primaryKey,
   customType,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ============================================================================
 // CUSTOM TYPES
@@ -193,14 +194,14 @@ export const tag = pgTable("tag", {
 
 export const ticket = pgTable("ticket", {
   id: serial("id").primaryKey(),
-  ticketNumber: varchar("ticket_number", { length: 10 }).notNull(),
+  ticketNumber: varchar("ticket_number", { length: 10 }).notNull().unique(),
   requesterId: integer("requester_id").notNull().references(() => requester.id),
   assignedUserId: integer("assigned_user_id").references(() => user.id),
   subject: text("subject").notNull(),
   channel: channelEnum("channel").notNull(),
   statusId: integer("status_id").notNull().references(() => status.id),
   priorityId: integer("priority_id").notNull().references(() => priority.id),
-  categoryId: integer("category_id").notNull().references(() => category.id),
+  categoryId: integer("category_id").references(() => category.id),
   firstResponseAt: timestamp("first_response_at"),
   resolvedAt: timestamp("resolved_at"),
   closedAt: timestamp("closed_at"),
@@ -295,6 +296,34 @@ export const userNotification = pgTable("user_notification", {
   updatedAt: timestamp("updated_at").notNull().$onUpdate(() => /* @__PURE__ */ new Date()).defaultNow(),
 });
 
+export const email = pgTable('email', {
+  id: serial('id').primaryKey(),
+  uid: integer('uid').notNull().unique(),
+  fromAddress: text('from_address').notNull(),
+  fromName: text('from_name'),
+  subject: text('subject').notNull(),
+  textContent: text('text_content'),
+  htmlContent: text('html_content'),
+  rawSource: text('raw_source'), 
+  receivedAt: timestamp('received_at').notNull().defaultNow(),
+  size: integer('size'),
+  hasAttachments: boolean('has_attachments').default(false),
+  processed: boolean('processed').default(false),
+  processedAt: timestamp('processed_at'),
+  processingError: text('processing_error'),
+  ticketId: integer('ticket_id').references(() => ticket.id),
+  requesterId: integer('requester_id').references(() => requester.id),
+  ticketMessageId: integer('ticket_message_id').references(() => ticketMessage.id), 
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+
+  rateLimitIdx: index('email_rate_limit_idx')
+    .on(table.fromAddress, table.createdAt.desc()),
+
+  unprocessedIdx: index('email_unprocessed_idx')
+    .on(table.receivedAt.desc())
+    .where(sql`${table.processed} = false`),
+}));
 // ============================================================================
 // JOIN TABLES (Many-to-Many)
 // ============================================================================

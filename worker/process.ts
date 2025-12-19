@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql, and, gte } from 'drizzle-orm';
 import { getFileExtension, generateRandomString } from '$lib/utils/string';
 import { getTicketPrefix, generateTicketNumber } from '$lib/server/ticket';
 import { type Attachment } from '$lib/types';
@@ -11,6 +11,7 @@ import { logger } from '$lib/server/logger';
 import path from "path";
 import fs from "fs";
 import { sendNotification } from '$lib/server/job-queue';
+import { archiveEmail, markEmailFailed, updateArchivedEmail } from './archive';
 
 const client = await getClient();
 
@@ -53,37 +54,40 @@ export async function processMessage(
   options: Attachment,
 ): Promise<void> {
 
+  const [openStatus] = await db.select().from(schema.status).where(eq(schema.status.isDefault, true))
+  if (!openStatus) throw new Error('Status configuration is not available. Cancelling all email processing')
+
   for (const uid of unseenUIDs) {
+    let archivedEmail: schema.Email | null = null;
+
     try {
       const message = await client.fetchOne(uid, {
         source: true,
         envelope: true,
+        size: true
       }, { uid: true });
 
       // Early validation checks
       if (!message) continue;
       if (!message.source) {
         logger.warn({ uid }, 'No source for UID, skipped');
+        await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
         continue;
       }
       if (!message.envelope) {
         logger.warn({ uid }, 'No envelope for UID, skipped');
+        await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
         continue;
       }
 
-      const envelope = message.envelope;
-
-      if (!envelope.from?.[0] || !envelope.from[0].address) {
+      if (!message.envelope.from?.[0] || !message.envelope.from[0].address) {
         logger.warn({ uid }, 'No sender for UID, skipped');
+        await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
         continue;
       }
-      if (!envelope.subject) {
-        envelope.subject = 'No Subject';
-        logger.warn({ uid }, 'No subject for UID');
+      if (!message.envelope.subject) {
+        message.envelope.subject = 'No Subject';
       }
-
-      const from = envelope.from[0];
-      const subject = envelope.subject;
 
       // Check if attachments are enabled
       const attachmentsEnabled = options.enabled !== false;
@@ -92,32 +96,22 @@ export async function processMessage(
       const result = await db.transaction(async (tx) => {
 
         // Find or create requester
-        const [existingRequester] = await tx
+        const [requester] = await tx
           .select()
           .from(schema.requester)
-          .where(eq(schema.requester.email, from.address!));
-
-        let requester;
-        let createdRequester = false;
-
-        if (existingRequester) {
-          requester = existingRequester;
-        } else {
-          const requesterValues: schema.NewRequester = {
-            name: from.name,
-            email: from.address!,
-          };
-          const [newRequester] = await tx
+          .where(eq(schema.requester.email, message.envelope!.from![0].address!))
+          ?? await tx
             .insert(schema.requester)
-            .values(requesterValues)
+            .values({
+              name: message.envelope!.from![0].name || message.envelope!.from![0].address!,
+              email: message.envelope!.from![0].address!,
+            })
             .returning();
-          requester = newRequester;
-          createdRequester = true;
-        }
+
 
         // Extract ticket number from subject
         const prefix = await getTicketPrefix();
-        const match = subject.match(new RegExp(`${prefix}(\\d+)`, 'i'));
+        const match = message.envelope!.subject!.match(new RegExp(`${prefix}(\\d+)`, 'i'));
         const ticketNumber = match ? match[0] : null;
 
         // Find or create ticket
@@ -144,11 +138,10 @@ export async function processMessage(
               ticketNumber: newTicketNumber,
               requesterId: requester.id,
               assignedUserId: null,
-              subject: subject || "No subject",
+              subject: message.envelope!.subject!,
               channel: "email",
-              statusId: 1,
+              statusId: openStatus.id,
               priorityId: 1,
-              categoryId: 1,
               firstResponseAt: null,
               resolvedAt: null,
               closedAt: null,
@@ -162,108 +155,44 @@ export async function processMessage(
           createdTicket = true;
         }
 
-        return { requester, createdRequester, ticket, createdTicket };
+        return { requester, ticket, createdTicket };
       });
 
-      const { requester, createdRequester, ticket, createdTicket } = result;
+      const { requester, ticket, createdTicket } = result;
 
       // Parse email and collect data
-      const { emailContent, attachmentData } = await new Promise<{
-        emailContent: { html: string; text: string };
-        attachmentData: Array<{
-          fileId: string;
-          storedFilename: string;
-          originalFilename: string;
-          filePath: string;
-          size: number;
-          mimeType: string;
-        }>;
-      }>((resolve, reject) => {
-        const parser = new MailParser();
+      const { emailContent, attachmentData } = await parseEmailContent(
+        message.source,
+        attachmentsEnabled,
+        options
+      );
 
-        let emailContent = { html: '', text: '' };
-        let attachmentData: Array<{
-          fileId: string;
-          storedFilename: string;
-          originalFilename: string;
-          filePath: string;
-          size: number;
-          mimeType: string;
-        }> = [];
-
-        parser.on('data', (data) => {
-          if (data.type === 'text') {
-            if (data.text) {
-              emailContent.text += data.text;
-            }
-            if (typeof data.html === 'string') {
-              emailContent.html += data.html;
-            }
-          }
-
-          if (data.type === 'attachment') {
-            // Skip attachment processing if disabled
-            if (!attachmentsEnabled) {
-              logger.info({ filename: data.filename }, 'Attachments disabled, skipping');
-              data.release();
-              return;
-            }
-
-            const fileSize = data.size || 0;
-            const mimeType = data.contentType || 'application/octet-stream';
-
-            const maxSizeBytes = options.maxFileSizeMB! * 1024 * 1024;
-            if (fileSize > maxSizeBytes) {
-              logger.warn({
-                filename: data.filename,
-                fileSize,
-                maxSizeBytes
-              }, 'Attachment exceeds max size, skipping');
-              data.release();
-              return;
-            }
-
-            // Validate MIME type
-            if (options.allowedMimeTypes && options.allowedMimeTypes.length > 0) {
-              if (!options.allowedMimeTypes.includes(mimeType)) {
-                logger.warn({
-                  filename: data.filename,
-                  mimeType
-                }, 'Attachment has disallowed MIME type, skipping');
-                data.release();
-                return;
-              }
-            }
-
-            const fileId = generateRandomString(24);
-            const extension = getFileExtension(path.basename(data.filename));
-            const storedFilename = extension ? `${fileId}.${extension}` : fileId;
-            const filePath = path.join('./uploads', storedFilename);
-
-            attachmentData.push({
-              fileId,
-              storedFilename,
-              originalFilename: data.filename,
-              filePath,
-              size: fileSize,
-              mimeType: mimeType
-            });
-
-            data.content.pipe(fs.createWriteStream(filePath));
-            data.release();
-          }
-        });
-
-        parser.on('end', () => {
-          resolve({ emailContent, attachmentData });
-        });
-
-        parser.on('error', reject);
-
-        parser.write(message.source);
-        parser.end();
+      archivedEmail = await archiveEmail({
+        uid,
+        source: message.source,
+        envelope: message.envelope,
+        parsedEmail: emailContent,
+        metadata: {
+          size: message.source.length,
+          hasAttachments: attachmentData.length > 0,
+        },
       });
 
+      const rateLimitCheck = await checkRateLimit(message.envelope.from[0].address);
+      if (rateLimitCheck.isRateLimited) {
+        logger.warn({ 
+          uid, 
+          address: message.envelope.from[0].address,
+          reason: rateLimitCheck.reason 
+        }, 'Email rate limited, skipping ticket creation');
+
+        // Mark archived email as failed due to rate limit
+        await markEmailFailed(archivedEmail.id, rateLimitCheck.reason!);
+
+        // Mark as seen and skip to next email
+        await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
+        continue;
+      }
       // Create ticket message and attachments
       const [ticketMessage] = await db
         .insert(schema.ticketMessage)
@@ -297,6 +226,14 @@ export async function processMessage(
           downloadCount: 0,
         });
       }
+
+      await updateArchivedEmail({
+        emailId: archivedEmail.id,
+        ticketId: ticket.id,
+        requesterId: requester.id,
+        messageId: ticketMessage.id,
+        processed: true,
+      });
 
       await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
       logger.info({ uid }, 'Marked UID as seen');
@@ -333,9 +270,167 @@ export async function processMessage(
           }
         });
       }
-
     } catch (error) {
+      if (archivedEmail) {
+        await markEmailFailed(archivedEmail.id, error);
+      }
       logger.error({ uid, error }, 'Error processing UID');
     }
   }
+}
+
+/**
+ * Parses email content and extracts attachments
+ */
+async function parseEmailContent(
+  source: Buffer,
+  attachmentsEnabled: boolean,
+  options: Attachment
+): Promise<{
+  emailContent: { html: string; text: string };
+  attachmentData: Array<{
+    fileId: string;
+    storedFilename: string;
+    originalFilename: string;
+    filePath: string;
+    size: number;
+    mimeType: string;
+  }>;
+}> {
+  return new Promise((resolve, reject) => {
+    const parser = new MailParser();
+
+    let emailContent = { html: '', text: '' };
+    let attachmentData: Array<{
+      fileId: string;
+      storedFilename: string;
+      originalFilename: string;
+      filePath: string;
+      size: number;
+      mimeType: string;
+    }> = [];
+
+    parser.on('data', (data) => {
+      if (data.type === 'text') {
+        if (data.text) {
+          emailContent.text += data.text;
+        }
+        if (typeof data.html === 'string') {
+          emailContent.html += data.html;
+        }
+      }
+
+      if (data.type === 'attachment') {
+        // Skip attachment processing if disabled
+        if (!attachmentsEnabled) {
+          logger.info({ filename: data.filename }, 'Attachments disabled, skipping');
+          data.release();
+          return;
+        }
+
+        const fileSize = data.size || 0;
+        const mimeType = data.contentType || 'application/octet-stream';
+
+        const maxSizeBytes = options.maxFileSizeMB! * 1024 * 1024;
+        if (fileSize > maxSizeBytes) {
+          logger.warn({
+            filename: data.filename,
+            fileSize,
+            maxSizeBytes
+          }, 'Attachment exceeds max size, skipping');
+          data.release();
+          return;
+        }
+
+        // Validate MIME type
+        if (options.allowedMimeTypes && options.allowedMimeTypes.length > 0) {
+          if (!options.allowedMimeTypes.includes(mimeType)) {
+            logger.warn({
+              filename: data.filename,
+              mimeType
+            }, 'Attachment has disallowed MIME type, skipping');
+            data.release();
+            return;
+          }
+        }
+
+        const fileId = generateRandomString(24);
+        const extension = getFileExtension(path.basename(data.filename));
+        const storedFilename = extension ? `${fileId}.${extension}` : fileId;
+        const filePath = path.join('./uploads', storedFilename);
+
+        attachmentData.push({
+          fileId,
+          storedFilename,
+          originalFilename: data.filename,
+          filePath,
+          size: fileSize,
+          mimeType: mimeType
+        });
+
+        data.content.pipe(fs.createWriteStream(filePath));
+        data.release();
+      }
+    });
+
+    parser.on('end', () => {
+      resolve({ emailContent, attachmentData });
+    });
+
+    parser.on('error', reject);
+
+    parser.write(source);
+    parser.end();
+  });
+}
+
+/**
+ * Checks if a sender has exceeded rate limits
+ * @returns Object with isRateLimited boolean and reason string
+ */
+async function checkRateLimit(fromAddress: string): Promise<{
+  isRateLimited: boolean;
+  reason?: string;
+}> {
+  const now = new Date();
+  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+  // Check 10-minute limit (max 2 emails)
+  const [recentEmails] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.email)
+    .where(
+      and(
+        eq(schema.email.fromAddress, fromAddress),
+        gte(schema.email.createdAt, tenMinutesAgo)
+      )
+    );
+
+  if (recentEmails.count >= 2) {
+    return {
+      isRateLimited: true,
+      reason: `Rate limit exceeded: ${recentEmails.count} emails in last 10 minutes (max 2)`
+    };
+  }
+
+  // Check 1-hour limit (max 5 emails)
+  const [hourlyEmails] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.email)
+    .where(
+      and(
+        eq(schema.email.fromAddress, fromAddress),
+        gte(schema.email.createdAt, oneHourAgo)
+      )
+    );
+
+  if (hourlyEmails.count >= 5) {
+    return {
+      isRateLimited: true,
+      reason: `Rate limit exceeded: ${hourlyEmails.count} emails in last hour (max 5)`
+    };
+  }
+
+  return { isRateLimited: false };
 }

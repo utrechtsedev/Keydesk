@@ -32,7 +32,7 @@
 		ticketId?: number;
 		priorityId: number;
 		statusId: number;
-		categoryId: number;
+		categoryId?: number | null;
 		statuses: Status[];
 		priorities: Priority[];
 		categories: Category[];
@@ -48,7 +48,9 @@
 	let editableTags = $derived<string[] | undefined>(tags?.map((t) => t.name));
 	const selectedPriority = $derived(priorities.find((p) => p.id === Number(priorityId)));
 	const selectedStatus = $derived(statuses.find((s) => s.id === Number(statusId)));
-	const selectedCategory = $derived(categories.find((c) => c.id === Number(categoryId)));
+	const selectedCategory = $derived(
+		categoryId ? categories.find((c) => c.id === Number(categoryId)) : undefined
+	);
 
 	function handleSelectAssignee(currentAssignedUser: number) {
 		userId = currentAssignedUser === userId ? 0 : currentAssignedUser;
@@ -67,11 +69,12 @@
 
 	let priorityIdString = $state(priorityId.toString());
 	let statusIdString = $state(statusId.toString());
-	let categoryIdString = $state(categoryId.toString());
+	let categoryIdString = $state(categoryId?.toString() ?? '');
+	
 	$effect(() => {
 		priorityId = Number(priorityIdString);
 		statusId = Number(statusIdString);
-		categoryId = Number(categoryIdString);
+		categoryId = categoryIdString ? Number(categoryIdString) : null;
 	});
 </script>
 
@@ -187,9 +190,10 @@
 			<Label>Category</Label>
 			<Select.Root type="single" bind:value={categoryIdString}>
 				<Select.Trigger class="w-full {highlightCategory ? 'border-red-600' : ''}">
-					{selectedCategory?.name ?? 'Select a category'}
+					{selectedCategory?.name ?? 'No category'}
 				</Select.Trigger>
 				<Select.Content>
+					<Select.Item value="">No category</Select.Item>
 					{#each categories as category (category.id)}
 						<Select.Item value={category.id.toString()}>
 							{category.name}

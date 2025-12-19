@@ -34,7 +34,7 @@ import type {
   UserNotification as BaseUserNotification
 } from '$lib/server/db/schema';
 
-import type { NotificationPreferences } from "./configuration.ts"
+import type { NotificationPreferences } from './configuration.ts';
 
 export interface User extends BaseUser {
   notificationPreferences: NotificationPreferences;
@@ -82,9 +82,5 @@ export interface Notification extends BaseNotification {
 export interface UserNotification extends BaseUserNotification {
   notification?: Notification;
 }
-
-
-
-
 
 

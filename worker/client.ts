@@ -1,8 +1,8 @@
-import { ImapFlow } from "imapflow";
+import { ImapFlow } from 'imapflow';
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { type IMAP } from "$lib/types";
+import { type IMAP } from '$lib/types';
 import { decrypt } from '$lib/server/db/encrypt';
 
 let client: ImapFlow | null = null;
@@ -37,4 +37,3 @@ export async function getClient(): Promise<ImapFlow> {
 
   return client;
 }
-

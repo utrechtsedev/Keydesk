@@ -5,8 +5,8 @@
 	import TeamSwitcher from './team-switcher.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
-	import type { User } from 'better-auth';
-	import { AudioWaveformIcon, ChartPieIcon, CommandIcon, FrameIcon, MapIcon } from '@lucide/svelte';
+	import type { User } from '$lib/types';
+	import { ChartPieIcon, FrameIcon, MapIcon } from '@lucide/svelte';
 	import Office3 from '$lib/icons/office-3.svelte';
 
 	let {

@@ -360,12 +360,12 @@ function generateActionUrl(options: NotificationOptions, external: boolean = fal
         // TODO: Generate secure access token for external ticket access
         return `${baseUrl}/portal/tickets/${ticketId}`;
       }
-      return `${baseUrl}/tickets/${ticketId}`;
+      return `${baseUrl}/dashboard/tickets/${ticketId}`;
     }
     
     if (entity.type === 'task') {
       const taskId = entity.id; // Changed from entity.data.id
-      return `${baseUrl}/tasks/${taskId}`;
+      return `${baseUrl}/dashboard/tasks/${taskId}`;
     }
   }
   
@@ -534,5 +534,7 @@ export function shouldSendNotification(
 
   return false;
 }
+
+
 
 
