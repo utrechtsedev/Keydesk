@@ -239,7 +239,7 @@
 		get data() {
 			return data;
 		},
-				columns,
+		columns,
 		get pageCount() {
 			return pageCount;
 		},
@@ -627,7 +627,7 @@
 		<div class="flex items-center gap-4">
 			<div class="flex items-center gap-2">
 				<Select.Root type="single" value={pageSizeValue} onValueChange={handlePageSizeChange}>
-					<Select.Trigger class="h-8 w-[70px]">
+					<Select.Trigger class="h-8 w-17.5">
 						{pageSizeValue}
 					</Select.Trigger>
 					<Select.Content>
