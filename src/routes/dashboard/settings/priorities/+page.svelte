@@ -4,55 +4,22 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
-	import { Switch } from '$lib/components/ui/switch';
 	import type { PageData, Priority } from '$lib/types';
 	import api from '$lib/utils/axios';
+	import AddItem from '$lib/components/settings/add-item.svelte';
+	import { invalidate } from '$app/navigation';
 
-	const { data }: { data: PageData & { priorities: Priority[] } } = $props();
+	let { data }: { data: PageData & { priorities: Priority[] } } = $props();
 
-	let priorities = $state(data.priorities);
-	let editing = $state<Priority>();
+	let editingId = $state<number | undefined>();
+	let openCreateDialog = $state(false);
 
 	function startEdit(priority: Priority) {
-		editing = priority;
+		editingId = priority.id;
 	}
 
 	function cancelEdit() {
-		editing = undefined;
-	}
-
-	function saveEdit() {
-		let currentPriority = priorities.find((p) => p === editing);
-		if (!currentPriority || currentPriority.name.length < 1)
-			return toast.error('Priority name must be at least 1 character');
-
-		// If this priority is set to default, unset all others
-		if (currentPriority.isDefault) {
-			priorities.forEach((p) => {
-				if (p !== currentPriority) {
-					p.isDefault = false;
-				}
-			});
-		}
-
-		editing = undefined;
-	}
-	function addPriority() {
-		const maxId = priorities.length > 0 ? Math.max(...priorities.map((p) => p.id)) : 0;
-		const maxOrder = priorities.length > 0 ? Math.max(...priorities.map((p) => p.order)) : 0;
-		const now = new Date();
-
-		const newItem: Priority = {
-			id: maxId + 1,
-			name: 'New Priority',
-			color: '#3B82F6',
-			order: maxOrder + 1,
-			isDefault: false,
-			createdAt: now,
-			updatedAt: now
-		};
-		priorities.push(newItem);
-		editing = newItem;
+		editingId = undefined;
 	}
 
 	async function deletePriority(priority: Priority) {
@@ -62,26 +29,30 @@
 			);
 		}
 
-		if (priorities.length <= 1) {
+		if (data.priorities.length <= 1) {
 			return toast.error('Cannot delete the last priority. At least 1 priority is required.');
 		}
 
 		await api.delete(`/api/settings/priorities/${priority.id}`);
 
-		priorities = priorities.filter((p) => p !== priority);
-		if (editing === priority) {
-			editing = undefined;
+		if (editingId === priority.id) {
+			editingId = undefined;
 		}
+
+		await invalidate('app:priorities');
 		toast.success('Priority deleted successfully.');
 	}
 
-	async function handleSave() {
-		const defaultPriorities = priorities.filter((p) => p.isDefault);
-		if (defaultPriorities.length !== 1)
-			return toast.error('You must have exactly 1 default priority.');
+	async function handleSave(priority: Priority) {
+		let currentPriority = data.priorities.find((p) => p.id === editingId);
+		if (!currentPriority || currentPriority.name.length === 0)
+			return toast.error('Priority name must be at least 1 character');
 
-		await api.post('/api/settings/priorities', { priorities });
-		toast.success('Successfully saved priority settings.');
+		await api.patch(`/api/settings/priorities/${priority.id}`, { priority: currentPriority });
+		await invalidate('app:priorities');
+		toast.success('Successfully saved priority.');
+
+		editingId = undefined;
 	}
 </script>
 
@@ -92,21 +63,19 @@
 			<p class="text-sm text-muted-foreground">Configure ticket priorities</p>
 		</div>
 		<div class="flex items-start gap-2">
-			<Button onclick={addPriority} variant="secondary">
+			<Button onclick={() => (openCreateDialog = true)} variant="secondary">
 				<Plus />
 				Add Priority
 			</Button>
-			<Button onclick={handleSave}>Save</Button>
 		</div>
 	</div>
 
 	<div class="grid">
-		{#each priorities as priority, index (index)}
+		{#each data.priorities as priority, index (priority.id)}
 			{@const isFirst = index === 0}
-			{@const isEditing = editing === priority}
+			{@const isEditing = editingId === priority.id}
 
 			{#if isEditing}
-				<!-- Editing mode - 3 rows for name, color, default -->
 				<div class="flex justify-between {isFirst ? 'border-y' : 'border-b'} px-4 py-3">
 					<Label for="priority-name-{index}" class="text-md">Priority Name</Label>
 					<Input
@@ -125,10 +94,6 @@
 						class="h-10 w-24 cursor-pointer"
 					/>
 				</div>
-				<div class="flex justify-between border-b px-4 py-3">
-					<Label for="priority-default-{index}" class="text-md">Set as Default</Label>
-					<Switch id="priority-default-{index}" bind:checked={priority.isDefault} />
-				</div>
 				<div class="flex justify-between border-b bg-muted/30 px-4 py-3">
 					<div class="flex gap-2">
 						<Button onclick={() => deletePriority(priority)} variant="destructive" size="sm">
@@ -141,7 +106,7 @@
 							<X class="h-4 w-4" />
 							Cancel
 						</Button>
-						<Button onclick={saveEdit} size="sm">
+						<Button onclick={() => handleSave(priority)} size="sm">
 							<Save class="h-4 w-4" />
 							Save
 						</Button>
@@ -165,10 +130,7 @@
 							</span>
 						</div>
 					</div>
-					<div class="flex gap-2">
-						<Button onclick={() => deletePriority(priority)} variant="destructive" size="sm">
-							<Trash class="h-4 w-4" />
-						</Button>
+					<div class="flex items-center">
 						<Button onclick={() => startEdit(priority)} variant="secondary" size="sm">
 							<SquarePen class="h-4 w-4" />
 							Edit
@@ -179,3 +141,4 @@
 		{/each}
 	</div>
 </div>
+<AddItem type="priority" bind:open={openCreateDialog} />

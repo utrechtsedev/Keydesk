@@ -11,46 +11,48 @@ import svelteConfig from './svelte.config.js';
 const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 export default defineConfig(
-  includeIgnoreFile(gitignorePath),
-  js.configs.recommended,
-  ...ts.configs.recommended,
-  ...svelte.configs.recommended,
-  prettier,
-  ...svelte.configs.prettier,
-  {
-    languageOptions: {
-      globals: { ...globals.browser, ...globals.node }
-    },
-    rules: {
-      // typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
-      // see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
-      'no-undef': 'off',
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        {
-          'argsIgnorePattern': '^_',
-          'varsIgnorePattern': '^_',
-          'caughtErrorsIgnorePattern': '^_',
-          'destructuredArrayIgnorePattern': '^_',
-          'ignoreRestSiblings': true
-        }
-      ], '@typescript-eslint/no-explicit-any': 'warn',
-      'quotes': ['error', 'single', { 'avoidEscape': true }],
-      'semi': ['error', 'always'],
-      'svelte/no-navigation-without-resolve': 'off',
-      'svelte/prefer-writable-derived': 'off',
-      'svelte/prefer-svelte-reactivity': 'off', 
-    }
-  },
-  {
-    files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-        extraFileExtensions: ['.svelte'],
-        parser: ts.parser,
-        svelteConfig
-      }
-    }
-  }
+	includeIgnoreFile(gitignorePath),
+	js.configs.recommended,
+	...ts.configs.recommended,
+	...svelte.configs.recommended,
+	prettier,
+	...svelte.configs.prettier,
+	{
+		languageOptions: {
+			globals: { ...globals.browser, ...globals.node }
+		},
+		rules: {
+			// typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
+			// see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
+			'no-undef': 'off',
+			'@typescript-eslint/no-unused-vars': [
+				'warn',
+				{
+					argsIgnorePattern: '^_',
+					varsIgnorePattern: '^_',
+					caughtErrorsIgnorePattern: '^_',
+					destructuredArrayIgnorePattern: '^_',
+					ignoreRestSiblings: true
+				}
+			],
+			'@typescript-eslint/no-explicit-any': 'warn',
+			quotes: ['error', 'single', { avoidEscape: true }],
+			semi: ['error', 'always'],
+			'svelte/no-navigation-without-resolve': 'off',
+			'svelte/prefer-writable-derived': 'off',
+			'svelte/prefer-svelte-reactivity': 'off',
+			'svelte/state_referenced_locally': 'off'
+		}
+	},
+	{
+		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
+		languageOptions: {
+			parserOptions: {
+				projectService: true,
+				extraFileExtensions: ['.svelte'],
+				parser: ts.parser,
+				svelteConfig
+			}
+		}
+	}
 );

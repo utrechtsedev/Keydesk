@@ -7,6 +7,7 @@ import {
   ConflictError,
   NotFoundError,
   ValidationError } from '$lib/server/errors';
+import type { Category } from '$lib/types';
 
 export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
   const id = Number(params.id);
@@ -42,5 +43,32 @@ export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
   return json({
     success: true,
     message: 'Category deleted successfully.'
+  });
+};
+
+export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
+  const id = Number(params.id);
+  const { category } = await request.json() as { category: Category };
+
+  if (id !== category.id) throw new ValidationError('Incorrect category ID.');
+
+  const [updatedCategory] = await db
+    .update(schema.category)
+    .set({
+      name: category.name,
+      description: category.description,
+      updatedAt: new Date()
+    })
+    .where(eq(schema.category.id, id))
+    .returning();
+
+  if (!updatedCategory) {
+    throw new NotFoundError('Category not found');
+  }
+
+  return json({
+    success: true,
+    message: 'Category updated successfully',
+    data: updatedCategory
   });
 };

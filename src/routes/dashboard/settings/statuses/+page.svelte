@@ -6,87 +6,57 @@
 	import { toast } from 'svelte-sonner';
 	import type { PageData, Status, NewStatus } from '$lib/types';
 	import api from '$lib/utils/axios';
+	import AddItem from '$lib/components/settings/add-item.svelte';
+	import { invalidate } from '$app/navigation';
 
-	const { data }: { data: PageData & { statuses: Status[] } } = $props();
+	let { data }: { data: PageData & { statuses: Status[] } } = $props();
 
-	let statuses = $state<(Status | NewStatus)[]>(data.statuses);
-	let editing = $state<Status | NewStatus | undefined>();
+	let editingId = $state<number | undefined>();
+	let openCreateDialog = $state(false);
 
-	function startEdit(status: Status | NewStatus) {
-		editing = status;
+	function startEdit(status: Status) {
+		editingId = status.id;
 	}
 
 	function cancelEdit() {
-		editing = undefined;
+		editingId = undefined;
 	}
 
-	function saveEdit() {
-		let currentStatus = statuses.find((s) => s === editing);
+	async function handleSave(status: Status) {
+		let currentStatus = data.statuses.find((s) => s.id === editingId);
 		if (!currentStatus || currentStatus.name.length < 1)
 			return toast.error('Status name must be at least 1 character');
 
-		editing = undefined;
+		await api.patch(`/api/settings/statuses/${status.id}`, { status: currentStatus });
+		await invalidate('app:statuses');
+		toast.success('Successfully saved status.');
+
+		editingId = undefined;
 	}
 
-	function addStatus() {
-		const newItem: NewStatus = {
-			name: 'New Status',
-			color: '#3B82F6',
-			isDefault: false,
-			isResolved: false,
-			isClosed: false,
-		};
-		statuses.push(newItem);
-		editing = newItem;
-	}
-
-	// Type guard to check if status is a Status (has id) or NewStatus
 	function isStatus(status: Status | NewStatus): status is Status {
 		return 'id' in status;
 	}
 
 	async function deleteStatus(status: Status | NewStatus) {
-		// Prevent deletion of system statuses
 		if (status.isDefault || status.isResolved || status.isClosed) {
 			return toast.error('Cannot delete system statuses (Default, Resolved, or Closed).');
 		}
 
-		// Only call API if status has an id (exists in database)
 		if (isStatus(status)) {
 			await api.delete(`/api/settings/statuses/${status.id}`);
 		}
 
-		statuses = statuses.filter((s) => s !== status);
-		if (editing === status) {
-			editing = undefined;
+		if (isStatus(status) && editingId === status.id) {
+			editingId = undefined;
 		}
+
+		await invalidate('app:statuses');
 		toast.success('Status deleted successfully.');
 	}
 
-	async function handleSave() {
-		// Validate required system statuses
-		const defaultStatuses = statuses.filter((s) => s.isDefault);
-		if (defaultStatuses.length !== 1) 
-			return toast.error('You must have exactly 1 default status.');
-
-		const resolvedStatuses = statuses.filter((s) => s.isResolved);
-		if (resolvedStatuses.length !== 1) 
-			return toast.error('You must have exactly 1 resolved status.');
-
-		const closedStatuses = statuses.filter((s) => s.isClosed);
-		if (closedStatuses.length !== 1) 
-			return toast.error('You must have exactly 1 closed status.');
-
-		const openStatuses = statuses.filter((s) => !s.isClosed && !s.isResolved);
-		if (openStatuses.length < 1) 
-			return toast.error('You must have at least 1 open status.');
-
-		await api.post('/api/settings/statuses', { statuses });
-		toast.success('Successfully saved status settings.');
-	}
-
 	function isSystemStatus(status: Status | NewStatus): boolean {
-		return status.isDefault || status.isResolved || status.isClosed;
+		return status.isDefault! || status.isResolved! || status.isClosed!;
 	}
 </script>
 
@@ -95,22 +65,22 @@
 		<div>
 			<h1 class="text-2xl font-bold">Status Settings</h1>
 			<p class="text-sm text-muted-foreground">
-				Configure ticket statuses. System statuses (Default, Resolved, Closed) can be renamed but not deleted.
+				Configure ticket statuses. System statuses (Default, Resolved, Closed) can be renamed but
+				not deleted.
 			</p>
 		</div>
 		<div class="flex items-start gap-2">
-			<Button onclick={addStatus} variant="secondary">
+			<Button onclick={() => (openCreateDialog = true)} variant="secondary">
 				<Plus />
 				Add Status
 			</Button>
-			<Button onclick={handleSave}>Save</Button>
 		</div>
 	</div>
 
 	<div class="grid">
-		{#each statuses as status, index (index)}
+		{#each data.statuses as status, index (status.id)}
 			{@const isFirst = index === 0}
-			{@const isEditing = editing === status}
+			{@const isEditing = editingId === status.id}
 			{@const isSystem = isSystemStatus(status)}
 
 			{#if isEditing}
@@ -130,9 +100,9 @@
 				</div>
 				<div class="flex justify-between border-b bg-muted/30 px-4 py-3">
 					<div class="flex gap-2">
-						<Button 
-							onclick={() => deleteStatus(status)} 
-							variant="destructive" 
+						<Button
+							onclick={() => deleteStatus(status)}
+							variant="destructive"
 							size="sm"
 							disabled={isSystem}
 						>
@@ -145,7 +115,7 @@
 							<X class="h-4 w-4" />
 							Cancel
 						</Button>
-						<Button onclick={saveEdit} size="sm">
+						<Button onclick={() => handleSave(status)} size="sm">
 							<Save class="h-4 w-4" />
 							Save
 						</Button>
@@ -179,15 +149,7 @@
 							</span>
 						</div>
 					</div>
-					<div class="flex gap-2">
-						<Button 
-							onclick={() => deleteStatus(status)} 
-							variant="destructive" 
-							size="sm"
-							disabled={isSystem}
-						>
-							<Trash class="h-4 w-4" />
-						</Button>
+					<div class="flex items-center">
 						<Button onclick={() => startEdit(status)} variant="secondary" size="sm">
 							<SquarePen class="h-4 w-4" />
 							Edit
@@ -198,3 +160,4 @@
 		{/each}
 	</div>
 </div>
+<AddItem type="status" bind:open={openCreateDialog} />

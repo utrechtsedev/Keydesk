@@ -7,59 +7,46 @@
 	import { toast } from 'svelte-sonner';
 	import type { Category, PageData } from '$lib/types';
 	import api from '$lib/utils/axios';
+	import { invalidate } from '$app/navigation';
+	import AddItem from '$lib/components/settings/add-item.svelte';
 
-	const { data }: { data: PageData & { categories: Category[] } } = $props();
-	let categories = $state(data.categories);
-	let editing = $state<Category>();
+	let { data }: { data: PageData & { categories: Category[] } } = $props();
+
+	let editingId = $state<number | undefined>();
+	let openCreateDialog = $state(false);
 
 	function startEdit(category: Category) {
-		editing = category;
+		editingId = category.id;
 	}
 
 	function cancelEdit() {
-		editing = undefined;
-	}
-
-	function saveEdit() {
-		let currentCategory = categories.find((p) => p === editing);
-		if (!currentCategory || currentCategory.name.length < 1)
-			return toast.error('Category name must be at least 1 character');
-		editing = undefined;
-	}
-
-	function addCategory() {
-		const maxId = categories.length > 0 ? Math.max(...categories.map((c) => c.id)) : 0;
-		const now = new Date();
-
-		const newItem: Category = {
-			id: maxId + 1,
-			name: 'New Category',
-			description: 'Category description',
-			prefix: '',
-			createdAt: now,
-			updatedAt: now
-		};
-		categories.push(newItem);
-		editing = newItem;
+		editingId = undefined;
 	}
 
 	async function deleteCategory(category: Category) {
-		if (categories.length === 1)
+		if (data.categories.length === 1)
 			return toast.error('Cannot delete last category. At least 1 default category is required.');
 
 		await api.delete(`/api/settings/categories/${category.id}`);
 
-		categories = categories.filter((p) => p !== category);
-
-		if (editing === category) {
-			editing = undefined;
+		if (editingId === category.id) {
+			editingId = undefined;
 		}
+
+		await invalidate('app:categories');
 		toast.success('Category deleted successfully.');
 	}
 
-	async function handleSave() {
-		await api.post('/api/settings/categories', { categories });
-		toast.success('Successfully saved category settings.');
+	async function handleSave(category: Category) {
+		let currentCategory = data.categories.find((p) => p.id === editingId);
+		if (!currentCategory || currentCategory.name.length === 0)
+			return toast.error('Category name must be at least 1 character');
+
+		await api.patch(`/api/settings/categories/${category.id}`, { category: currentCategory });
+		await invalidate('app:categories');
+		toast.success('Successfully saved category.');
+
+		editingId = undefined;
 	}
 </script>
 
@@ -70,37 +57,24 @@
 			<p class="text-sm text-muted-foreground">Configure ticket categories</p>
 		</div>
 		<div class="flex items-start gap-2">
-			<Button onclick={addCategory} variant="secondary">
+			<Button onclick={() => (openCreateDialog = true)} variant="secondary">
 				<Plus />
 				Add Category
 			</Button>
-			<Button onclick={handleSave}>Save</Button>
 		</div>
 	</div>
 
 	<div class="grid">
-		{#each categories as category, index (index)}
+		{#each data.categories as category, index (category.id)}
 			{@const isFirst = index === 0}
-			{@const isEditing = editing === category}
-
+			{@const isEditing = editingId === category.id}
 			{#if isEditing}
-				<!-- Editing mode - 3 rows for name, prefix, description -->
 				<div class="flex justify-between {isFirst ? 'border-y' : 'border-b'} px-4 py-3">
 					<Label for="category-name-{index}" class="text-md">Category Name</Label>
 					<Input
 						id="category-name-{index}"
 						type="text"
 						bind:value={category.name}
-						class="w-[40%]"
-					/>
-				</div>
-				<div class="flex justify-between border-b px-4 py-3">
-					<Label for="ticket-prefix-{index}" class="text-md">Ticket Prefix</Label>
-					<Input
-						id="ticket-prefix-{index}"
-						type="text"
-						bind:value={category.prefix}
-						placeholder="Optional"
 						class="w-[40%]"
 					/>
 				</div>
@@ -125,28 +99,21 @@
 							<X class="h-4 w-4" />
 							Cancel
 						</Button>
-						<Button onclick={saveEdit} size="sm">
+						<Button onclick={() => handleSave(category)} size="sm">
 							<Save class="h-4 w-4" />
 							Save
 						</Button>
 					</div>
 				</div>
 			{:else}
-				<!-- Display mode - single row -->
 				<div class="flex justify-between {isFirst ? 'border-y' : 'border-b'} px-4 py-3">
 					<div class="flex flex-col gap-1">
 						<span class="text-md font-semibold">{category.name}</span>
 						<span class="text-sm text-muted-foreground">
-							{#if category.prefix}
-								Prefix: {category.prefix} •
-							{/if}
 							{category.description}
 						</span>
 					</div>
-					<div class="flex gap-2">
-						<Button onclick={() => deleteCategory(category)} variant="destructive" size="sm">
-							<Trash class="h-4 w-4" />
-						</Button>
+					<div class="flex items-center">
 						<Button onclick={() => startEdit(category)} variant="secondary" size="sm">
 							<SquarePen class="h-4 w-4" />
 							Edit
@@ -157,3 +124,4 @@
 		{/each}
 	</div>
 </div>
+<AddItem type="category" bind:open={openCreateDialog} />

@@ -260,27 +260,22 @@ class DatabaseInitializer {
           {
             name: 'Technical Issue',
             description: 'Technical problems or bugs',
-            prefix: '',
           },
           {
             name: 'Modification Request',
             description: 'Requests for modification',
-            prefix: 'CH',
           },
           {
             name: 'Question',
             description: 'General questions or how-to',
-            prefix: 'Q',
           },
           {
             name: 'Incident',
             description: 'Service disruption or outage',
-            prefix: 'I',
           },
           {
             name: 'Other',
             description: 'Miscellaneous requests',
-            prefix: 'O',
           },
         ];
 

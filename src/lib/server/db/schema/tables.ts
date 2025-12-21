@@ -159,7 +159,6 @@ export const category = pgTable('category', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 50 }).notNull(),
   description: text('description'),
-  prefix: varchar('prefix', { length: 5 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().$onUpdate(() => /* @__PURE__ */ new Date()).defaultNow(),
 });
@@ -168,9 +167,9 @@ export const status = pgTable('status', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 50 }).notNull(),
   color: varchar('color', { length: 7 }).notNull(),
-  isResolved: boolean('is_resolved').notNull(),
-  isDefault: boolean('is_default').notNull(),
-  isClosed: boolean('is_closed').notNull(),
+  isResolved: boolean('is_resolved').default(false),
+  isDefault: boolean('is_default').default(false),
+  isClosed: boolean('is_closed').default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().$onUpdate(() => /* @__PURE__ */ new Date()).defaultNow(),
 });
@@ -179,8 +178,7 @@ export const priority = pgTable('priority', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 50 }).notNull(),
   color: varchar('color', { length: 7 }).notNull(),
-  isDefault: boolean('is_default').notNull(),
-  order: integer('order').notNull(),
+  isDefault: boolean('is_default').default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().$onUpdate(() => /* @__PURE__ */ new Date()).defaultNow(),
 });
