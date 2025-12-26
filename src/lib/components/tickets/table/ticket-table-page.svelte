@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import DataTable from '$lib/components/tickets/table/data-table.svelte';
+	import DataTable from '$lib/components/tickets/table/ticket-table.svelte';
 	import { columns } from '$lib/components/tickets/table/columns.js';
 	import type { TicketPageData } from '$lib/types';
 	import { onMount } from 'svelte';

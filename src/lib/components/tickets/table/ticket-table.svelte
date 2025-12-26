@@ -27,7 +27,7 @@
 		horizontalListSortingStrategy
 	} from '@dnd-kit-svelte/sortable';
 	import { sensors } from '$lib/utils/sensors';
-	import SortableTableHeader from './sortable-table-header.svelte';
+	import SortableTableHeader from './ticket-sortable-table-header.svelte';
 	import Change from '$lib/icons/change.svelte';
 	import Connection2 from '$lib/icons/connection-2.svelte';
 	import Flag7 from '$lib/icons/flag-7.svelte';
@@ -46,10 +46,10 @@
 	} from '$lib/types';
 	import VShapedArrowDown from '$lib/icons/v-shaped-arrow-down.svelte';
 	import ListTree from '$lib/icons/list-tree.svelte';
-	import BulkActions from './data-bulk-actions-dialog.svelte';
-	import ExportActions from './data-export-dialog.svelte';
-	import DataDeleteDialog from './data-delete-dialog.svelte';
-	import DataFilterDialog from './data-filter-dialog.svelte';
+	import BulkActions from './ticket-bulk-actions-dialog.svelte';
+	import ExportActions from './ticket-export-dialog.svelte';
+	import DataDeleteDialog from './ticket-delete-dialog.svelte';
+	import DataFilterDialog from './ticket-filter-dialog.svelte';
 	import Gear3 from '$lib/icons/gear-3.svelte';
 
 	type DataTableProps<TData, TValue> = {
@@ -204,22 +204,22 @@
 
 	function handleDragOver({ active, over }: DragOverEvent) {
 		// Optional: Add visual feedback during drag
-    	if (!over || active.id === over.id) return;
-	
-	// Skip if over non-draggable columns
-	if (over.id === 'select' || over.id === 'actions') return;
+		if (!over || active.id === over.id) return;
 
-	const oldIndex = columnOrder.indexOf(active.id as string);
-	const newIndex = columnOrder.indexOf(over.id as string);
+		// Skip if over non-draggable columns
+		if (over.id === 'select' || over.id === 'actions') return;
 
-	// Reorder in real-time as you drag over
-	if (oldIndex !== -1 && newIndex !== -1) {
-		columnOrder = arrayMove(columnOrder, oldIndex, newIndex);
-	}
+		const oldIndex = columnOrder.indexOf(active.id as string);
+		const newIndex = columnOrder.indexOf(over.id as string);
+
+		// Reorder in real-time as you drag over
+		if (oldIndex !== -1 && newIndex !== -1) {
+			columnOrder = arrayMove(columnOrder, oldIndex, newIndex);
+		}
 	}
 
 	function handleDragEnd() {
-			activeColumn = null;
+		activeColumn = null;
 	}
 
 	function handlePageSizeChange(value: string | undefined) {
@@ -514,108 +514,112 @@
 			onDragEnd={handleDragEnd}
 		>
 			<Table.Root>
-<Table.Header>
-	{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-		{@const selectHeader = headerGroup.headers.find((h) => h.id === 'select')}
-		{@const actionsHeader = headerGroup.headers.find((h) => h.id === 'actions')}
-		{@const draggableHeaders = headerGroup.headers.filter(
-			(h) => h.id !== 'select' && h.id !== 'actions'
-		)}
+				<Table.Header>
+					{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
+						{@const selectHeader = headerGroup.headers.find((h) => h.id === 'select')}
+						{@const actionsHeader = headerGroup.headers.find((h) => h.id === 'actions')}
+						{@const draggableHeaders = headerGroup.headers.filter(
+							(h) => h.id !== 'select' && h.id !== 'actions'
+						)}
 
-		<Table.Row>
-			<!-- Select column (non-draggable, ALWAYS FIRST) -->
-			{#if selectHeader}
-				<Table.Head class="[&:has([role=checkbox])]:pl-3">
-					{#if !selectHeader.isPlaceholder}
-						<FlexRender
-							content={selectHeader.column.columnDef.header}
-							context={selectHeader.getContext()}
-						/>
-					{/if}
-				</Table.Head>
-			{/if}
+						<Table.Row>
+							<!-- Select column (non-draggable, ALWAYS FIRST) -->
+							{#if selectHeader}
+								<Table.Head class="[&:has([role=checkbox])]:pl-3">
+									{#if !selectHeader.isPlaceholder}
+										<FlexRender
+											content={selectHeader.column.columnDef.header}
+											context={selectHeader.getContext()}
+										/>
+									{/if}
+								</Table.Head>
+							{/if}
 
-			<!-- Draggable columns in the middle -->
-			<SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
-				{#each draggableHeaders as header (header.id)}
-					<SortableTableHeader id={header.id}>
-						{#if !header.isPlaceholder}
-							<FlexRender
-								content={header.column.columnDef.header}
-								context={header.getContext()}
-							/>
-						{/if}
-					</SortableTableHeader>
-				{/each}
-			</SortableContext>
+							<!-- Draggable columns in the middle -->
+							<SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
+								{#each draggableHeaders as header (header.id)}
+									<SortableTableHeader id={header.id}>
+										{#if !header.isPlaceholder}
+											<FlexRender
+												content={header.column.columnDef.header}
+												context={header.getContext()}
+											/>
+										{/if}
+									</SortableTableHeader>
+								{/each}
+							</SortableContext>
 
-			<!-- Actions column (non-draggable, ALWAYS LAST) -->
-			{#if actionsHeader}
-				<Table.Head>
-					{#if !actionsHeader.isPlaceholder}
-						<FlexRender
-							content={actionsHeader.column.columnDef.header}
-							context={actionsHeader.getContext()}
-						/>
-					{/if}
-				</Table.Head>
-			{/if}
-		</Table.Row>
-	{/each}
-</Table.Header><Table.Body>
-	{#each table.getRowModel().rows as row (row.id)}
-		{@const selectCell = row.getVisibleCells().find((c) => c.column.id === 'select')}
-		{@const actionsCell = row.getVisibleCells().find((c) => c.column.id === 'actions')}
-		{@const draggableCells = row
-			.getVisibleCells()
-			.filter((c) => c.column.id !== 'select' && c.column.id !== 'actions')}
-		
-		<Table.Row
-			data-state={row.getIsSelected() && 'selected'}
-			onclick={(e) => {
-				const target = e.target as HTMLElement;
-				if (
-					target.closest('[role="checkbox"]') ||
-					target.closest('[data-cell-actions]')
-				) {
-					return;
-				}
-				goto(`/dashboard/tickets/${(row.original as Ticket).id}`);
-			}}
-		>
-			<!-- Select cell (always first) -->
-			{#if selectCell}
-				<Table.Cell class="[&:has([role=checkbox])]:pl-3">
-					<FlexRender content={selectCell.column.columnDef.cell} context={selectCell.getContext()} />
-				</Table.Cell>
-			{/if}
+							<!-- Actions column (non-draggable, ALWAYS LAST) -->
+							{#if actionsHeader}
+								<Table.Head>
+									{#if !actionsHeader.isPlaceholder}
+										<FlexRender
+											content={actionsHeader.column.columnDef.header}
+											context={actionsHeader.getContext()}
+										/>
+									{/if}
+								</Table.Head>
+							{/if}
+						</Table.Row>
+					{/each}
+				</Table.Header><Table.Body>
+					{#each table.getRowModel().rows as row (row.id)}
+						{@const selectCell = row.getVisibleCells().find((c) => c.column.id === 'select')}
+						{@const actionsCell = row.getVisibleCells().find((c) => c.column.id === 'actions')}
+						{@const draggableCells = row
+							.getVisibleCells()
+							.filter((c) => c.column.id !== 'select' && c.column.id !== 'actions')}
 
-			<!-- Draggable cells in order -->
-			{#each draggableCells as cell (cell.id)}
-				<Table.Cell class="[&:has([role=checkbox])]:pl-3">
-					<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
-				</Table.Cell>
-			{/each}
+						<Table.Row
+							data-state={row.getIsSelected() && 'selected'}
+							onclick={(e) => {
+								const target = e.target as HTMLElement;
+								if (target.closest('[role="checkbox"]') || target.closest('[data-cell-actions]')) {
+									return;
+								}
+								goto(`/dashboard/tickets/${(row.original as Ticket).id}`);
+							}}
+						>
+							<!-- Select cell (always first) -->
+							{#if selectCell}
+								<Table.Cell class="[&:has([role=checkbox])]:pl-3">
+									<FlexRender
+										content={selectCell.column.columnDef.cell}
+										context={selectCell.getContext()}
+									/>
+								</Table.Cell>
+							{/if}
 
-			<!-- Actions cell (always last) -->
-			{#if actionsCell}
-				<Table.Cell>
-					<FlexRender content={actionsCell.column.columnDef.cell} context={actionsCell.getContext()} />
-				</Table.Cell>
-			{/if}
-		</Table.Row>
-	{:else}
-		<Table.Row>
-			<Table.Cell colspan={columns.length} class="h-24 text-center">No results.</Table.Cell>
-		</Table.Row>
-	{/each}
-</Table.Body>			</Table.Root>
+							<!-- Draggable cells in order -->
+							{#each draggableCells as cell (cell.id)}
+								<Table.Cell class="[&:has([role=checkbox])]:pl-3">
+									<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+								</Table.Cell>
+							{/each}
+
+							<!-- Actions cell (always last) -->
+							{#if actionsCell}
+								<Table.Cell>
+									<FlexRender
+										content={actionsCell.column.columnDef.cell}
+										context={actionsCell.getContext()}
+									/>
+								</Table.Cell>
+							{/if}
+						</Table.Row>
+					{:else}
+						<Table.Row>
+							<Table.Cell colspan={columns.length} class="h-24 text-center">No results.</Table.Cell>
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
 
 			<DragOverlay>
 				{#if activeColumn}
 					{@const column = table.getAllColumns().find((col) => col.id === activeColumn)}
 					{@const title = column?.columnDef.meta?.title || activeColumn}
-					<div class="bg-background border rounded-md shadow-lg px-4 py-2 opacity-90 font-medium">
+					<div class="rounded-md border bg-background px-4 py-2 font-medium opacity-90 shadow-lg">
 						{title}
 					</div>
 				{/if}

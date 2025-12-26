@@ -5,7 +5,6 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { ChevronRightIcon } from '@lucide/svelte';
-	import type { User } from '$lib/types';
 	import Ticket from '$lib/icons/ticket.svelte';
 	import ViewAll from '$lib/icons/view-all.svelte';
 	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
@@ -13,6 +12,7 @@
 	import Toggles from '$lib/icons/toggles.svelte';
 	import { onMount } from 'svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte.js';
+	import type { User } from '$lib/types';
 	const sidebar = useSidebar();
 
 	let {
@@ -52,6 +52,11 @@
 								<div
 									{...tooltipProps}
 									class="grid h-8 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md p-2 transition-[width,height,padding] duration-200 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:place-items-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-2 hover:bg-sidebar-accent"
+									onclick={() => {
+										if (!sidebar.open) {
+											goto('/dashboard/tickets');
+										}
+									}}
 								>
 									<Ticket class="size-4 shrink-0" />
 									<button
@@ -119,6 +124,11 @@
 								<div
 									{...tooltipProps}
 									class="grid h-8 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md p-2 transition-[width,height,padding] duration-200 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:place-items-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-2 hover:bg-sidebar-accent"
+									onclick={() => {
+										if (!sidebar.open) {
+											goto('/dashboard/tasks');
+										}
+									}}
 								>
 									<ClipboardContent class="size-4 shrink-0" />
 									<button

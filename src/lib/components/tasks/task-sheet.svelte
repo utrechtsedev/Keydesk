@@ -48,7 +48,9 @@
 	let editableTags = $derived<string[] | undefined>(editableTask?.tags?.map((t) => t.name));
 	const selectedStatus = $derived(statuses.find((s) => s.id === Number(statusIdString)));
 	const selectedPriority = $derived(priorities.find((p) => p.id === Number(priorityIdString)));
-	const selectedUser = $derived(users.find((u) => u.id === Number(assigneeIdString)));
+	const selectedUser = $derived(
+		assigneeIdString === 'none' ? null : users.find((u) => u.id === Number(assigneeIdString))
+	);
 	const isNewTask = $derived(!task?.id);
 
 	async function handleSaveTags() {
@@ -96,17 +98,16 @@
 				editableTask = JSON.parse(JSON.stringify(task));
 				statusIdString = editableTask!.statusId.toString();
 				priorityIdString = editableTask!.priorityId.toString();
-				assigneeIdString = editableTask!.assigneeId.toString();
+				assigneeIdString = editableTask!.assigneeId?.toString() ?? 'none';
 			} else {
 				const defaultStatus = statuses[0];
 				const defaultPriority = priorities[0];
-				const defaultUser = users[0];
 
 				editableTask = {
 					title: '',
 					description: null,
 					ticketId: null,
-					assigneeId: defaultUser?.id || 0,
+					assigneeId: null,
 					parentTaskId: null,
 					createdById: 0,
 					statusId: defaultStatus?.id || 1,
@@ -121,7 +122,7 @@
 
 				statusIdString = editableTask!.statusId.toString();
 				priorityIdString = editableTask!.priorityId.toString();
-				assigneeIdString = editableTask!.assigneeId.toString();
+				assigneeIdString = 'none';
 				editDescription = true;
 			}
 		}
@@ -139,7 +140,7 @@
 			editableTask.statusId = Number(statusIdString);
 		}
 		if (editableTask && assigneeIdString) {
-			editableTask.assigneeId = Number(assigneeIdString);
+			editableTask.assigneeId = assigneeIdString === 'none' ? null : Number(assigneeIdString);
 		}
 	});
 </script>
@@ -210,9 +211,11 @@
 					<Label>Assignee</Label>
 					<Select.Root type="single" bind:value={assigneeIdString}>
 						<Select.Trigger class="w-full">
-							{selectedUser?.name ?? 'Select a user'}
+							{selectedUser?.name ?? 'Unassigned'}
 						</Select.Trigger>
 						<Select.Content>
+							<Select.Item value="none">Unassigned</Select.Item>
+							<Select.Separator />
 							{#each users as user (user.id)}
 								<Select.Item value={user.id.toString()}>
 									{user.name}
@@ -393,7 +396,9 @@
 								<div
 									class="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
 								>
-									<Checkbox checked={subtask.status?.isClosed} />
+									{#if subtask.status && subtask.status.isClosed !== null}
+										<Checkbox checked={subtask.status?.isClosed} />
+									{/if}
 									<div class="min-w-0 flex-1">
 										<p
 											class="text-sm font-medium {subtask.status?.isClosed

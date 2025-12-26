@@ -14,7 +14,7 @@
 	const {
 		data
 	}: {
-		data: TicketDetail
+		data: TicketDetail;
 	} = $props();
 
 	let ticket = $state(data.ticket);
@@ -78,7 +78,7 @@
 			lastRequesterResponseAt: ticket.lastRequesterResponseAt,
 			responseCount: ticket.responseCount
 		};
-		await api.patch(`/api/tickets/${data.ticket.id}`, ticketUpdate);
+		await api.patch(`/api/tickets/${data.ticket.id}`, { ticket: ticketUpdate });
 		invalidate('app:ticket');
 		toast.success('Ticket updated succesfully');
 	}

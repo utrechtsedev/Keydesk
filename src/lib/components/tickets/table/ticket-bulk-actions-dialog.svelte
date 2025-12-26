@@ -80,6 +80,7 @@
 			</Select.Root>
 		</div>
 		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
 			<Button type="submit" onclick={handleSave}>
 				{itemType === 'tag' ? 'Add tag' : 'Save changes'}
 			</Button>

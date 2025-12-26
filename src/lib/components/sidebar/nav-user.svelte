@@ -11,7 +11,7 @@
 	import MoonCloudSnow from '$lib/icons/moon-cloud-snow.svelte';
 	import Sun from '$lib/icons/sun.svelte';
 	import Toggles from '$lib/icons/toggles.svelte';
-	import type { User } from 'better-auth';
+	import type { User } from '$lib/types';
 	import { toggleMode, mode } from 'mode-watcher';
 	let { user }: { user: User } = $props();
 	const sidebar = useSidebar();

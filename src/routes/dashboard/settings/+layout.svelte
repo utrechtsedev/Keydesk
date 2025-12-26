@@ -13,6 +13,7 @@
 	import PriorityMedium2 from '$lib/icons/priority-medium-2.svelte';
 	import Wip from '$lib/icons/wip.svelte';
 	import Ticket from '$lib/icons/ticket.svelte';
+	import People from '$lib/icons/people.svelte';
 
 	const { children } = $props();
 
@@ -21,6 +22,11 @@
 			path: '/dashboard/settings/organization',
 			name: 'Organization',
 			icon: Organization
+		},
+		{
+			path: '/dashboard/settings/users',
+			name: 'Users',
+			icon: People
 		},
 		{
 			path: '/dashboard/settings/tickets',

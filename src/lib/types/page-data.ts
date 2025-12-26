@@ -1,28 +1,38 @@
 import type { TicketList } from './ticket-list';
-import type { Category, Priority, Status, Tag, Task, User, UserNotification } from './core';
+import type {
+	Category,
+	Priority,
+	Session,
+	Status,
+	Tag,
+	Task,
+	User,
+	UserNotification
+} from './core';
 
 export interface PageData {
-  user: User;
-  notifications: UserNotification[]
+	user: User;
+	session: Session;
+	notifications: UserNotification[];
 }
 
 export interface TicketPageData extends PageData {
-  tickets: TicketList[];
-  pageCount: number;
-  totalCount: number;
-  users: User[];
-  categories: Category[];
-  statuses: Status[];
-  priorities: Priority[];
-  tags: Tag[];
+	tickets: TicketList[];
+	pageCount: number;
+	totalCount: number;
+	users: User[];
+	categories: Category[];
+	statuses: Status[];
+	priorities: Priority[];
+	tags: Tag[];
 }
 
 export interface TaskPageData extends PageData {
-  tasks: Task[];
-  task?: Task;
-  finishedTasks: Task[];
-  users: User[];
-  statuses: Status[];
-  priorities: Priority[];
-  tags: Tag[];
+	tasks: Task[];
+	task?: Task;
+	finishedTasks: Task[];
+	users: User[];
+	statuses: Status[];
+	priorities: Priority[];
+	tags: Tag[];
 }

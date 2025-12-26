@@ -5,16 +5,18 @@
 	import TeamSwitcher from './team-switcher.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
-	import type { User } from '$lib/types';
 	import { ChartPieIcon, FrameIcon, MapIcon } from '@lucide/svelte';
 	import Office3 from '$lib/icons/office-3.svelte';
+	import Impersonation from './impersonation.svelte';
+	import type { Session, User } from '$lib/types';
 
 	let {
 		ref = $bindable(null),
 		collapsible = 'icon',
 		user,
+		session,
 		...restProps
-	}: ComponentProps<typeof Sidebar.Root> & { user: User } = $props();
+	}: ComponentProps<typeof Sidebar.Root> & { user: User; session: Session } = $props();
 
 	const data = {
 		user: {
@@ -56,8 +58,12 @@
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavMain {user} />
+		{#if session?.impersonatedBy}
+			<Impersonation {user} />
+		{/if}
 		<NavProjects projects={data.projects} />
 	</Sidebar.Content>
+
 	<Sidebar.Footer>
 		<NavUser {user} />
 	</Sidebar.Footer>
