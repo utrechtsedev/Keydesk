@@ -48,11 +48,11 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 	if (!requester) throw new NotFoundError('Requester not found');
 
 	// Verify assignee exists if provided
-	if (ticket.assignedUserId) {
+	if (ticket.assigneeId) {
 		const [assignee] = await db
 			.select()
 			.from(schema.user)
-			.where(eq(schema.user.id, ticket.assignedUserId));
+			.where(eq(schema.user.id, ticket.assigneeId));
 
 		if (!assignee) throw new NotFoundError('Assigned user not found');
 	}
@@ -86,7 +86,7 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 	// Auto-set resolvedAt/closedAt based on status
 	const updateData: Partial<Ticket> = {
 		subject: ticket.subject,
-		assignedUserId: ticket.assignedUserId || null,
+		assigneeId: ticket.assigneeId || null,
 		statusId: ticket.statusId,
 		priorityId: ticket.priorityId,
 		categoryId: ticket.categoryId || null,
@@ -146,14 +146,14 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 
 	// 1. ASSIGNEE CHANGED - Notify new assignee
 	if (
-		updatedTicket.ticket.assignedUserId &&
-		findTicket.ticket.assignedUserId !== updatedTicket.ticket.assignedUserId &&
-		updatedTicket.ticket.assignedUserId !== user.id
+		updatedTicket.ticket.assigneeId &&
+		findTicket.ticket.assigneeId !== updatedTicket.ticket.assigneeId &&
+		updatedTicket.ticket.assigneeId !== user.id
 	) {
 		await sendNotification({
 			title: 'Ticket assigned to you',
 			message: `Ticket assigned by ${user.name}: ${updatedTicket.ticket.subject}`,
-			recipient: { userId: updatedTicket.ticket.assignedUserId },
+			recipient: { userId: updatedTicket.ticket.assigneeId },
 			channels: ['dashboard', 'email'],
 			notification: {
 				type: 'entity',
@@ -168,14 +168,14 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 
 	// 2. ASSIGNEE REMOVED - Notify old assignee
 	if (
-		findTicket.ticket.assignedUserId &&
-		!updatedTicket.ticket.assignedUserId &&
-		findTicket.ticket.assignedUserId !== user.id
+		findTicket.ticket.assigneeId &&
+		!updatedTicket.ticket.assigneeId &&
+		findTicket.ticket.assigneeId !== user.id
 	) {
 		await sendNotification({
 			title: 'Unassigned from ticket',
 			message: `Ticket unassigned by ${user.name}: ${updatedTicket.ticket.subject}`,
-			recipient: { userId: findTicket.ticket.assignedUserId },
+			recipient: { userId: findTicket.ticket.assigneeId },
 			channels: ['dashboard', 'email'],
 			notification: {
 				type: 'entity',
@@ -191,13 +191,13 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 	// 3. PRIORITY CHANGED - Notify current assignee
 	if (
 		updatedTicket.ticket.priorityId !== findTicket.ticket.priorityId &&
-		updatedTicket.ticket.assignedUserId &&
-		updatedTicket.ticket.assignedUserId !== user.id
+		updatedTicket.ticket.assigneeId &&
+		updatedTicket.ticket.assigneeId !== user.id
 	) {
 		await sendNotification({
 			title: 'Ticket updated',
 			message: `Ticket priority changed from ${findTicket.priority?.name || 'Unknown'} to ${updatedTicket.priority?.name || 'Unknown'} by ${user.name}: ${updatedTicket.ticket.subject}`,
-			recipient: { userId: updatedTicket.ticket.assignedUserId },
+			recipient: { userId: updatedTicket.ticket.assigneeId },
 			channels: ['dashboard', 'email'],
 			notification: {
 				type: 'entity',
@@ -213,13 +213,13 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 	// 4. STATUS CHANGED - Notify assignee
 	if (
 		updatedTicket.ticket.statusId !== findTicket.ticket.statusId &&
-		updatedTicket.ticket.assignedUserId &&
-		updatedTicket.ticket.assignedUserId !== user.id
+		updatedTicket.ticket.assigneeId &&
+		updatedTicket.ticket.assigneeId !== user.id
 	) {
 		await sendNotification({
 			title: 'Ticket updated',
 			message: `Ticket status changed from ${findTicket.status?.name || 'Unknown'} to ${updatedTicket.status?.name || 'Unknown'} by ${user.name}: ${updatedTicket.ticket.subject}`,
-			recipient: { userId: updatedTicket.ticket.assignedUserId },
+			recipient: { userId: updatedTicket.ticket.assigneeId },
 			channels: ['dashboard', 'email'],
 			notification: {
 				type: 'entity',
@@ -235,13 +235,13 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 	// 5. CATEGORY CHANGED - Notify assignee
 	if (
 		updatedTicket.ticket.categoryId !== findTicket.ticket.categoryId &&
-		updatedTicket.ticket.assignedUserId &&
-		updatedTicket.ticket.assignedUserId !== user.id
+		updatedTicket.ticket.assigneeId &&
+		updatedTicket.ticket.assigneeId !== user.id
 	) {
 		await sendNotification({
 			title: 'Ticket updated',
 			message: `Ticket category changed from ${findTicket.category?.name || 'None'} to ${updatedTicket.category?.name || 'None'} by ${user.name}: ${updatedTicket.ticket.subject}`,
-			recipient: { userId: updatedTicket.ticket.assignedUserId },
+			recipient: { userId: updatedTicket.ticket.assigneeId },
 			channels: ['dashboard'],
 			notification: {
 				type: 'entity',
@@ -258,13 +258,13 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 	if (
 		updatedTicket.ticket.resolvedAt &&
 		!findTicket.ticket.resolvedAt &&
-		updatedTicket.ticket.assignedUserId &&
-		updatedTicket.ticket.assignedUserId !== user.id
+		updatedTicket.ticket.assigneeId &&
+		updatedTicket.ticket.assigneeId !== user.id
 	) {
 		await sendNotification({
 			title: 'Ticket resolved',
 			message: `Ticket resolved by ${user.name}: ${updatedTicket.ticket.subject}`,
-			recipient: { userId: updatedTicket.ticket.assignedUserId },
+			recipient: { userId: updatedTicket.ticket.assigneeId },
 			channels: ['dashboard', 'email'],
 			notification: {
 				type: 'entity',
@@ -282,13 +282,13 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 		updatedTicket.ticket.statusId !== findTicket.ticket.statusId &&
 		updatedTicket.status?.isClosed &&
 		!findTicket.status?.isClosed &&
-		updatedTicket.ticket.assignedUserId &&
-		updatedTicket.ticket.assignedUserId !== user.id
+		updatedTicket.ticket.assigneeId &&
+		updatedTicket.ticket.assigneeId !== user.id
 	) {
 		await sendNotification({
 			title: 'Ticket closed',
 			message: `Ticket closed by ${user.name}: ${updatedTicket.ticket.subject}`,
-			recipient: { userId: updatedTicket.ticket.assignedUserId },
+			recipient: { userId: updatedTicket.ticket.assigneeId },
 			channels: ['dashboard', 'email'],
 			notification: {
 				type: 'entity',

@@ -6,138 +6,137 @@ import { eq, inArray } from 'drizzle-orm';
 import { sendNotification } from '$lib/server/job-queue';
 
 export const PATCH: RequestHandler = async ({ request }) => {
-  const { ids, itemId, itemType } = await request.json() as {
-    ids: number[],
-    itemId: number,
-    itemType: 'user' | 'category' | 'status' | 'priority' | 'tag'
-  };
+	const { ids, itemId, itemType } = (await request.json()) as {
+		ids: number[];
+		itemId: number;
+		itemType: 'user' | 'category' | 'status' | 'priority' | 'tag';
+	};
 
-  if (!ids || !Array.isArray(ids) || ids.length < 1 || !itemId || !itemType)
-    throw new ValidationError('Some fields are missing. Please retry your request.');
+	if (!ids || !Array.isArray(ids) || ids.length < 1 || !itemId || !itemType)
+		throw new ValidationError('Some fields are missing. Please retry your request.');
 
-  let updatedCount = 0;
+	let updatedCount = 0;
 
-  switch (itemType) {
-    case 'user': {
-      const result = await db
-        .update(schema.ticket)
-        .set({ assignedUserId: itemId })
-        .where(inArray(schema.ticket.id, ids))
-        .returning();
-      updatedCount = result.length;
-      break;
-    }
-    case 'category': {
-      const categoryId = itemId;
-      if (isNaN(categoryId)) throw new ValidationError('Invalid category ID');
+	switch (itemType) {
+		case 'user': {
+			const result = await db
+				.update(schema.ticket)
+				.set({ assigneeId: itemId })
+				.where(inArray(schema.ticket.id, ids))
+				.returning();
+			updatedCount = result.length;
+			break;
+		}
+		case 'category': {
+			const categoryId = itemId;
+			if (isNaN(categoryId)) throw new ValidationError('Invalid category ID');
 
-      const result = await db
-        .update(schema.ticket)
-        .set({ categoryId })
-        .where(inArray(schema.ticket.id, ids))
-        .returning();
-      updatedCount = result.length;
-      break;
-    }
-    case 'status': {
-      const statusId = itemId;
-      if (isNaN(statusId)) throw new ValidationError('Invalid status ID');
+			const result = await db
+				.update(schema.ticket)
+				.set({ categoryId })
+				.where(inArray(schema.ticket.id, ids))
+				.returning();
+			updatedCount = result.length;
+			break;
+		}
+		case 'status': {
+			const statusId = itemId;
+			if (isNaN(statusId)) throw new ValidationError('Invalid status ID');
 
-      const result = await db
-        .update(schema.ticket)
-        .set({ statusId })
-        .where(inArray(schema.ticket.id, ids))
-        .returning();
-      updatedCount = result.length;
-      break;
-    }
-    case 'priority': {
-      const priorityId = itemId;
-      if (isNaN(priorityId)) throw new ValidationError('Invalid priority ID');
+			const result = await db
+				.update(schema.ticket)
+				.set({ statusId })
+				.where(inArray(schema.ticket.id, ids))
+				.returning();
+			updatedCount = result.length;
+			break;
+		}
+		case 'priority': {
+			const priorityId = itemId;
+			if (isNaN(priorityId)) throw new ValidationError('Invalid priority ID');
 
-      const result = await db
-        .update(schema.ticket)
-        .set({ priorityId })
-        .where(inArray(schema.ticket.id, ids))
-        .returning();
-      updatedCount = result.length;
-      break;
-    }
-    case 'tag': {
-      const tagId = itemId;
-      if (isNaN(tagId)) throw new ValidationError('Invalid tag ID');
+			const result = await db
+				.update(schema.ticket)
+				.set({ priorityId })
+				.where(inArray(schema.ticket.id, ids))
+				.returning();
+			updatedCount = result.length;
+			break;
+		}
+		case 'tag': {
+			const tagId = itemId;
+			if (isNaN(tagId)) throw new ValidationError('Invalid tag ID');
 
-      // Verify tag exists
-      const [tag] = await db
-        .select()
-        .from(schema.tag)
-        .where(eq(schema.tag.id, tagId));
+			// Verify tag exists
+			const [tag] = await db.select().from(schema.tag).where(eq(schema.tag.id, tagId));
 
-      if (!tag) throw new NotFoundError('Tag not found');
+			if (!tag) throw new NotFoundError('Tag not found');
 
-      // Add tag to all tickets (using onConflictDoNothing to prevent duplicates)
-      await Promise.all(
-        ids.map(ticketId =>
-          db
-            .insert(schema.ticketTag)
-            .values({ ticketId, tagId })
-            .onConflictDoNothing()
-        )
-      );
+			// Add tag to all tickets (using onConflictDoNothing to prevent duplicates)
+			await Promise.all(
+				ids.map((ticketId) =>
+					db.insert(schema.ticketTag).values({ ticketId, tagId }).onConflictDoNothing()
+				)
+			);
 
-      return json({
-        success: true,
-        updatedCount: ids.length,
-        message: `Tag added to ${ids.length} ticket(s)`
-      }, { status: 200 });
-    }
-    default:
-      throw new ValidationError('Invalid item type');
-  }
+			return json(
+				{
+					success: true,
+					updatedCount: ids.length,
+					message: `Tag added to ${ids.length} ticket(s)`
+				},
+				{ status: 200 }
+			);
+		}
+		default:
+			throw new ValidationError('Invalid item type');
+	}
 
-  if (updatedCount === 0)
-    throw new NotFoundError('No tickets were updated. Ticket(s) may not exist or you may not have permission.');
+	if (updatedCount === 0)
+		throw new NotFoundError(
+			'No tickets were updated. Ticket(s) may not exist or you may not have permission.'
+		);
 
-  if (itemType === 'user')
-    await sendNotification({
-      title: 'Ticket Updated',
-      message: updatedCount === 1 ? '' : '',
-      recipient: { userId: itemId },
-      channels: ['dashboard', 'email'],
-      notification: {
-        type: 'entity',
-        event: 'updated',
-        entity: {
-          type: 'ticket',
-          id: 123
-        }
-      }
-    });
+	if (itemType === 'user')
+		await sendNotification({
+			title: 'Ticket Updated',
+			message: updatedCount === 1 ? '' : '',
+			recipient: { userId: itemId },
+			channels: ['dashboard', 'email'],
+			notification: {
+				type: 'entity',
+				event: 'updated',
+				entity: {
+					type: 'ticket',
+					id: 123
+				}
+			}
+		});
 
-
-  return json({
-    success: true,
-    updated: updatedCount,
-  }, { status: 200 });
-
+	return json(
+		{
+			success: true,
+			updated: updatedCount
+		},
+		{ status: 200 }
+	);
 };
 
 export const DELETE: RequestHandler = async ({ request }) => {
-  const { ids } = await request.json() as { ids: number[] };
+	const { ids } = (await request.json()) as { ids: number[] };
 
-  if (!ids || !Array.isArray(ids) || ids.length < 1)
-    throw new ValidationError('Some fields are missing. Please retry your request.');
+	if (!ids || !Array.isArray(ids) || ids.length < 1)
+		throw new ValidationError('Some fields are missing. Please retry your request.');
 
-  const deleted = await db
-    .delete(schema.ticket)
-    .where(inArray(schema.ticket.id, ids))
-    .returning();
+	const deleted = await db.delete(schema.ticket).where(inArray(schema.ticket.id, ids)).returning();
 
-  if (!deleted || deleted.length === 0)
-    throw new NotFoundError('No tickets were found.');
+	if (!deleted || deleted.length === 0) throw new NotFoundError('No tickets were found.');
 
-  return json({
-    success: true,
-    deleted: deleted.length,
-  }, { status: 200 });
+	return json(
+		{
+			success: true,
+			deleted: deleted.length
+		},
+		{ status: 200 }
+	);
 };

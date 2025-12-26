@@ -73,7 +73,7 @@ export const ticketRelations = relations(ticket, ({ one, many }) => ({
 		references: [requester.id]
 	}),
 	assignedUser: one(user, {
-		fields: [ticket.assignedUserId],
+		fields: [ticket.assigneeId],
 		references: [user.id],
 		relationName: 'assigned_user'
 	}),

@@ -16,7 +16,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 	const message = formData.get('message') as string;
 	const isPrivate = formData.get('isPrivate') as string;
 	const requesterId = formData.get('requesterId') as string;
-	const assignedUserId = formData.get('assignedUserId') as string;
+	const assigneeId = formData.get('assigneeId') as string;
 	const categoryId = formData.get('categoryId') as string;
 	const priorityId = formData.get('priorityId') as string;
 	const statusId = formData.get('statusId') as string;
@@ -70,7 +70,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 			.values({
 				ticketNumber,
 				requesterId: Number(requesterId),
-				assignedUserId: assignedUserId ? parseInt(assignedUserId, 10) : null,
+				assigneeId: assigneeId ? parseInt(assigneeId, 10) : null,
 				subject,
 				channel: channel as 'email' | 'portal' | 'user',
 				statusId: Number(statusId),
@@ -181,11 +181,11 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 		if (!category) throw new NotFoundError('Category not found');
 	}
 
-	if (ticket.assignedUserId) {
+	if (ticket.assigneeId) {
 		const [assignee] = await db
 			.select()
 			.from(schema.user)
-			.where(eq(schema.user.id, ticket.assignedUserId));
+			.where(eq(schema.user.id, ticket.assigneeId));
 
 		if (!assignee) throw new NotFoundError('Assigned user not found');
 	}
@@ -204,7 +204,7 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 
 	// Only include fields that were provided
 	if (ticket.subject !== undefined) updateData.subject = ticket.subject;
-	if (ticket.assignedUserId !== undefined) updateData.assignedUserId = ticket.assignedUserId;
+	if (ticket.assigneeId !== undefined) updateData.assigneeId = ticket.assigneeId;
 	if (ticket.statusId !== undefined) updateData.statusId = ticket.statusId;
 	if (ticket.priorityId !== undefined) updateData.priorityId = ticket.priorityId;
 	if (ticket.categoryId !== undefined) updateData.categoryId = ticket.categoryId;

@@ -23,7 +23,7 @@
 		isPrivate: false,
 
 		requesterId: -1,
-		assignedUserId: -1,
+		assigneeId: -1,
 		categoryId: -1,
 		priorityId: -1,
 		responseCount: -1,
@@ -68,8 +68,8 @@
 			targetDate.setDate(targetDate.getDate() + 7);
 			formData.append('targetDate', targetDate.toISOString());
 
-			if (ticket.assignedUserId) {
-				formData.append('assignedUserId', String(ticket.assignedUserId));
+			if (ticket.assigneeId) {
+				formData.append('assigneeId', String(ticket.assigneeId));
 			}
 
 			ticket.selectedFiles.forEach((file) => {
@@ -84,7 +84,7 @@
 			ticket.message = '';
 			ticket.isPrivate = false;
 			ticket.requesterId = -1;
-			ticket.assignedUserId = -1;
+			ticket.assigneeId = -1;
 			ticket.categoryId = -1;
 			ticket.priorityId = -1;
 			ticket.statusId = -1;
@@ -133,7 +133,7 @@
 				bind:priorityId={ticket.priorityId}
 				bind:categoryId={ticket.categoryId}
 				bind:statusId={ticket.statusId}
-				bind:userId={ticket.assignedUserId}
+				bind:userId={ticket.assigneeId}
 				bind:tags={ticket.tags}
 				statuses={data.statuses}
 				users={data.users}

@@ -17,18 +17,18 @@ const client = await getClient();
 
 /**
  * Processes incoming email messages and creates corresponding tickets in the database.
- * 
+ *
  * This function iterates through unseen email UIDs, fetches their content, parses them,
  * extracts attachments, and creates or updates tickets with the email information.
  * It handles requester creation, ticket number generation, attachment validation,
  * and marks processed emails as seen.
- * 
+ *
  * @param unseenUIDs - Array of email UIDs to process from the IMAP server
  * @param options - Attachment configuration options including size limits and allowed types
  * @returns A promise that resolves when all messages have been processed
- * 
+ *
  * @throws {Error} Logs errors for individual message processing but continues with remaining messages
- * 
+ *
  * @example
  * ```typescript
  * const unseenUIDs = [123, 124, 125];
@@ -39,7 +39,7 @@ const client = await getClient();
  * };
  * await processMessage(unseenUIDs, attachmentConfig);
  * ```
- * 
+ *
  * @remarks
  * - Validates email structure (source, envelope, sender, subject)
  * - Creates or finds existing requester by email address
@@ -49,339 +49,350 @@ const client = await getClient();
  * - Marks emails as seen after successful processing
  * - Continues processing remaining emails even if one fails
  */
-export async function processMessage(
-  unseenUIDs: number[],
-  options: Attachment,
-): Promise<void> {
+export async function processMessage(unseenUIDs: number[], options: Attachment): Promise<void> {
+	const [openStatus] = await db
+		.select()
+		.from(schema.status)
+		.where(eq(schema.status.isDefault, true));
+	if (!openStatus)
+		throw new Error('Status configuration is not available. Cancelling all email processing');
 
-  const [openStatus] = await db.select().from(schema.status).where(eq(schema.status.isDefault, true));
-  if (!openStatus) throw new Error('Status configuration is not available. Cancelling all email processing');
+	for (const uid of unseenUIDs) {
+		let archivedEmail: schema.Email | null = null;
 
-  for (const uid of unseenUIDs) {
-    let archivedEmail: schema.Email | null = null;
+		try {
+			const message = await client.fetchOne(
+				uid,
+				{
+					source: true,
+					envelope: true,
+					size: true
+				},
+				{ uid: true }
+			);
 
-    try {
-      const message = await client.fetchOne(uid, {
-        source: true,
-        envelope: true,
-        size: true
-      }, { uid: true });
+			// Early validation checks
+			if (!message) continue;
+			if (!message.source) {
+				logger.warn({ uid }, 'No source for UID, skipped');
+				await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
+				continue;
+			}
+			if (!message.envelope) {
+				logger.warn({ uid }, 'No envelope for UID, skipped');
+				await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
+				continue;
+			}
 
-      // Early validation checks
-      if (!message) continue;
-      if (!message.source) {
-        logger.warn({ uid }, 'No source for UID, skipped');
-        await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
-        continue;
-      }
-      if (!message.envelope) {
-        logger.warn({ uid }, 'No envelope for UID, skipped');
-        await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
-        continue;
-      }
+			if (!message.envelope.from?.[0] || !message.envelope.from[0].address) {
+				logger.warn({ uid }, 'No sender for UID, skipped');
+				await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
+				continue;
+			}
+			if (!message.envelope.subject) {
+				message.envelope.subject = 'No Subject';
+			}
 
-      if (!message.envelope.from?.[0] || !message.envelope.from[0].address) {
-        logger.warn({ uid }, 'No sender for UID, skipped');
-        await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
-        continue;
-      }
-      if (!message.envelope.subject) {
-        message.envelope.subject = 'No Subject';
-      }
+			// Check if attachments are enabled
+			const attachmentsEnabled = options.enabled !== false;
 
-      // Check if attachments are enabled
-      const attachmentsEnabled = options.enabled !== false;
+			// Database operations in transaction
+			const result = await db.transaction(async (tx) => {
+				// Find or create requester
+				const [requester] =
+					(await tx
+						.select()
+						.from(schema.requester)
+						.where(eq(schema.requester.email, message.envelope!.from![0].address!))) ??
+					(await tx
+						.insert(schema.requester)
+						.values({
+							name: message.envelope!.from![0].name || message.envelope!.from![0].address!,
+							email: message.envelope!.from![0].address!
+						})
+						.returning());
 
-      // Database operations in transaction
-      const result = await db.transaction(async (tx) => {
+				// Extract ticket number from subject
+				const prefix = await getTicketPrefix();
+				const match = message.envelope!.subject!.match(new RegExp(`${prefix}(\\d+)`, 'i'));
+				const ticketNumber = match ? match[0] : null;
 
-        // Find or create requester
-        const [requester] = await tx
-          .select()
-          .from(schema.requester)
-          .where(eq(schema.requester.email, message.envelope!.from![0].address!))
-          ?? await tx
-            .insert(schema.requester)
-            .values({
-              name: message.envelope!.from![0].name || message.envelope!.from![0].address!,
-              email: message.envelope!.from![0].address!,
-            })
-            .returning();
+				// Find or create ticket
+				let ticket;
+				let createdTicket = false;
 
+				if (ticketNumber) {
+					const [existingTicket] = await tx
+						.select()
+						.from(schema.ticket)
+						.where(eq(schema.ticket.ticketNumber, ticketNumber));
 
-        // Extract ticket number from subject
-        const prefix = await getTicketPrefix();
-        const match = message.envelope!.subject!.match(new RegExp(`${prefix}(\\d+)`, 'i'));
-        const ticketNumber = match ? match[0] : null;
+					if (existingTicket) {
+						ticket = existingTicket;
+					}
+				}
 
-        // Find or create ticket
-        let ticket;
-        let createdTicket = false;
+				if (!ticket) {
+					const newTicketNumber = await generateTicketNumber(tx);
+					const [newTicket] = await tx
+						.insert(schema.ticket)
+						.values({
+							ticketNumber: newTicketNumber,
+							requesterId: requester.id,
+							assigneeId: null,
+							subject: message.envelope!.subject!,
+							channel: 'email',
+							statusId: openStatus.id,
+							priorityId: 1,
+							firstResponseAt: null,
+							resolvedAt: null,
+							closedAt: null,
+							targetDate: new Date(),
+							lastUserResponseAt: null,
+							lastRequesterResponseAt: null,
+							responseCount: 0
+						})
+						.returning();
+					ticket = newTicket;
+					createdTicket = true;
+				}
 
-        if (ticketNumber) {
-          const [existingTicket] = await tx
-            .select()
-            .from(schema.ticket)
-            .where(eq(schema.ticket.ticketNumber, ticketNumber));
+				return { requester, ticket, createdTicket };
+			});
 
-          if (existingTicket) {
-            ticket = existingTicket;
-            
-          }
-        }
+			const { requester, ticket, createdTicket } = result;
 
-        if (!ticket) {
-          const newTicketNumber = await generateTicketNumber(tx);
-          const [newTicket] = await tx
-            .insert(schema.ticket)
-            .values({
-              ticketNumber: newTicketNumber,
-              requesterId: requester.id,
-              assignedUserId: null,
-              subject: message.envelope!.subject!,
-              channel: 'email',
-              statusId: openStatus.id,
-              priorityId: 1,
-              firstResponseAt: null,
-              resolvedAt: null,
-              closedAt: null,
-              targetDate: new Date(),
-              lastUserResponseAt: null,
-              lastRequesterResponseAt: null,
-              responseCount: 0,
-            })
-            .returning();
-          ticket = newTicket;
-          createdTicket = true;
-        }
+			// Parse email and collect data
+			const { emailContent, attachmentData } = await parseEmailContent(
+				message.source,
+				attachmentsEnabled,
+				options
+			);
 
-        return { requester, ticket, createdTicket };
-      });
+			archivedEmail = await archiveEmail({
+				uid,
+				source: message.source,
+				envelope: message.envelope,
+				parsedEmail: emailContent,
+				metadata: {
+					size: message.source.length,
+					hasAttachments: attachmentData.length > 0
+				}
+			});
 
-      const { requester, ticket, createdTicket } = result;
+			const rateLimitCheck = await checkRateLimit(message.envelope.from[0].address);
+			if (rateLimitCheck.isRateLimited) {
+				logger.warn(
+					{
+						uid,
+						address: message.envelope.from[0].address,
+						reason: rateLimitCheck.reason
+					},
+					'Email rate limited, skipping ticket creation'
+				);
 
-      // Parse email and collect data
-      const { emailContent, attachmentData } = await parseEmailContent(
-        message.source,
-        attachmentsEnabled,
-        options
-      );
+				// Mark archived email as failed due to rate limit
+				await markEmailFailed(archivedEmail.id, rateLimitCheck.reason!);
 
-      archivedEmail = await archiveEmail({
-        uid,
-        source: message.source,
-        envelope: message.envelope,
-        parsedEmail: emailContent,
-        metadata: {
-          size: message.source.length,
-          hasAttachments: attachmentData.length > 0,
-        },
-      });
+				// Mark as seen and skip to next email
+				await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
+				continue;
+			}
+			// Create ticket message and attachments
+			const [ticketMessage] = await db
+				.insert(schema.ticketMessage)
+				.values({
+					ticketId: ticket.id,
+					senderType: 'requester',
+					requesterId: requester.id,
+					senderName: requester.name || null,
+					senderEmail: requester.email,
+					userId: null,
+					message: sanitize(emailContent.html, emailContent.text),
+					isPrivate: false,
+					channel: 'email',
+					isFirstResponse: false,
+					hasAttachments: attachmentData.length > 0
+				})
+				.returning();
 
-      const rateLimitCheck = await checkRateLimit(message.envelope.from[0].address);
-      if (rateLimitCheck.isRateLimited) {
-        logger.warn({ 
-          uid, 
-          address: message.envelope.from[0].address,
-          reason: rateLimitCheck.reason 
-        }, 'Email rate limited, skipping ticket creation');
+			for (const attachment of attachmentData) {
+				await db.insert(schema.ticketAttachment).values({
+					ticketId: ticket.id,
+					messageId: ticketMessage.id,
+					fileName: attachment.storedFilename,
+					originalFileName: attachment.originalFilename,
+					filePath: attachment.filePath,
+					fileSize: attachment.size,
+					mimeType: attachment.mimeType,
+					uploadedByType: 'requester',
+					uploadedById: requester.id,
+					uploadedByName: requester.name || requester.email,
+					downloadCount: 0
+				});
+			}
 
-        // Mark archived email as failed due to rate limit
-        await markEmailFailed(archivedEmail.id, rateLimitCheck.reason!);
+			await updateArchivedEmail({
+				emailId: archivedEmail.id,
+				ticketId: ticket.id,
+				requesterId: requester.id,
+				messageId: ticketMessage.id,
+				processed: true
+			});
 
-        // Mark as seen and skip to next email
-        await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
-        continue;
-      }
-      // Create ticket message and attachments
-      const [ticketMessage] = await db
-        .insert(schema.ticketMessage)
-        .values({
-          ticketId: ticket.id,
-          senderType: 'requester',
-          requesterId: requester.id,
-          senderName: requester.name || null,
-          senderEmail: requester.email,
-          userId: null,
-          message: sanitize(emailContent.html, emailContent.text),
-          isPrivate: false,
-          channel: 'email',
-          isFirstResponse: false,
-          hasAttachments: attachmentData.length > 0,
-        })
-        .returning();
+			await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
+			logger.info({ uid }, 'Marked UID as seen');
 
-      for (const attachment of attachmentData) {
-        await db.insert(schema.ticketAttachment).values({
-          ticketId: ticket.id,
-          messageId: ticketMessage.id,
-          fileName: attachment.storedFilename,
-          originalFileName: attachment.originalFilename,
-          filePath: attachment.filePath,
-          fileSize: attachment.size,
-          mimeType: attachment.mimeType,
-          uploadedByType: 'requester',
-          uploadedById: requester.id,
-          uploadedByName: requester.name || requester.email,
-          downloadCount: 0,
-        });
-      }
-
-      await updateArchivedEmail({
-        emailId: archivedEmail.id,
-        ticketId: ticket.id,
-        requesterId: requester.id,
-        messageId: ticketMessage.id,
-        processed: true,
-      });
-
-      await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
-      logger.info({ uid }, 'Marked UID as seen');
-
-      // if this message is just an update to an existing ticket
-      if (!createdTicket && ticket && ticket.assignedUserId) {
-        await sendNotification({
-          title: 'Ticket Updated',
-          message: `New message from ${requester.name}`,
-          recipient: { userId: ticket.assignedUserId },
-          channels: ['dashboard', 'email'],
-          notification: {
-            type: 'entity',
-            event: 'updated',
-            entity: {
-              type: 'ticket',
-              id: ticket.id
-            }
-          }
-        });
-      } else if (createdTicket && ticket) {
-        await sendNotification({
-          title: 'Ticket Created',
-          message: `Reported by ${requester.name}`,
-          recipient: { allUsers: true },
-          channels: ['dashboard', 'email'],
-          notification: {
-            type: 'entity',
-            event: 'created',
-            entity: {
-              type: 'ticket',
-              id: ticket.id
-            }
-          }
-        });
-      }
-    } catch (error) {
-      if (archivedEmail) {
-        await markEmailFailed(archivedEmail.id, error);
-      }
-      logger.error({ uid, error }, 'Error processing UID');
-    }
-  }
+			// if this message is just an update to an existing ticket
+			if (!createdTicket && ticket && ticket.assigneeId) {
+				await sendNotification({
+					title: 'Ticket Updated',
+					message: `New message from ${requester.name}`,
+					recipient: { userId: ticket.assigneeId },
+					channels: ['dashboard', 'email'],
+					notification: {
+						type: 'entity',
+						event: 'updated',
+						entity: {
+							type: 'ticket',
+							id: ticket.id
+						}
+					}
+				});
+			} else if (createdTicket && ticket) {
+				await sendNotification({
+					title: 'Ticket Created',
+					message: `Reported by ${requester.name}`,
+					recipient: { allUsers: true },
+					channels: ['dashboard', 'email'],
+					notification: {
+						type: 'entity',
+						event: 'created',
+						entity: {
+							type: 'ticket',
+							id: ticket.id
+						}
+					}
+				});
+			}
+		} catch (error) {
+			if (archivedEmail) {
+				await markEmailFailed(archivedEmail.id, error);
+			}
+			logger.error({ uid, error }, 'Error processing UID');
+		}
+	}
 }
 
 /**
  * Parses email content and extracts attachments
  */
 async function parseEmailContent(
-  source: Buffer,
-  attachmentsEnabled: boolean,
-  options: Attachment
+	source: Buffer,
+	attachmentsEnabled: boolean,
+	options: Attachment
 ): Promise<{
-  emailContent: { html: string; text: string };
-  attachmentData: Array<{
-    fileId: string;
-    storedFilename: string;
-    originalFilename: string;
-    filePath: string;
-    size: number;
-    mimeType: string;
-  }>;
+	emailContent: { html: string; text: string };
+	attachmentData: Array<{
+		fileId: string;
+		storedFilename: string;
+		originalFilename: string;
+		filePath: string;
+		size: number;
+		mimeType: string;
+	}>;
 }> {
-  return new Promise((resolve, reject) => {
-    const parser = new MailParser();
+	return new Promise((resolve, reject) => {
+		const parser = new MailParser();
 
-    const emailContent = { html: '', text: '' };
-    const attachmentData: Array<{
-      fileId: string;
-      storedFilename: string;
-      originalFilename: string;
-      filePath: string;
-      size: number;
-      mimeType: string;
-    }> = [];
+		const emailContent = { html: '', text: '' };
+		const attachmentData: Array<{
+			fileId: string;
+			storedFilename: string;
+			originalFilename: string;
+			filePath: string;
+			size: number;
+			mimeType: string;
+		}> = [];
 
-    parser.on('data', (data) => {
-      if (data.type === 'text') {
-        if (data.text) {
-          emailContent.text += data.text;
-        }
-        if (typeof data.html === 'string') {
-          emailContent.html += data.html;
-        }
-      }
+		parser.on('data', (data) => {
+			if (data.type === 'text') {
+				if (data.text) {
+					emailContent.text += data.text;
+				}
+				if (typeof data.html === 'string') {
+					emailContent.html += data.html;
+				}
+			}
 
-      if (data.type === 'attachment') {
-        // Skip attachment processing if disabled
-        if (!attachmentsEnabled) {
-          logger.info({ filename: data.filename }, 'Attachments disabled, skipping');
-          data.release();
-          return;
-        }
+			if (data.type === 'attachment') {
+				// Skip attachment processing if disabled
+				if (!attachmentsEnabled) {
+					logger.info({ filename: data.filename }, 'Attachments disabled, skipping');
+					data.release();
+					return;
+				}
 
-        const fileSize = data.size || 0;
-        const mimeType = data.contentType || 'application/octet-stream';
+				const fileSize = data.size || 0;
+				const mimeType = data.contentType || 'application/octet-stream';
 
-        const maxSizeBytes = options.maxFileSizeMB! * 1024 * 1024;
-        if (fileSize > maxSizeBytes) {
-          logger.warn({
-            filename: data.filename,
-            fileSize,
-            maxSizeBytes
-          }, 'Attachment exceeds max size, skipping');
-          data.release();
-          return;
-        }
+				const maxSizeBytes = options.maxFileSizeMB! * 1024 * 1024;
+				if (fileSize > maxSizeBytes) {
+					logger.warn(
+						{
+							filename: data.filename,
+							fileSize,
+							maxSizeBytes
+						},
+						'Attachment exceeds max size, skipping'
+					);
+					data.release();
+					return;
+				}
 
-        // Validate MIME type
-        if (options.allowedMimeTypes && options.allowedMimeTypes.length > 0) {
-          if (!options.allowedMimeTypes.includes(mimeType)) {
-            logger.warn({
-              filename: data.filename,
-              mimeType
-            }, 'Attachment has disallowed MIME type, skipping');
-            data.release();
-            return;
-          }
-        }
+				// Validate MIME type
+				if (options.allowedMimeTypes && options.allowedMimeTypes.length > 0) {
+					if (!options.allowedMimeTypes.includes(mimeType)) {
+						logger.warn(
+							{
+								filename: data.filename,
+								mimeType
+							},
+							'Attachment has disallowed MIME type, skipping'
+						);
+						data.release();
+						return;
+					}
+				}
 
-        const fileId = generateRandomString(24);
-        const extension = getFileExtension(path.basename(data.filename));
-        const storedFilename = extension ? `${fileId}.${extension}` : fileId;
-        const filePath = path.join('./uploads', storedFilename);
+				const fileId = generateRandomString(24);
+				const extension = getFileExtension(path.basename(data.filename));
+				const storedFilename = extension ? `${fileId}.${extension}` : fileId;
+				const filePath = path.join('./uploads', storedFilename);
 
-        attachmentData.push({
-          fileId,
-          storedFilename,
-          originalFilename: data.filename,
-          filePath,
-          size: fileSize,
-          mimeType: mimeType
-        });
+				attachmentData.push({
+					fileId,
+					storedFilename,
+					originalFilename: data.filename,
+					filePath,
+					size: fileSize,
+					mimeType: mimeType
+				});
 
-        data.content.pipe(fs.createWriteStream(filePath));
-        data.release();
-      }
-    });
+				data.content.pipe(fs.createWriteStream(filePath));
+				data.release();
+			}
+		});
 
-    parser.on('end', () => {
-      resolve({ emailContent, attachmentData });
-    });
+		parser.on('end', () => {
+			resolve({ emailContent, attachmentData });
+		});
 
-    parser.on('error', reject);
+		parser.on('error', reject);
 
-    parser.write(source);
-    parser.end();
-  });
+		parser.write(source);
+		parser.end();
+	});
 }
 
 /**
@@ -389,48 +400,40 @@ async function parseEmailContent(
  * @returns Object with isRateLimited boolean and reason string
  */
 async function checkRateLimit(fromAddress: string): Promise<{
-  isRateLimited: boolean;
-  reason?: string;
+	isRateLimited: boolean;
+	reason?: string;
 }> {
-  const now = new Date();
-  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+	const now = new Date();
+	const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+	const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-  // Check 10-minute limit (max 2 emails)
-  const [recentEmails] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(schema.email)
-    .where(
-      and(
-        eq(schema.email.fromAddress, fromAddress),
-        gte(schema.email.createdAt, tenMinutesAgo)
-      )
-    );
+	// Check 10-minute limit (max 2 emails)
+	const [recentEmails] = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(schema.email)
+		.where(
+			and(eq(schema.email.fromAddress, fromAddress), gte(schema.email.createdAt, tenMinutesAgo))
+		);
 
-  if (recentEmails.count >= 2) {
-    return {
-      isRateLimited: true,
-      reason: `Rate limit exceeded: ${recentEmails.count} emails in last 10 minutes (max 2)`
-    };
-  }
+	if (recentEmails.count >= 2) {
+		return {
+			isRateLimited: true,
+			reason: `Rate limit exceeded: ${recentEmails.count} emails in last 10 minutes (max 2)`
+		};
+	}
 
-  // Check 1-hour limit (max 5 emails)
-  const [hourlyEmails] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(schema.email)
-    .where(
-      and(
-        eq(schema.email.fromAddress, fromAddress),
-        gte(schema.email.createdAt, oneHourAgo)
-      )
-    );
+	// Check 1-hour limit (max 5 emails)
+	const [hourlyEmails] = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(schema.email)
+		.where(and(eq(schema.email.fromAddress, fromAddress), gte(schema.email.createdAt, oneHourAgo)));
 
-  if (hourlyEmails.count >= 5) {
-    return {
-      isRateLimited: true,
-      reason: `Rate limit exceeded: ${hourlyEmails.count} emails in last hour (max 5)`
-    };
-  }
+	if (hourlyEmails.count >= 5) {
+		return {
+			isRateLimited: true,
+			reason: `Rate limit exceeded: ${hourlyEmails.count} emails in last hour (max 5)`
+		};
+	}
 
-  return { isRateLimited: false };
+	return { isRateLimited: false };
 }

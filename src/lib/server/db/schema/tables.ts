@@ -236,7 +236,7 @@ export const ticket = pgTable('ticket', {
 	requesterId: integer('requester_id')
 		.notNull()
 		.references(() => requester.id),
-	assignedUserId: integer('assigned_user_id').references(() => user.id, { onDelete: 'set null' }),
+	assigneeId: integer('assigned_user_id').references(() => user.id, { onDelete: 'set null' }),
 	subject: text('subject').notNull(),
 	channel: channelEnum('channel').notNull(),
 	statusId: integer('status_id')

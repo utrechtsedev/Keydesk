@@ -67,7 +67,7 @@
 							await api.patch('/api/tickets', {
 								ids,
 								ticket: {
-									assignedUserId: null
+									assigneeId: null
 								}
 							});
 							toast.success('Successfully unassigned all tickets');

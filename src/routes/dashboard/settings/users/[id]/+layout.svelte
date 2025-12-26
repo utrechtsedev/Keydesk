@@ -16,8 +16,6 @@
 		if (path.endsWith('/account')) return 'account';
 		if (path.endsWith('/tickets')) return 'tickets';
 		if (path.endsWith('/tasks')) return 'tasks';
-		if (path.endsWith('/manage')) return 'manage';
-		if (path.endsWith('/logs')) return 'logs';
 		return 'account';
 	});
 </script>
@@ -33,12 +31,6 @@
 			</UnderlineTabs.Trigger>
 			<UnderlineTabs.Trigger onclick={() => goto(`${basePath}/tasks`)} value="tasks">
 				Tasks
-			</UnderlineTabs.Trigger>
-			<UnderlineTabs.Trigger onclick={() => goto(`${basePath}/manage`)} value="manage">
-				Manage
-			</UnderlineTabs.Trigger>
-			<UnderlineTabs.Trigger onclick={() => goto(`${basePath}/logs`)} value="logs">
-				Logs
 			</UnderlineTabs.Trigger>
 		</UnderlineTabs.List>
 	</UnderlineTabs.Root>

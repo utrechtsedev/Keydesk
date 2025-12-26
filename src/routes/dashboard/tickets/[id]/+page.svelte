@@ -64,7 +64,7 @@
 		}
 		const ticketUpdate = {
 			requesterId: ticket.requesterId,
-			assignedUserId: ticket.assignedUserId || null,
+			assigneeId: ticket.assigneeId || null,
 			subject: ticket.subject,
 			channel: ticket.channel,
 			statusId: ticket.statusId,
@@ -111,7 +111,7 @@
 				bind:priorityId={ticket.priorityId}
 				bind:categoryId={ticket.categoryId}
 				bind:statusId={ticket.statusId}
-				bind:userId={ticket.assignedUserId}
+				bind:userId={ticket.assigneeId}
 				bind:tags={ticket.tags}
 				statuses={data.statuses}
 				users={data.users}

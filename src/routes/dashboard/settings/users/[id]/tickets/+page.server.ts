@@ -7,7 +7,7 @@ export const load: PageServerLoad = async ({ depends, params }) => {
 	depends('app:tickets');
 
 	const tickets = await db.query.ticket.findMany({
-		where: (ticket, { eq }) => eq(ticket.assignedUserId, id),
+		where: (ticket, { eq }) => eq(ticket.assigneeId, id),
 		with: {
 			status: true
 		},
