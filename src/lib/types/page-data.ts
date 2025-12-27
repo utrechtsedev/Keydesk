@@ -9,11 +9,13 @@ import type {
 	User,
 	UserNotification
 } from './core';
+import type { Organization } from './configuration';
 
 export interface PageData {
 	user: User;
 	session: Session;
 	notifications: UserNotification[];
+	organization: Organization;
 }
 
 export interface TicketPageData extends PageData {

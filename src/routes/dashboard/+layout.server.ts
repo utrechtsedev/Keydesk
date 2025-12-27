@@ -3,6 +3,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import * as schema from '$lib/server/db/schema';
 import { db } from '$lib/server/db/database';
 import { requireAuth } from '$lib/server/auth-helpers';
+import { redirect } from '@sveltejs/kit';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	const { user, session } = requireAuth(locals);
@@ -18,10 +19,16 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		orderBy: desc(schema.userNotification.createdAt),
 		limit: 99
 	});
+	const organization = await db.query.config.findFirst({
+		where: (config, { eq }) => eq(config.key, 'organization')
+	});
+
+	if (!organization) throw redirect(303, '/setup');
 
 	return {
 		user,
 		session,
-		notifications
+		notifications,
+		organization: organization.value
 	};
 };

@@ -7,7 +7,7 @@
 	import type { ComponentProps } from 'svelte';
 	import Office3 from '$lib/icons/office-3.svelte';
 	import Impersonation from './impersonation.svelte';
-	import type { Session, User } from '$lib/types';
+	import type { Organization, Session, User } from '$lib/types';
 	import ChartPie from '$lib/icons/chart-pie.svelte';
 	import Hashtag from '$lib/icons/hashtag.svelte';
 	import Map from '$lib/icons/map.svelte';
@@ -17,8 +17,13 @@
 		collapsible = 'icon',
 		user,
 		session,
+		organization,
 		...restProps
-	}: ComponentProps<typeof Sidebar.Root> & { user: User; session: Session } = $props();
+	}: ComponentProps<typeof Sidebar.Root> & {
+		user: User;
+		session: Session;
+		organization: Organization;
+	} = $props();
 
 	const data = {
 		user: {
@@ -56,7 +61,7 @@
 
 <Sidebar.Root {collapsible} {...restProps}>
 	<Sidebar.Header>
-		<TeamSwitcher teams={data.teams} />
+		<TeamSwitcher {organization} />
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavMain {user} />

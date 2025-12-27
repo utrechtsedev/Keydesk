@@ -21,7 +21,7 @@
 </script>
 
 <Sidebar.Provider bind:open>
-	<AppSidebar user={data.user} session={data.session} />
+	<AppSidebar user={data.user} session={data.session} organization={data.organization} />
 	<Sidebar.Inset class="flex min-w-0 flex-col">
 		<TopNavbar initialNotifications={data.notifications} />
 		<div class="max-w-full min-w-full p-4">
