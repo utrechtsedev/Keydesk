@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Plus, Save, SquarePen, Trash, X } from '@lucide/svelte';
 	import { Label } from '$lib/components/ui/label';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -9,6 +8,11 @@
 	import api from '$lib/utils/axios';
 	import { invalidate } from '$app/navigation';
 	import AddItem from '$lib/components/settings/add-item.svelte';
+	import Xmark from '$lib/icons/xmark.svelte';
+	import Plus from '$lib/icons/plus.svelte';
+	import Compose3 from '$lib/icons/compose-3.svelte';
+	import Trash2 from '$lib/icons/trash-2.svelte';
+	import FloppyDisk from '$lib/icons/floppy-disk.svelte';
 
 	let { data }: { data: PageData & { categories: Category[] } } = $props();
 
@@ -90,17 +94,17 @@
 				<div class="flex justify-between border-b bg-muted/30 px-4 py-3">
 					<div class="flex gap-2">
 						<Button onclick={() => deleteCategory(category)} variant="destructive" size="sm">
-							<Trash class="h-4 w-4" />
+							<Trash2 class="h-4 w-4" />
 							Delete
 						</Button>
 					</div>
 					<div class="flex gap-2">
 						<Button onclick={cancelEdit} variant="outline" size="sm">
-							<X class="h-4 w-4" />
+							<Xmark class="h-4 w-4" />
 							Cancel
 						</Button>
 						<Button onclick={() => handleSave(category)} size="sm">
-							<Save class="h-4 w-4" />
+							<FloppyDisk class="h-4 w-4 invert-0!" />
 							Save
 						</Button>
 					</div>
@@ -115,7 +119,7 @@
 					</div>
 					<div class="flex items-center">
 						<Button onclick={() => startEdit(category)} variant="secondary" size="sm">
-							<SquarePen class="h-4 w-4" />
+							<Compose3 class="h-4 w-4" />
 							Edit
 						</Button>
 					</div>

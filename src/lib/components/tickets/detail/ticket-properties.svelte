@@ -8,11 +8,12 @@
 	import { Button } from '$lib/components/ui/button';
 	import { TagsInput } from '$lib/components/ui/tags-input';
 	import { cn } from '$lib/utils';
-	import { Check, ChevronDown } from '@lucide/svelte';
 	import type { Category, Priority, Status, Tag, User } from '$lib/types';
 	import { invalidate } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import api from '$lib/utils/axios';
+	import Check from '$lib/icons/check.svelte';
+	import ChevronDown from '$lib/icons/chevron-down.svelte';
 
 	let {
 		ticketId,
@@ -70,7 +71,7 @@
 	let priorityIdString = $state(priorityId.toString());
 	let statusIdString = $state(statusId.toString());
 	let categoryIdString = $state(categoryId?.toString() ?? '');
-	
+
 	$effect(() => {
 		priorityId = Number(priorityIdString);
 		statusId = Number(statusIdString);

@@ -3,7 +3,7 @@
 	import { cn } from '$lib/utils.js';
 	import type { ComponentProps } from 'svelte';
 	import { useSidebar } from './context.svelte.js';
-	import { PanelLeftIcon } from '@lucide/svelte';
+	import SidebarLeftHide from '$lib/icons/sidebar-left-hide.svelte';
 
 	let {
 		ref = $bindable(null),
@@ -30,6 +30,6 @@
 	}}
 	{...restProps}
 >
-	<PanelLeftIcon />
+	<SidebarLeftHide />
 	<span class="sr-only">Toggle Sidebar</span>
 </Button>

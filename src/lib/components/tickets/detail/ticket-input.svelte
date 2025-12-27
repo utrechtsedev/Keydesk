@@ -7,10 +7,10 @@
 	import Page from '$lib/icons/page.svelte';
 	import Plus from '$lib/icons/plus.svelte';
 	import PaperPlane from '$lib/icons/paper-plane.svelte';
-	import { XIcon } from '@lucide/svelte';
 	import { displaySize } from '$lib/components/ui/file-drop-zone';
 	import { slide, scale } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
+	import Xmark from '$lib/icons/xmark.svelte';
 
 	let {
 		value = $bindable(),
@@ -94,7 +94,7 @@
 					<Tooltip.Provider>
 						<Tooltip.Root>
 							<Tooltip.Trigger class="cursor-pointer" onclick={() => removeFile(index)}>
-								<XIcon class="transition-all hover:text-red-500" size="16" />
+								<Xmark class="transition-all hover:text-red-500" size="16" />
 							</Tooltip.Trigger>
 							<Tooltip.Content>Remove file</Tooltip.Content>
 						</Tooltip.Root>

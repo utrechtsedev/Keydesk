@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
-	import { UploadIcon } from '@lucide/svelte';
 	import { displaySize } from '.';
 	import { useId } from 'bits-ui';
 	import type { FileDropZoneProps, FileRejectedReason } from './types';
+	import CloudUpload2 from '$lib/icons/cloud-upload-2.svelte';
 
 	let {
 		id = useId(),
@@ -133,7 +133,7 @@
 			<div
 				class="flex size-14 place-items-center justify-center rounded-full border border-dashed border-border text-muted-foreground"
 			>
-				<UploadIcon class="size-7" />
+				<CloudUpload2 class="size-7" />
 			</div>
 			<div class="flex flex-col gap-0.5 text-center">
 				<span class="font-medium text-muted-foreground">

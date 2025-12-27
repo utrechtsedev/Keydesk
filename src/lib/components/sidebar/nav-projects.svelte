@@ -2,14 +2,16 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import { EllipsisIcon, FolderIcon, ForwardIcon, Trash2Icon } from '@lucide/svelte';
+	import ArrowFromCornerUpRight from '$lib/icons/arrow-from-corner-up-right.svelte';
+	import Dots from '$lib/icons/dots.svelte';
+	import Folder from '$lib/icons/folder.svelte';
+	import Trash2 from '$lib/icons/trash-2.svelte';
 	let {
 		projects
 	}: {
 		projects: {
 			name: string;
 			url: string;
-			// This should be `Component` after @lucide/svelte updates types
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			icon: any;
 		}[];
@@ -34,7 +36,7 @@
 					<DropdownMenu.Trigger>
 						{#snippet child({ props })}
 							<Sidebar.MenuAction showOnHover {...props}>
-								<EllipsisIcon />
+								<Dots />
 								<span class="sr-only">More</span>
 							</Sidebar.MenuAction>
 						{/snippet}
@@ -45,16 +47,16 @@
 						align={sidebar.isMobile ? 'end' : 'start'}
 					>
 						<DropdownMenu.Item>
-							<FolderIcon class="text-muted-foreground" />
+							<Folder class="text-muted-foreground" />
 							<span>View Project</span>
 						</DropdownMenu.Item>
 						<DropdownMenu.Item>
-							<ForwardIcon class="text-muted-foreground" />
+							<ArrowFromCornerUpRight class="text-muted-foreground" />
 							<span>Share Project</span>
 						</DropdownMenu.Item>
 						<DropdownMenu.Separator />
 						<DropdownMenu.Item>
-							<Trash2Icon class="text-muted-foreground" />
+							<Trash2 class="text-muted-foreground" />
 							<span>Delete Project</span>
 						</DropdownMenu.Item>
 					</DropdownMenu.Content>
@@ -63,7 +65,7 @@
 		{/each}
 		<Sidebar.MenuItem>
 			<Sidebar.MenuButton class="text-sidebar-foreground/70">
-				<EllipsisIcon class="text-sidebar-foreground/70" />
+				<Dots class="text-sidebar-foreground/70" />
 				<span>More</span>
 			</Sidebar.MenuButton>
 		</Sidebar.MenuItem>

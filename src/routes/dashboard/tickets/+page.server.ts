@@ -121,7 +121,7 @@ export const load: PageServerLoad = async ({ url, depends }) => {
 			updatedAt: schema.ticket.updatedAt,
 			requester: schema.requester,
 			category: schema.category,
-			assignedUser: schema.user,
+			assignee: schema.user,
 			status: schema.status,
 			priority: schema.priority
 		})

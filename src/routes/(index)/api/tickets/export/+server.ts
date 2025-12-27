@@ -70,7 +70,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		with: {
 			requester: true,
 			category: true,
-			assignedUser: true,
+			assignee: true,
 			status: true,
 			priority: true
 		},
@@ -118,7 +118,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			requester: ticket.requester?.name || 'N/A',
 			requesterEmail: ticket.requester?.email || 'N/A',
 			category: ticket.category?.name || 'N/A',
-			assignee: ticket.assignedUser?.name || 'Unassigned',
+			assignee: ticket.assignee?.name || 'Unassigned',
 			status: ticket.status?.name || 'N/A',
 			priority: ticket.priority?.name || 'N/A',
 			channel: ticket.channel,

@@ -55,7 +55,7 @@ export interface Tag extends BaseTag {}
 export interface Ticket extends BaseTicket {
 	priority: Priority;
 	category: Category;
-	assignedUser: User;
+	assignee: User;
 	requester?: Requester;
 	status?: Status;
 }

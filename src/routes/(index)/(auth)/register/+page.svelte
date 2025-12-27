@@ -3,14 +3,16 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { usePasswordStrength } from '$lib/hooks/use-password-strength.svelte';
-	import { Check, Eye, EyeOff, X } from '@lucide/svelte';
 	import { cn } from '$lib/utils.js';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { authClient } from '$lib/auth-client';
+	import Check from '$lib/icons/check.svelte';
+	import Eye from '$lib/icons/eye.svelte';
+	import EyeSlash from '$lib/icons/eye-slash.svelte';
+	import Xmark from '$lib/icons/xmark.svelte';
 
 	const passwordStrength = usePasswordStrength({ id: 'password' });
-	let { ref = $bindable(null), class: className, ...restProps } = $props();
 
 	let email = $state('');
 	let name = $state('');
@@ -39,7 +41,7 @@
 	}
 </script>
 
-<form class={cn('flex flex-col gap-6', className)} bind:this={ref} {...restProps}>
+<form class="flex flex-col gap-6">
 	<div class="flex flex-col items-center gap-2 text-center">
 		<h1 class="text-2xl font-bold">Create an account</h1>
 		<p class="text-sm text-balance text-muted-foreground">Please enter your email to log in</p>
@@ -82,7 +84,7 @@
 								aria-controls={passwordStrength.id}
 							>
 								{#if passwordStrength.isVisible}
-									<EyeOff size={16} aria-hidden="true" />
+									<EyeSlash size={16} aria-hidden="true" />
 								{:else}
 									<Eye size={16} aria-hidden="true" />
 								{/if}
@@ -117,7 +119,7 @@
 								{#if req.met}
 									<Check size={16} class="text-emerald-500" aria-hidden="true" />
 								{:else}
-									<X size={16} class="text-muted-foreground/80" aria-hidden="true" />
+									<Xmark size={16} aria-hidden="true" />
 								{/if}
 								<span class={`text-xs ${req.met ? 'text-emerald-600' : 'text-muted-foreground'}`}>
 									{req.text}

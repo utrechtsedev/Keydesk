@@ -72,7 +72,7 @@ export const ticketRelations = relations(ticket, ({ one, many }) => ({
 		fields: [ticket.requesterId],
 		references: [requester.id]
 	}),
-	assignedUser: one(user, {
+	assignee: one(user, {
 		fields: [ticket.assigneeId],
 		references: [user.id],
 		relationName: 'assigned_user'

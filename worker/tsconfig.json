@@ -1,22 +1,15 @@
 {
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "paths": {
-      "$lib/*": [
-        "../src/lib/*"
-      ],
-      "$lib": [
-        "../src/lib"
-      ]
-    }
-  },
-  "include": [
-    "./**/*.ts",
-    "../src/lib/**/*.ts"
-  ]
+	"compilerOptions": {
+		"target": "ES2020",
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"paths": {
+			"$lib/*": ["../src/lib/*"],
+			"$lib": ["../src/lib"]
+		}
+	},
+	"include": ["./**/*.ts", "../src/lib/**/*.ts"]
 }

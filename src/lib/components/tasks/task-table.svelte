@@ -1,7 +1,6 @@
 <script lang="ts">
 	import * as Table from '$lib/components/ui/table';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { ChevronRight } from '@lucide/svelte';
 	import type { Priority, Status, Task, User } from '$lib/types';
 	import { formatRelativeDate } from '$lib/utils/date';
 	import TaskSheet from './task-sheet.svelte';
@@ -14,6 +13,7 @@
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
 	import api from '$lib/utils/axios';
+	import ChevronRight from '$lib/icons/chevron-right.svelte';
 
 	const {
 		users,
@@ -36,6 +36,7 @@
 
 	let openFinishDialog = $state(false);
 	let finishDialogTask = $state<Task>();
+	// svelte-ignore state_referenced_locally
 	let closedStatuses = $state<Status[]>(statuses.filter((s) => s.isClosed));
 
 	async function handleMarkFinished(task: Task) {

@@ -3,11 +3,14 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
 	import { usePasswordStrength } from '$lib/hooks/use-password-strength.svelte';
-	import { Check, Eye, EyeOff, X } from '@lucide/svelte';
 	import { cn } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import api from '$lib/utils/axios';
+	import EyeSlash from '$lib/icons/eye-slash.svelte';
+	import Eye from '$lib/icons/eye.svelte';
+	import Xmark from '$lib/icons/xmark.svelte';
+	import Check from '$lib/icons/check.svelte';
 
 	const passwordStrength = usePasswordStrength({ id: 'password' });
 
@@ -88,7 +91,7 @@
 								aria-controls={passwordStrength.id}
 							>
 								{#if passwordStrength.isVisible}
-									<EyeOff size={16} aria-hidden="true" />
+									<EyeSlash size={16} aria-hidden="true" />
 								{:else}
 									<Eye size={16} aria-hidden="true" />
 								{/if}
@@ -123,7 +126,7 @@
 								{#if req.met}
 									<Check size={16} class="text-emerald-500" aria-hidden="true" />
 								{:else}
-									<X size={16} class="text-muted-foreground/80" aria-hidden="true" />
+									<Xmark size={16} class="text-muted-foreground/80" aria-hidden="true" />
 								{/if}
 								<span class={`text-xs ${req.met ? 'text-emerald-600' : 'text-muted-foreground'}`}>
 									{req.text}

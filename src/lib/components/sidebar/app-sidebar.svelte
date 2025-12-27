@@ -5,10 +5,12 @@
 	import TeamSwitcher from './team-switcher.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
-	import { ChartPieIcon, FrameIcon, MapIcon } from '@lucide/svelte';
 	import Office3 from '$lib/icons/office-3.svelte';
 	import Impersonation from './impersonation.svelte';
 	import type { Session, User } from '$lib/types';
+	import ChartPie from '$lib/icons/chart-pie.svelte';
+	import Hashtag from '$lib/icons/hashtag.svelte';
+	import Map from '$lib/icons/map.svelte';
 
 	let {
 		ref = $bindable(null),
@@ -36,17 +38,17 @@
 			{
 				name: 'Design Engineering',
 				url: '#',
-				icon: FrameIcon
+				icon: Hashtag
 			},
 			{
 				name: 'Sales & Marketing',
 				url: '#',
-				icon: ChartPieIcon
+				icon: ChartPie
 			},
 			{
 				name: 'Travel',
 				url: '#',
-				icon: MapIcon
+				icon: Map
 			}
 		]
 	};

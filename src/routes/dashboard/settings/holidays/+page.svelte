@@ -2,10 +2,15 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
-	import { Pencil, PlaneTakeoff, Plus, Save, Trash, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import type { Holiday, PageData } from '$lib/types';
 	import api from '$lib/utils/axios';
+	import Plus from '$lib/icons/plus.svelte';
+	import Trash2 from '$lib/icons/trash-2.svelte';
+	import Xmark from '$lib/icons/xmark.svelte';
+	import FloppyDisk from '$lib/icons/floppy-disk.svelte';
+	import Compose3 from '$lib/icons/compose-3.svelte';
+	import PlaneTakeOff from '$lib/icons/plane-take-off.svelte';
 
 	const { data }: { data: PageData & { holidays: Holiday[] } } = $props();
 
@@ -84,7 +89,7 @@
 
 	{#if holidays.length === 0}
 		<div class="flex flex-col items-center justify-center py-12">
-			<PlaneTakeoff class="h-16 w-16 text-muted-foreground" />
+			<PlaneTakeOff class="h-16 w-16 text-muted-foreground" />
 			<span class="mt-4 font-light text-muted-foreground">You have no holidays planned...</span>
 		</div>
 	{:else}
@@ -129,17 +134,17 @@
 					<div class="flex justify-between border-b bg-muted/30 px-4 py-3">
 						<div class="flex gap-2">
 							<Button onclick={() => deleteItem(holiday)} variant="destructive" size="sm">
-								<Trash class="h-4 w-4" />
+								<Trash2 class="h-4 w-4" />
 								Delete
 							</Button>
 						</div>
 						<div class="flex gap-2">
 							<Button onclick={cancelEdit} variant="outline" size="sm">
-								<X class="h-4 w-4" />
+								<Xmark class="h-4 w-4" />
 								Cancel
 							</Button>
 							<Button onclick={saveEdit} size="sm">
-								<Save class="h-4 w-4" />
+								<FloppyDisk class="h-4 w-4" />
 								Save
 							</Button>
 						</div>
@@ -154,10 +159,10 @@
 						</div>
 						<div class="flex gap-2">
 							<Button onclick={() => deleteItem(holiday)} variant="destructive" size="sm">
-								<Trash class="h-4 w-4" />
+								<Trash2 class="h-4 w-4" />
 							</Button>
 							<Button onclick={() => startEdit(holiday)} variant="secondary" size="sm">
-								<Pencil class="h-4 w-4" />
+								<Compose3 class="h-4 w-4" />
 								Edit
 							</Button>
 						</div>

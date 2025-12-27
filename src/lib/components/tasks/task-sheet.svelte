@@ -9,7 +9,6 @@
 	import { Textarea } from '../ui/textarea';
 	import { TagsInput } from '../ui/tags-input';
 	import { Input } from '../ui/input';
-	import { ChevronRight } from '@lucide/svelte';
 	import type { Priority, Status, Task, User } from '$lib/types';
 	import { formatDate, formatRelativeDate } from '$lib/utils/date';
 	import { goto, invalidate } from '$app/navigation';
@@ -22,6 +21,7 @@
 	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
 	import MediaRecord from '$lib/icons/media-record.svelte';
 	import api from '$lib/utils/axios';
+	import ChevronRight from '$lib/icons/chevron-right.svelte';
 
 	let {
 		task = $bindable(),

@@ -551,7 +551,7 @@ class DatabaseSeeder {
 			const createdAt = this.getRealisticDate(ticketAge, 0.5);
 
 			const requester = this.getRandomElement(this.createdRequesters);
-			const assignedUser = Math.random() > 0.1 ? this.getRandomElement(this.createdUsers) : null;
+			const assignee = Math.random() > 0.1 ? this.getRandomElement(this.createdUsers) : null;
 			const status = this.getRandomElement(this.existingStatuses);
 			const priority = this.getRandomElement(this.existingPriorities);
 			const category = this.getRandomElement(this.existingCategories);
@@ -583,7 +583,7 @@ class DatabaseSeeder {
 				.values({
 					ticketNumber: `TKT-${String(i + 1).padStart(4, '0')}`,
 					requesterId: requester.id,
-					assigneeId: assignedUser?.id || null,
+					assigneeId: assignee?.id || null,
 					subject,
 					channel: ticketChannel,
 					statusId: status.id,
@@ -623,14 +623,14 @@ class DatabaseSeeder {
 				await this.createAttachments(ticket.id, firstMessage.id, requester, 'requester', createdAt);
 			}
 
-			if (assignedUser) {
+			if (assignee) {
 				await this.createTicketNotification(
 					'ticket',
 					'New ticket assigned to you',
 					`You have been assigned ticket ${ticket.ticketNumber}: ${subject}`,
 					'email',
 					ticket,
-					[assignedUser],
+					[assignee],
 					createdAt
 				);
 			}
@@ -657,16 +657,16 @@ class DatabaseSeeder {
 					const isUser = m % 2 === 0;
 					currentDate = new Date(currentDate.getTime() + (Math.random() * 4 + 1) * 60 * 60 * 1000);
 
-					if (isUser && assignedUser) {
+					if (isUser && assignee) {
 						const [userMessage] = await db
 							.insert(schema.ticketMessage)
 							.values({
 								ticketId: ticket.id,
 								senderType: 'user',
 								requesterId: null,
-								userId: assignedUser.id,
-								senderName: assignedUser.name.split(' ')[0],
-								senderEmail: assignedUser.email,
+								userId: assignee.id,
+								senderName: assignee.name.split(' ')[0],
+								senderEmail: assignee.email,
 								message: this.getRandomElement(messages.user),
 								isPrivate: Math.random() > 0.8,
 								channel: 'email',
@@ -695,7 +695,7 @@ class DatabaseSeeder {
 							await this.createAttachments(
 								ticket.id,
 								userMessage.id,
-								assignedUser,
+								assignee,
 								'user',
 								currentDate
 							);
@@ -726,14 +726,14 @@ class DatabaseSeeder {
 							.where(sql`${schema.ticket.id} = ${ticket.id}`);
 						messageCount++;
 
-						if (assignedUser && Math.random() > 0.5) {
+						if (assignee && Math.random() > 0.5) {
 							await this.createTicketNotification(
 								'ticket',
 								'New response on your ticket',
 								`${requester.name} responded to ticket ${ticket.ticketNumber}`,
 								'dashboard',
 								ticket,
-								[assignedUser],
+								[assignee],
 								currentDate
 							);
 						}
@@ -757,20 +757,20 @@ class DatabaseSeeder {
 						})
 						.where(sql`${schema.ticket.id} = ${ticket.id}`);
 
-					if (assignedUser) {
+					if (assignee) {
 						await this.createTicketNotification(
 							'success',
 							'Ticket resolved',
 							`Ticket ${ticket.ticketNumber} has been marked as resolved`,
 							'dashboard',
 							ticket,
-							[assignedUser],
+							[assignee],
 							currentDate
 						);
 					}
 				}
 
-				if (Math.random() > 0.7 && assignedUser) {
+				if (Math.random() > 0.7 && assignee) {
 					const warningDate = new Date(currentDate.getTime() - 2 * 60 * 60 * 1000);
 					await this.createTicketNotification(
 						'warning',
@@ -778,7 +778,7 @@ class DatabaseSeeder {
 						`Ticket ${ticket.ticketNumber} is approaching its SLA deadline`,
 						'email',
 						ticket,
-						[assignedUser],
+						[assignee],
 						warningDate
 					);
 				}

@@ -100,8 +100,8 @@ export const columns: ColumnDef<TicketList>[] = [
 				text: 'Assignee'
 			}),
 		cell: ({ row }) => {
-			if (!row.original.assignedUser) return '-';
-			return row.original.assignedUser.name;
+			if (!row.original.assignee) return '-';
+			return row.original.assignee.name;
 		},
 		enableGlobalFilter: false,
 		meta: {

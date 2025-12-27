@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ComponentProps } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { ArrowUpDownIcon } from '@lucide/svelte';
+	import ArrowsFilter from '$lib/icons/arrows-filter.svelte';
 
 	let {
 		variant = 'link',
@@ -12,5 +12,5 @@
 
 <Button {variant} {...restProps} class="group transition-all">
 	{text}
-	<ArrowUpDownIcon class="ml-2 opacity-0 group-hover:opacity-100" />
+	<ArrowsFilter class="ml-2 opacity-0 group-hover:opacity-100" />
 </Button>

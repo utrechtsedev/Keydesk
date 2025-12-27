@@ -4,12 +4,12 @@
 	import type { PageData, User } from '$lib/types';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import { EllipsisIcon } from '@lucide/svelte';
 	import { authClient } from '$lib/auth-client';
 	import { toast } from 'svelte-sonner';
 	import { Badge } from '$lib/components/ui/badge';
 	import { goto, invalidate } from '$app/navigation';
 	import { ConfirmDialog, confirmDialog } from '$lib/components/ui/confirm-dialog';
+	import Dots from '$lib/icons/dots.svelte';
 
 	let { data }: { data: PageData & { users: User[] } } = $props();
 
@@ -110,24 +110,22 @@
 									{#snippet child({ props })}
 										<Button {...props} variant="ghost" size="icon" class="relative size-8 p-0">
 											<span class="sr-only">Open menu</span>
-											<EllipsisIcon />
+											<Dots />
 										</Button>
 									{/snippet}
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content>
 									<DropdownMenu.Group>
 										<DropdownMenu.Label>Actions</DropdownMenu.Label>
-										<DropdownMenu.Item onclick={() => navigator.clipboard.writeText(user.email)}>
-											Copy Email
+										<DropdownMenu.Item onclick={() => goto(`/dashboard/settings/users/${user.id}`)}>
+											Edit User
 										</DropdownMenu.Item>
 									</DropdownMenu.Group>
 									<DropdownMenu.Separator />
 									<DropdownMenu.Item onclick={() => impersonateUser(user.id)}>
 										Impersonate
 									</DropdownMenu.Item>
-									<DropdownMenu.Item onclick={() => goto(`/dashboard/settings/users/${user.id}`)}
-										>Edit User</DropdownMenu.Item
-									>
+
 									{#if !user.banned}
 										<DropdownMenu.Item onclick={() => disableUser(user.id)}>
 											Disable User
