@@ -2,7 +2,7 @@ import type { LayoutServerLoad } from './$types';
 import { eq, and, desc } from 'drizzle-orm';
 import * as schema from '$lib/server/db/schema';
 import { db } from '$lib/server/db/database';
-import { requireAuth } from '$lib/server/auth-helpers';
+import { requireAuth } from '$lib/server/auth-helper';
 import { redirect } from '@sveltejs/kit';
 
 export const load: LayoutServerLoad = async ({ locals }) => {

@@ -1,4 +1,4 @@
-import { requireAuth } from '$lib/server/auth-helpers';
+import { requireAuth } from '$lib/server/auth-helper';
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { NotFoundError, ValidationError } from '$lib/server/errors';

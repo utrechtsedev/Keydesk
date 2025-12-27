@@ -51,6 +51,8 @@
 	import DataDeleteDialog from './ticket-delete-dialog.svelte';
 	import DataFilterDialog from './ticket-filter-dialog.svelte';
 	import Gear3 from '$lib/icons/gear-3.svelte';
+	import { browser } from '$app/environment';
+	import Check from '$lib/icons/check.svelte';
 
 	type DataTableProps<TData, TValue> = {
 		columns: ColumnDef<TData, TValue>[];
@@ -82,6 +84,7 @@
 
 	// Helper functions for localStorage
 	function saveToLocalStorage(key: string, value: unknown) {
+		if (!browser) return;
 		try {
 			localStorage.setItem(key, JSON.stringify(value));
 		} catch (error) {
@@ -90,6 +93,7 @@
 	}
 
 	function loadFromLocalStorage<T>(key: string, defaultValue: T): T {
+		if (!browser) return defaultValue;
 		try {
 			const item = localStorage.getItem(key);
 			return item ? JSON.parse(item) : defaultValue;
@@ -176,6 +180,16 @@
 	// Save column visibility to localStorage
 	$effect(() => {
 		saveToLocalStorage(COLUMN_VISIBILITY_KEY, columnVisibility);
+	});
+
+	// Load column visibility from localStorage
+	$effect(() => {
+		if (browser) {
+			const saved = loadFromLocalStorage(COLUMN_VISIBILITY_KEY, null);
+			if (saved) {
+				columnVisibility = saved;
+			}
+		}
 	});
 
 	// Helper functions
@@ -487,17 +501,21 @@
 					{/snippet}
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end">
-					{#each table.getAllColumns().filter((col) => col.getCanHide()) as column (column)}
-						<DropdownMenu.CheckboxItem
-							class="capitalize"
-							bind:checked={() => column.getIsVisible(), (v) => column.toggleVisibility(!!v)}
+					{#each table.getAllColumns().filter((col) => col.getCanHide()) as column (column.id)}
+						<DropdownMenu.Item
+							class="relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8"
 							onSelect={(e) => {
 								e.preventDefault();
 								column.toggleVisibility();
 							}}
 						>
-							{column.columnDef.meta?.title ?? column.id}
-						</DropdownMenu.CheckboxItem>
+							<span class="absolute left-2 flex size-3.5 items-center justify-center">
+								{#if columnVisibility[column.id] ?? true}
+									<Check class="size-4" />
+								{/if}
+							</span>
+							<span class="capitalize">{column.columnDef.meta?.title ?? column.id}</span>
+						</DropdownMenu.Item>
 					{/each}
 				</DropdownMenu.Content>
 			</DropdownMenu.Root>

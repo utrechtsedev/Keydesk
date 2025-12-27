@@ -10,7 +10,7 @@ import { getClient } from './client';
 import { logger } from '$lib/server/logger';
 import path from 'path';
 import fs from 'fs';
-import { sendNotification } from '$lib/server/job-queue';
+import { sendNotification } from '$lib/server/queue';
 import { archiveEmail, markEmailFailed, updateArchivedEmail } from './archive';
 
 const client = await getClient();
