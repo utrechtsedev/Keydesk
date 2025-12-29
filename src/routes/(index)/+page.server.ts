@@ -1,4 +1,4 @@
-import { requireAuth } from '$lib/server/auth-helper';
+import { requireAuth } from '$lib/server/auth';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 

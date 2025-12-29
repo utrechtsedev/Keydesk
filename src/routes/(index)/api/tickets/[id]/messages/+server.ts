@@ -4,7 +4,7 @@ import { uploadFile } from '$lib/server/file-upload';
 import type { Attachment } from '$lib/types';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
-import { requireAuth } from '$lib/server/auth-helper';
+import { requireAuth } from '$lib/server/auth';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {

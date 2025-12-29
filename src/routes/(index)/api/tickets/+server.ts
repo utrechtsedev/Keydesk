@@ -1,12 +1,12 @@
-import { requireAuth } from '$lib/server/auth-helper';
+import { requireAuth } from '$lib/server/auth';
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 import { uploadFile } from '$lib/server/file-upload';
-import { generateTicketNumber } from '$lib/server/ticket';
 import type { Attachment, Ticket } from '$lib/types';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
+import { ticketService } from '$lib/server/services/ticket.service';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
 	const { user } = requireAuth(locals);
@@ -63,7 +63,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 
 		if (!attachmentConfig) throw new ValidationError('Invalid attachment configuration.');
 
-		const ticketNumber = await generateTicketNumber(tx);
+		const ticketNumber = await ticketService.generateTicketNumber(tx);
 
 		const [newTicket] = await tx
 			.insert(schema.ticket)

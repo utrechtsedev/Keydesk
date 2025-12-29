@@ -4,7 +4,7 @@ import type { Ticket } from '$lib/types';
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { requireAuth } from '$lib/server/auth-helper';
+import { requireAuth } from '$lib/server/auth';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 
 export const PATCH: RequestHandler = async ({ request, locals, params }): Promise<Response> => {

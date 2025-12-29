@@ -4,7 +4,7 @@ import type { Task as TaskType } from '$lib/types';
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { eq, inArray } from 'drizzle-orm';
-import { requireAuth } from '$lib/server/auth-helper';
+import { requireAuth } from '$lib/server/auth';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {

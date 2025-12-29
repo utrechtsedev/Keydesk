@@ -1,6 +1,6 @@
 import { PgBoss } from 'pg-boss';
 import { logger } from '$lib/server/logger';
-import type { Task, Ticket, User } from '$lib/types';
+import type { NotificationOptions, Task, Ticket, User } from '$lib/types';
 
 let boss: PgBoss | null = null;
 
@@ -17,7 +17,9 @@ export async function initQueue() {
 	});
 
 	await boss.start();
-	await boss.createQueue('send-notification');
+	await boss.createQueue('handle-ticket-update');
+	await boss.createQueue('handle-task-update');
+	await boss.createQueue('handle-standalone-notification');
 
 	logger.info('pg-boss initialized');
 	return boss;
@@ -48,13 +50,30 @@ export async function registerWorkers() {
 		}
 	);
 
+	await boss.work<NotificationOptions>('handle-standalone-notification', async ([job]) => {
+		await notificationService.sendNotification(job.data);
+	});
+
 	logger.info('Workers registered');
+}
+
+export async function ticketNotification(oldTicket: Ticket, newTicket: Ticket, user: User) {
+	if (!boss) {
+		throw new Error('Queue not initialized');
+	}
+	await boss.send('handle-ticket-update', { oldTicket, newTicket, user });
+}
+
+export async function taskNotification(oldTask: Task, newTask: Task, user: User) {
+	if (!boss) {
+		throw new Error('Queue not initialized');
+	}
+	await boss.send('handle-task-update', { oldTask, newTask, user });
 }
 
 export async function sendNotification(options: NotificationOptions) {
 	if (!boss) {
 		throw new Error('Queue not initialized');
 	}
-
-	await boss.send('send-notification', options);
+	await boss.send('handle-task-update', { options });
 }

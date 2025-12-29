@@ -2,7 +2,6 @@ import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { eq, sql, and, gte } from 'drizzle-orm';
 import { getFileExtension, generateRandomString } from '$lib/utils/string';
-import { getTicketPrefix, generateTicketNumber } from '$lib/server/ticket';
 import { type Attachment } from '$lib/types';
 import { MailParser } from 'mailparser';
 import { sanitize } from './sanitize';
@@ -11,6 +10,7 @@ import { logger } from '$lib/server/logger';
 import path from 'path';
 import fs from 'fs';
 import { archiveEmail, markEmailFailed, updateArchivedEmail } from './archive';
+import { ticketService } from '$lib/server/services/ticket.service';
 
 const client = await getClient();
 
@@ -112,7 +112,7 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 						.returning());
 
 				// Extract ticket number from subject
-				const prefix = await getTicketPrefix();
+				const prefix = await ticketService.getTicketPrefix();
 				const match = message.envelope!.subject!.match(new RegExp(`${prefix}(\\d+)`, 'i'));
 				const ticketNumber = match ? match[0] : null;
 
@@ -132,7 +132,7 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 				}
 
 				if (!ticket) {
-					const newTicketNumber = await generateTicketNumber(tx);
+					const newTicketNumber = await ticketService.generateTicketNumber(tx);
 					const [newTicket] = await tx
 						.insert(schema.ticket)
 						.values({
