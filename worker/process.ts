@@ -10,7 +10,6 @@ import { getClient } from './client';
 import { logger } from '$lib/server/logger';
 import path from 'path';
 import fs from 'fs';
-import { sendNotification } from '$lib/server/queue';
 import { archiveEmail, markEmailFailed, updateArchivedEmail } from './archive';
 
 const client = await getClient();
@@ -242,39 +241,6 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 
 			await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
 			logger.info({ uid }, 'Marked UID as seen');
-
-			// if this message is just an update to an existing ticket
-			if (!createdTicket && ticket && ticket.assigneeId) {
-				await sendNotification({
-					title: 'Ticket Updated',
-					message: `New message from ${requester.name}`,
-					recipient: { userId: ticket.assigneeId },
-					channels: ['dashboard', 'email'],
-					notification: {
-						type: 'entity',
-						event: 'updated',
-						entity: {
-							type: 'ticket',
-							id: ticket.id
-						}
-					}
-				});
-			} else if (createdTicket && ticket) {
-				await sendNotification({
-					title: 'Ticket Created',
-					message: `Reported by ${requester.name}`,
-					recipient: { allUsers: true },
-					channels: ['dashboard', 'email'],
-					notification: {
-						type: 'entity',
-						event: 'created',
-						entity: {
-							type: 'ticket',
-							id: ticket.id
-						}
-					}
-				});
-			}
 		} catch (error) {
 			if (archivedEmail) {
 				await markEmailFailed(archivedEmail.id, error);

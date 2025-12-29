@@ -1,7 +1,7 @@
 import Handlebars from 'handlebars';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { NotificationOptions, Organization, Task, Ticket } from '$lib/types';
+import type { NotificationOptions, Organization } from '$lib/types';
 
 // Template directory path
 const templateDir = join(process.cwd(), 'src/lib/server/email/templates');
@@ -114,13 +114,8 @@ function getEntityData(options: NotificationOptions) {
 
 	const { entity } = options.notification;
 
-	// Type guard to check if entity has data property (from fetched entity)
-	if (!('data' in entity)) {
-		return {}; // If no data, return empty (shouldn't happen in email context)
-	}
-
 	if (entity.type === 'ticket') {
-		const ticket = entity.data as Ticket; // Type assertion since we know it's fetched data
+		const ticket = entity.data;
 		return {
 			ticketNumber: ticket.ticketNumber,
 			ticketSubject: ticket.subject,
@@ -133,7 +128,7 @@ function getEntityData(options: NotificationOptions) {
 	}
 
 	if (entity.type === 'task') {
-		const task = entity.data as Task;
+		const task = entity.data;
 		return {
 			taskTitle: task.title,
 			taskDescription: task.description || '',

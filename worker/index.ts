@@ -1,9 +1,9 @@
 import { startEmailMonitoring } from './monitor';
 import { logger } from '$lib/server/logger';
-import { initQueue } from '$lib/server/queue';
+import { initQueue, registerWorkers } from '$lib/server/queue';
 
 async function main() {
-	await Promise.all([startEmailMonitoring(), initQueue()]);
+	await Promise.all([startEmailMonitoring(), initQueue(), registerWorkers()]);
 }
 
 async function run() {

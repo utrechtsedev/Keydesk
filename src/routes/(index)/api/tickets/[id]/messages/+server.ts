@@ -6,7 +6,6 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { requireAuth } from '$lib/server/auth-helper';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
-import { sendNotification } from '$lib/server/queue';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
 	const { user } = requireAuth(locals);
@@ -92,28 +91,6 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 			status: true
 		}
 	});
-
-	// ============================================================================
-	// NOTIFICATION
-	// ============================================================================
-
-	// Notify assignee when someone else adds a message
-	if (ticket?.assigneeId && ticket.assigneeId !== user.id) {
-		await sendNotification({
-			title: 'New message',
-			message: `Ticket #${ticket.ticketNumber} received new message from ${user.name}`,
-			recipient: { userId: ticket.assigneeId },
-			channels: ['dashboard', 'email'],
-			notification: {
-				type: 'entity',
-				event: 'updated',
-				entity: {
-					type: 'ticket',
-					id: Number(ticketId)
-				}
-			}
-		});
-	}
 
 	return json(
 		{

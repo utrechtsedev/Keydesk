@@ -3,7 +3,6 @@ import * as schema from '$lib/server/db/schema';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
-import { sendNotification } from '$lib/server/queue';
 
 export const PATCH: RequestHandler = async ({ request }) => {
 	const { ids, itemId, itemType } = (await request.json()) as {
@@ -96,22 +95,6 @@ export const PATCH: RequestHandler = async ({ request }) => {
 		throw new NotFoundError(
 			'No tickets were updated. Ticket(s) may not exist or you may not have permission.'
 		);
-
-	if (itemType === 'user')
-		await sendNotification({
-			title: 'Ticket Updated',
-			message: updatedCount === 1 ? '' : '',
-			recipient: { userId: itemId },
-			channels: ['dashboard', 'email'],
-			notification: {
-				type: 'entity',
-				event: 'updated',
-				entity: {
-					type: 'ticket',
-					id: 123
-				}
-			}
-		});
 
 	return json(
 		{

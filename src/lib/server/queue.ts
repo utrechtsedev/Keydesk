@@ -1,6 +1,6 @@
 import { PgBoss } from 'pg-boss';
-import type { NotificationOptions } from '$lib/types';
-import { logger } from '../logger';
+import { logger } from '$lib/server/logger';
+import type { Task, Ticket, User } from '$lib/types';
 
 let boss: PgBoss | null = null;
 
@@ -28,11 +28,25 @@ export async function registerWorkers() {
 		throw new Error('Queue not initialized');
 	}
 
-	const { handleSendNotification } = await import('./handlers/notification.handler');
+	const { notificationService } = await import('$lib/server/services/notification.service');
 
-	await boss.work<NotificationOptions>('send-notification', async ([job]) => {
-		await handleSendNotification(job.data);
-	});
+	await boss.work<{ oldTask: Task; newTask: Task; user: User }>(
+		'handle-task-update',
+		async ([job]) => {
+			await notificationService.handleTaskUpdate(job.data.oldTask, job.data.newTask, job.data.user);
+		}
+	);
+
+	await boss.work<{ oldTicket: Ticket; newTicket: Ticket; user: User }>(
+		'handle-ticket-update',
+		async ([job]) => {
+			await notificationService.handleTicketUpdate(
+				job.data.oldTicket,
+				job.data.newTicket,
+				job.data.user
+			);
+		}
+	);
 
 	logger.info('Workers registered');
 }
