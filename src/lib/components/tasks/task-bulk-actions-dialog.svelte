@@ -35,10 +35,9 @@
 				return toast.error('Please select a tag');
 			}
 
-			await api.patch('/api/tags/bulk', {
+			await api.post('/api/tasks/tags', {
 				ids,
-				tag: selected.name,
-				type: 'task'
+				tag: selected.name ? [selected.name] : []
 			});
 		} else {
 			await api.patch('/api/tasks/bulk', {

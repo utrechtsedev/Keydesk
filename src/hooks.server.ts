@@ -4,11 +4,9 @@ import { building, dev } from '$app/environment';
 import { logger } from '$lib/server/logger';
 import { AppError } from '$lib/server/errors';
 import { initQueue, registerWorkers } from '$lib/server/queue';
-import type { User } from 'better-auth';
 import type { Handle, HandleServerError } from '@sveltejs/kit';
-import { ticketService } from '$lib/server/services/ticket.service';
+import { db } from '$lib/server/db/database';
 
-await ticketService.ensureTicketSequence();
 await initQueue();
 await registerWorkers();
 
@@ -16,11 +14,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const session = await auth.api.getSession({
 		headers: event.request.headers
 	});
-
 	event.locals.session = session?.session ?? null;
-	event.locals.user = session?.user
-		? { ...(session.user as User), id: Number(session.user.id) }
-		: null;
+	if (session?.user) {
+		const user = await db.query.user.findFirst({
+			where: (user, { eq }) => eq(user.id, Number(session.user.id))
+		});
+		event.locals.user = user ?? null;
+	} else {
+		event.locals.user = null;
+	}
 
 	return svelteKitHandler({ event, resolve, auth, building });
 };

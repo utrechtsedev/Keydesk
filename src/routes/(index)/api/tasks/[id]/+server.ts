@@ -1,19 +1,13 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import type { Task as TaskType } from '$lib/types';
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { requireAuth } from '$lib/server/auth';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 
-export const PATCH: RequestHandler = async ({ request, locals, params }): Promise<Response> => {
-	const taskId = Number(params.id);
-	const { user } = requireAuth(locals);
+export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
+	const { id: taskId } = schema.idParamSchema.parse({ id: params.id });
 
-	if (isNaN(taskId)) throw new ValidationError('Invalid task ID');
-
-	// Fetch task with related data (priority, status)
 	const [findTask] = await db
 		.select({
 			task: schema.task,
@@ -25,46 +19,48 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 		.leftJoin(schema.status, eq(schema.task.statusId, schema.status.id))
 		.where(eq(schema.task.id, taskId));
 
-	if (!findTask) throw new NotFoundError('Task not found');
+	if (!findTask) {
+		throw new NotFoundError('Task not found');
+	}
 
-	const { task } = (await request.json()) as { task: TaskType };
+	const task = await schema.validate(schema.insertTaskSchema)(request);
 
-	if (!task.assigneeId) throw new ValidationError('Assignee ID is required');
-
-	// Verify parent task if provided
 	if (task.parentTaskId) {
 		const [parentTask] = await db
 			.select()
 			.from(schema.task)
 			.where(eq(schema.task.id, task.parentTaskId));
 
-		if (!parentTask) throw new NotFoundError('Parent task not found');
+		if (!parentTask) {
+			throw new NotFoundError('Parent task not found');
+		}
 
-		if (parentTask.parentTaskId) throw new ValidationError('Task cannot be subtask of subtask');
+		if (parentTask.parentTaskId) {
+			throw new ValidationError('Task cannot be subtask of subtask');
+		}
 
-		if (parentTask.id === findTask.task.id)
+		if (parentTask.id === taskId) {
 			throw new ValidationError('Task cannot be its own parent');
+		}
 	}
 
-	// Update the task
 	await db
 		.update(schema.task)
 		.set({
 			title: task.title,
-			description: task.description,
-			assigneeId: task.assigneeId,
-			ticketId: task.ticketId,
-			parentTaskId: task.parentTaskId || null,
+			description: task.description ?? null,
+			assigneeId: task.assigneeId ?? null,
+			ticketId: task.ticketId ?? null,
+			parentTaskId: task.parentTaskId ?? null,
 			statusId: task.statusId,
 			priorityId: task.priorityId,
-			dueDate: task.dueDate ? new Date(task.dueDate) : new Date(),
-			startDate: task.startDate ? new Date(task.startDate) : null,
-			completedAt: task.completedAt ? new Date(task.completedAt) : null,
-			position: task.position
+			dueDate: task.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+			startDate: task.startDate ?? null,
+			completedAt: null, // Don't let frontend set this
+			position: task.position ?? 0
 		})
 		.where(eq(schema.task.id, taskId));
 
-	// Fetch updated task with related data
 	const [updatedTask] = await db
 		.select({
 			task: schema.task,
@@ -76,7 +72,6 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 		.leftJoin(schema.status, eq(schema.task.statusId, schema.status.id))
 		.where(eq(schema.task.id, taskId));
 
-	// Check if status is closed, and if so, close all subtasks
 	if (updatedTask.status?.isClosed) {
 		await db
 			.update(schema.task)

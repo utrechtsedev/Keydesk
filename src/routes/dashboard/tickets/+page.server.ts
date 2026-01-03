@@ -2,6 +2,7 @@ import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 import { eq, and, or, gte, lte, isNull, ilike, desc, asc, sql, SQL } from 'drizzle-orm';
+import { ticketService } from '$lib/server/services/ticket.service';
 
 export const load: PageServerLoad = async ({ url, depends }) => {
 	depends('app:tickets');
@@ -143,9 +144,11 @@ export const load: PageServerLoad = async ({ url, depends }) => {
 
 	const totalCount = Number(countResult.count);
 
+	const ticketPrefix = await ticketService.getTicketPrefix();
 	return {
 		tickets,
 		totalCount,
+		ticketPrefix,
 		pageCount: Math.ceil(totalCount / pageSize)
 	};
 };

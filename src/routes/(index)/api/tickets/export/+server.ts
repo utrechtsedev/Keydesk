@@ -5,20 +5,12 @@ import { createObjectCsvStringifier } from 'csv-writer';
 import { and, or, gte, lte, isNull, eq, ilike, desc, SQL } from 'drizzle-orm';
 
 export const GET: RequestHandler = async ({ url }) => {
-	const search = url.searchParams.get('search') || '';
-	const status = url.searchParams.get('status');
-	const priority = url.searchParams.get('priority');
-	const category = url.searchParams.get('category');
-	const assignee = url.searchParams.get('assignee');
-	const dateFrom = url.searchParams.get('dateFrom');
-	const dateTo = url.searchParams.get('dateTo');
-	const includeResolved = url.searchParams.get('includeResolved') !== 'false'; // default true
+	const params = schema.ticketExportQuerySchema.parse(schema.parseSearchParams(url.searchParams));
 
 	const conditions: (SQL | undefined)[] = [];
 
-	// Search filter
-	if (search) {
-		const searchPattern = `%${search}%`;
+	if (params.search) {
+		const searchPattern = `%${params.search}%`;
 		conditions.push(
 			or(
 				ilike(schema.ticket.ticketNumber, searchPattern),
@@ -27,44 +19,37 @@ export const GET: RequestHandler = async ({ url }) => {
 		);
 	}
 
-	// Status filter
-	if (status) {
-		conditions.push(eq(schema.ticket.statusId, Number(status)));
+	if (params.status) {
+		conditions.push(eq(schema.ticket.statusId, params.status));
 	}
 
-	// Priority filter
-	if (priority) {
-		conditions.push(eq(schema.ticket.priorityId, Number(priority)));
+	if (params.priority) {
+		conditions.push(eq(schema.ticket.priorityId, params.priority));
 	}
 
-	// Category filter
-	if (category) {
-		conditions.push(eq(schema.ticket.categoryId, Number(category)));
+	if (params.category) {
+		conditions.push(eq(schema.ticket.categoryId, params.category));
 	}
 
-	// Assignee filter
-	if (assignee) {
-		if (assignee === 'unassigned') {
+	if (params.assignee) {
+		if (params.assignee === 'unassigned') {
 			conditions.push(isNull(schema.ticket.assigneeId));
 		} else {
-			conditions.push(eq(schema.ticket.assigneeId, parseInt(assignee)));
+			conditions.push(eq(schema.ticket.assigneeId, params.assignee));
 		}
 	}
 
-	// Date range filter
-	if (dateFrom) {
-		conditions.push(gte(schema.ticket.createdAt, new Date(dateFrom)));
+	if (params.dateFrom) {
+		conditions.push(gte(schema.ticket.createdAt, params.dateFrom));
 	}
-	if (dateTo) {
-		conditions.push(lte(schema.ticket.createdAt, new Date(dateTo)));
+	if (params.dateTo) {
+		conditions.push(lte(schema.ticket.createdAt, params.dateTo));
 	}
 
-	// Resolved filter
-	if (!includeResolved) {
+	if (!params.includeResolved) {
 		conditions.push(isNull(schema.ticket.resolvedAt));
 	}
 
-	// Fetch tickets with relations
 	const tickets = await db.query.ticket.findMany({
 		where: and(...conditions),
 		with: {
@@ -77,7 +62,6 @@ export const GET: RequestHandler = async ({ url }) => {
 		orderBy: desc(schema.ticket.createdAt)
 	});
 
-	// CSV stringifier setup
 	const csvStringifier = createObjectCsvStringifier({
 		header: [
 			{ id: 'ticketNumber', title: 'Ticket Number' },
@@ -100,7 +84,6 @@ export const GET: RequestHandler = async ({ url }) => {
 		]
 	});
 
-	// Map tickets to CSV records
 	const records = tickets.map((ticket) => {
 		const firstResponseTime =
 			ticket.firstResponseAt && ticket.createdAt
@@ -133,15 +116,13 @@ export const GET: RequestHandler = async ({ url }) => {
 		};
 	});
 
-	// Generate CSV
 	const csvHeader = csvStringifier.getHeaderString();
 	const csvBody = csvStringifier.stringifyRecords(records);
 	const csv = csvHeader + csvBody;
 
-	// Generate filename
 	let filename = 'tickets-export';
-	if (search) filename += `-search-${search.substring(0, 20)}`;
-	if (status) filename += `-status-${status}`;
+	if (params.search) filename += `-search-${params.search.substring(0, 20)}`;
+	if (params.status) filename += `-status-${params.status}`;
 	filename += `-${Date.now()}.csv`;
 
 	return new Response(csv, {

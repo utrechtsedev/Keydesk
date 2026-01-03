@@ -1,7 +1,5 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { eq, desc } from 'drizzle-orm';
 import { redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, depends }) => {
@@ -9,9 +7,8 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 
 	const id = Number(params.id);
 
-	// Fetch ticket with all relations
 	const ticket = await db.query.ticket.findFirst({
-		where: eq(schema.ticket.id, id),
+		where: (ticket, { eq }) => eq(ticket.id, id),
 		with: {
 			requester: true,
 			status: true,
@@ -23,22 +20,51 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 					tag: true
 				}
 			},
+			tasks: {
+				with: {
+					assignee: true,
+					status: true,
+					priority: true,
+					creator: true,
+					ticket: true,
+					taskTags: {
+						with: {
+							tag: true
+						}
+					}
+				}
+			},
 			messages: {
 				with: {
 					messageAttachments: true,
 					messageUser: true,
 					messageRequester: true
 				},
-				orderBy: desc(schema.ticketMessage.createdAt)
+				orderBy: (messages, { desc }) => desc(messages.createdAt)
 			}
 		}
 	});
 
-	// Fetch all lookup data
-	const priorities = await db.select().from(schema.priority);
-	const users = await db.select().from(schema.user);
-	const statuses = await db.select().from(schema.status);
-	const categories = await db.select().from(schema.category);
+	const parentTasks = await db.query.task.findMany({
+		where: (task, { and, isNull, eq }) => and(eq(task.ticketId, id), isNull(task.parentTaskId)),
+		with: {
+			assignee: true,
+			status: true,
+			priority: true,
+			creator: true,
+			ticket: true,
+			taskTags: {
+				with: {
+					tag: true
+				}
+			}
+		}
+	});
+
+	const priorities = await db.query.priority.findMany();
+	const users = await db.query.user.findMany();
+	const statuses = await db.query.status.findMany();
+	const categories = await db.query.category.findMany();
 
 	if (
 		!ticket ||
@@ -50,10 +76,20 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 		return redirect(301, '/dashboard');
 	}
 
-	// Transform tags from join table format
+	const tasksWithTags = ticket.tasks.map((task) => ({
+		...task,
+		tags: task.taskTags.map((tt) => tt.tag)
+	}));
+
+	const parentTasksWithTags = parentTasks.map((task) => ({
+		...task,
+		tags: task.taskTags.map((tt) => tt.tag)
+	}));
+
 	const ticketWithTags = {
 		...ticket,
-		tags: ticket.ticketTags.map((tt) => tt.tag)
+		tags: ticket.ticketTags.map((tt) => tt.tag),
+		tasks: tasksWithTags
 	};
 
 	return {
@@ -61,6 +97,7 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 		priorities,
 		users,
 		statuses,
-		categories
+		categories,
+		parentTasks: parentTasksWithTags
 	};
 };

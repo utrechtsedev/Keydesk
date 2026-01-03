@@ -1,4 +1,4 @@
-import { betterAuth, type Session, type User } from 'better-auth';
+import { betterAuth, type Session, type User as BetterAuthUser } from 'better-auth';
 import { admin, magicLink } from 'better-auth/plugins';
 import { sendEmail } from './email/email';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
@@ -7,6 +7,7 @@ import { db } from './db/database';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import * as schema from './db/schema/index.js';
 import { redirect } from '@sveltejs/kit';
+import type { User } from '$lib/types';
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
@@ -41,7 +42,13 @@ export const auth = betterAuth({
 	},
 	emailVerification: {
 		sendOnSignUp: true,
-		sendVerificationEmail: async ({ user, url }: { user: User; url: string }): Promise<void> => {
+		sendVerificationEmail: async ({
+			user,
+			url
+		}: {
+			user: BetterAuthUser;
+			url: string;
+		}): Promise<void> => {
 			sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
 		}
 	},
@@ -69,11 +76,7 @@ export const auth = betterAuth({
 	}
 });
 
-interface AuthUser extends Omit<User, 'id'> {
-	id: number;
-	role?: string;
-}
-export function requireAuth(locals: App.Locals): { user: AuthUser; session: Session } {
+export function requireAuth(locals: App.Locals): { user: User; session: Session } {
 	if (!locals.user || !locals.session) {
 		throw redirect(302, '/login');
 	}

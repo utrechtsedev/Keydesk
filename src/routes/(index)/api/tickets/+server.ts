@@ -6,77 +6,86 @@ import { uploadFile } from '$lib/server/file-upload';
 import type { Attachment, Ticket } from '$lib/types';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
-import { ticketService } from '$lib/server/services/ticket.service';
+import { sendNotification } from '$lib/server/queue';
+import z from 'zod';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
 	const { user } = requireAuth(locals);
 
-	const formData = await request.formData();
-	const subject = formData.get('subject') as string;
-	const message = formData.get('message') as string;
-	const isPrivate = formData.get('isPrivate') as string;
-	const requesterId = formData.get('requesterId') as string;
-	const assigneeId = formData.get('assigneeId') as string;
-	const categoryId = formData.get('categoryId') as string;
-	const priorityId = formData.get('priorityId') as string;
-	const statusId = formData.get('statusId') as string;
-	const channel = (formData.get('channel') as string) || 'portal';
-	const targetDate = formData.get('targetDate') as string;
-	const files = formData.getAll('files').filter((file): file is File => file instanceof File);
+	const formData = schema.parseFormData(await request.formData());
+
+	const validatedData = schema.createTicketFormSchema.parse(formData);
+
+	const [priority] = await db
+		.select()
+		.from(schema.priority)
+		.where(eq(schema.priority.id, validatedData.priorityId));
+
+	if (!priority) {
+		throw new NotFoundError('Priority not found');
+	}
+
+	const [status] = await db
+		.select()
+		.from(schema.status)
+		.where(eq(schema.status.id, validatedData.statusId));
+
+	if (!status) {
+		throw new NotFoundError('Status not found');
+	}
+
+	if (validatedData.categoryId) {
+		const [category] = await db
+			.select()
+			.from(schema.category)
+			.where(eq(schema.category.id, validatedData.categoryId));
+
+		if (!category) {
+			throw new NotFoundError('Category not found');
+		}
+	}
+
+	if (validatedData.assigneeId) {
+		const [assignee] = await db
+			.select()
+			.from(schema.user)
+			.where(eq(schema.user.id, validatedData.assigneeId));
+
+		if (!assignee) {
+			throw new NotFoundError('Assignee not found');
+		}
+	}
 
 	const result = await db.transaction(async (tx) => {
-		// Validation
-		if (!subject || subject.trim() === '') throw new ValidationError('Subject is required.');
-
-		if (!message || message.trim() === '') throw new ValidationError('Message is required.');
-
-		if (!requesterId || isNaN(Number(requesterId)))
-			throw new ValidationError('Valid requester ID is required.');
-
-		if (!categoryId || isNaN(Number(categoryId)))
-			throw new ValidationError('Valid category ID is required.');
-
-		if (!priorityId || isNaN(Number(priorityId)))
-			throw new ValidationError('Valid priority ID is required.');
-
-		if (!statusId || isNaN(Number(statusId)))
-			throw new ValidationError('Valid status ID is required.');
-
-		if (!targetDate) throw new ValidationError('Target date is required.');
-
-		const isPrivateValue = JSON.parse(isPrivate);
-
-		if (typeof isPrivateValue !== 'boolean')
-			throw new ValidationError('Invalid privacy setting format.');
-
 		const [attachmentOptions] = await tx
 			.select()
 			.from(schema.config)
 			.where(eq(schema.config.key, 'attachments'));
 
-		if (!attachmentOptions)
+		if (!attachmentOptions) {
 			throw new NotFoundError(
 				'Attachment configuration not found. Please configure attachments in Settings.'
 			);
+		}
 
 		const attachmentConfig = attachmentOptions.value as Attachment;
 
-		if (!attachmentConfig) throw new ValidationError('Invalid attachment configuration.');
+		if (!attachmentConfig) {
+			throw new ValidationError('Invalid attachment configuration.');
+		}
 
-		const ticketNumber = await ticketService.generateTicketNumber(tx);
-
+		// Create ticket
 		const [newTicket] = await tx
 			.insert(schema.ticket)
 			.values({
-				ticketNumber,
-				requesterId: Number(requesterId),
-				assigneeId: assigneeId ? parseInt(assigneeId, 10) : null,
-				subject,
-				channel: channel as 'email' | 'portal' | 'user',
-				statusId: Number(statusId),
-				priorityId: Number(priorityId),
-				categoryId: Number(categoryId),
-				targetDate: new Date(targetDate),
+				requesterId: validatedData.requesterId,
+				assigneeId: validatedData.assigneeId,
+				subject: validatedData.subject,
+				channel: validatedData.channel as 'email' | 'portal' | 'user',
+				statusId: validatedData.statusId,
+				priorityId: validatedData.priorityId,
+				categoryId: validatedData.categoryId,
+				targetDate: validatedData.targetDate,
 				responseCount: 0,
 				firstResponseAt: null,
 				resolvedAt: null,
@@ -86,6 +95,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 			})
 			.returning();
 
+		// Create ticket message
 		const [ticketMessage] = await tx
 			.insert(schema.ticketMessage)
 			.values({
@@ -95,15 +105,40 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 				senderName: user.name,
 				senderEmail: user.email,
 				userId: user.id,
-				message,
-				isPrivate: isPrivateValue,
+				message: validatedData.message,
+				isPrivate: validatedData.isPrivate,
 				channel: 'dashboard',
 				isFirstResponse: false,
-				hasAttachments: files.length > 0
+				hasAttachments: validatedData.files.length > 0
 			})
 			.returning();
 
-		for (const file of files) {
+		const tagIds: number[] = [];
+		for (const tagName of validatedData.tags) {
+			const existingTag = await tx.query.tag.findFirst({
+				where: (tag, { eq }) => eq(tag.name, tagName)
+			});
+
+			if (existingTag) {
+				tagIds.push(existingTag.id);
+			} else {
+				const [newTag] = await tx
+					.insert(schema.tag)
+					.values({ name: tagName })
+					.returning({ id: schema.tag.id });
+				tagIds.push(newTag.id);
+			}
+		}
+		if (tagIds.length !== 0) {
+			const tagAssociations = tagIds.map((tagId) => ({
+				ticketId: newTicket.id,
+				tagId
+			}));
+
+			await tx.insert(schema.ticketTag).values(tagAssociations).onConflictDoNothing();
+		}
+
+		for (const file of validatedData.files) {
 			const fileUpload = await uploadFile(file, attachmentConfig);
 
 			await tx.insert(schema.ticketAttachment).values({
@@ -124,31 +159,53 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 		return {
 			ticketId: newTicket.id,
 			ticketNumber: newTicket.ticketNumber,
-			messageId: ticketMessage.id
+			messageId: ticketMessage.id,
+			assigneeId: newTicket.assigneeId
 		};
 	});
+
+	// Send notification if assigned to someone else
+	if (result.assigneeId && result.assigneeId !== user.id) {
+		const ticket = await db.query.ticket.findFirst({
+			where: eq(schema.ticket.id, result.ticketId),
+			with: {
+				status: true,
+				priority: true,
+				category: true,
+				assignee: true,
+				requester: true
+			}
+		});
+
+		await sendNotification({
+			title: 'Ticket assigned to you',
+			message: `New ticket assigned by ${user.name}: ${validatedData.subject}`,
+			recipient: { userId: result.assigneeId },
+			channels: ['dashboard', 'email'],
+			notification: {
+				type: 'entity',
+				event: 'assigned',
+				entity: { type: 'ticket', data: ticket as Ticket }
+			}
+		});
+	}
 
 	return json(
 		{
 			success: true,
-			data: result,
-			message: 'Ticket created successfully.'
+			message: 'Ticket created successfully'
 		},
 		{ status: 201 }
 	);
 };
 
 export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
-	const { ids, ticket } = (await request.json()) as {
-		ids: number[];
-		ticket: Partial<Ticket>;
-	};
-
-	if (!ids || !Array.isArray(ids) || ids.length < 1)
-		throw new ValidationError('Ticket IDs are required');
-
-	if (!ticket || Object.keys(ticket).length === 0)
-		throw new ValidationError('Update data is required');
+	const bulkUpdateSchema = z.object({
+		ids: z.array(z.number().int().positive()).min(1, 'At least one ticket ID required'),
+		ticket: schema.updateTicketSchema
+	});
+	const { ids, ticket } = await schema.validate(bulkUpdateSchema)(request);
+	console.log(ticket);
 
 	const findTickets = await db.select().from(schema.ticket).where(inArray(schema.ticket.id, ids));
 
@@ -199,10 +256,8 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 		if (!requester) throw new NotFoundError('Requester not found');
 	}
 
-	// Build update data
 	const updateData: Partial<Ticket> = {};
 
-	// Only include fields that were provided
 	if (ticket.subject !== undefined) updateData.subject = ticket.subject;
 	if (ticket.assigneeId !== undefined) updateData.assigneeId = ticket.assigneeId;
 	if (ticket.statusId !== undefined) updateData.statusId = ticket.statusId;
@@ -213,7 +268,6 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 		updateData.targetDate = ticket.targetDate ? new Date(ticket.targetDate) : new Date();
 	}
 
-	// Handle status-based automatic timestamps
 	if (ticket.statusId) {
 		const [status] = await db
 			.select()
@@ -221,14 +275,12 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 			.where(eq(schema.status.id, ticket.statusId));
 
 		if (status) {
-			// Set resolvedAt if status is resolved
 			if (status.isResolved) {
 				updateData.resolvedAt = new Date();
 			} else {
 				updateData.resolvedAt = null;
 			}
 
-			// Set closedAt if status is closed
 			if (status.isClosed) {
 				updateData.closedAt = new Date();
 			} else {
@@ -237,7 +289,6 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 		}
 	}
 
-	// Perform bulk update
 	await db.update(schema.ticket).set(updateData).where(inArray(schema.ticket.id, ids));
 
 	// If tickets are being closed, close related tasks

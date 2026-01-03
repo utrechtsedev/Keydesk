@@ -20,6 +20,7 @@ export interface PageData {
 
 export interface TicketPageData extends PageData {
 	tickets: TicketList[];
+	ticketPrefix: string;
 	pageCount: number;
 	totalCount: number;
 	users: User[];

@@ -1,18 +1,11 @@
+import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
-import { NotFoundError, ValidationError } from '$lib/server/errors';
-import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
+import { NotFoundError } from '$lib/server/errors';
 
 export const PATCH: RequestHandler = async ({ request }) => {
-	const { ids, itemId, itemType } = (await request.json()) as {
-		ids: number[];
-		itemId: number;
-		itemType: 'user' | 'category' | 'status' | 'priority' | 'tag';
-	};
-
-	if (!ids || !Array.isArray(ids) || ids.length < 1 || !itemId || !itemType)
-		throw new ValidationError('Some fields are missing. Please retry your request.');
+	const { ids, itemId, itemType } = await schema.validate(schema.bulkAssignmentSchema)(request);
 
 	let updatedCount = 0;
 
@@ -26,55 +19,48 @@ export const PATCH: RequestHandler = async ({ request }) => {
 			updatedCount = result.length;
 			break;
 		}
+
 		case 'category': {
-			const categoryId = itemId;
-			if (isNaN(categoryId)) throw new ValidationError('Invalid category ID');
-
 			const result = await db
 				.update(schema.ticket)
-				.set({ categoryId })
+				.set({ categoryId: itemId })
 				.where(inArray(schema.ticket.id, ids))
 				.returning();
 			updatedCount = result.length;
 			break;
 		}
+
 		case 'status': {
-			const statusId = itemId;
-			if (isNaN(statusId)) throw new ValidationError('Invalid status ID');
-
 			const result = await db
 				.update(schema.ticket)
-				.set({ statusId })
+				.set({ statusId: itemId })
 				.where(inArray(schema.ticket.id, ids))
 				.returning();
 			updatedCount = result.length;
 			break;
 		}
+
 		case 'priority': {
-			const priorityId = itemId;
-			if (isNaN(priorityId)) throw new ValidationError('Invalid priority ID');
-
 			const result = await db
 				.update(schema.ticket)
-				.set({ priorityId })
+				.set({ priorityId: itemId })
 				.where(inArray(schema.ticket.id, ids))
 				.returning();
 			updatedCount = result.length;
 			break;
 		}
+
 		case 'tag': {
-			const tagId = itemId;
-			if (isNaN(tagId)) throw new ValidationError('Invalid tag ID');
-
 			// Verify tag exists
-			const [tag] = await db.select().from(schema.tag).where(eq(schema.tag.id, tagId));
+			const [tag] = await db.select().from(schema.tag).where(eq(schema.tag.id, itemId));
 
-			if (!tag) throw new NotFoundError('Tag not found');
+			if (!tag) {
+				throw new NotFoundError('Tag not found');
+			}
 
-			// Add tag to all tickets (using onConflictDoNothing to prevent duplicates)
 			await Promise.all(
 				ids.map((ticketId) =>
-					db.insert(schema.ticketTag).values({ ticketId, tagId }).onConflictDoNothing()
+					db.insert(schema.ticketTag).values({ ticketId, tagId: itemId }).onConflictDoNothing()
 				)
 			);
 
@@ -87,14 +73,13 @@ export const PATCH: RequestHandler = async ({ request }) => {
 				{ status: 200 }
 			);
 		}
-		default:
-			throw new ValidationError('Invalid item type');
 	}
 
-	if (updatedCount === 0)
+	if (updatedCount === 0) {
 		throw new NotFoundError(
 			'No tickets were updated. Ticket(s) may not exist or you may not have permission.'
 		);
+	}
 
 	return json(
 		{
@@ -106,14 +91,13 @@ export const PATCH: RequestHandler = async ({ request }) => {
 };
 
 export const DELETE: RequestHandler = async ({ request }) => {
-	const { ids } = (await request.json()) as { ids: number[] };
-
-	if (!ids || !Array.isArray(ids) || ids.length < 1)
-		throw new ValidationError('Some fields are missing. Please retry your request.');
+	const { ids } = await schema.validate(schema.idsBulkSchema)(request);
 
 	const deleted = await db.delete(schema.ticket).where(inArray(schema.ticket.id, ids)).returning();
 
-	if (!deleted || deleted.length === 0) throw new NotFoundError('No tickets were found.');
+	if (deleted.length === 0) {
+		throw new NotFoundError('No tickets were found.');
+	}
 
 	return json(
 		{

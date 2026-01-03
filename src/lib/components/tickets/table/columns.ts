@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { renderComponent, renderSnippet } from '$lib/components/ui/data-table';
 import type { TicketList } from '$lib/types';
 import type { ColumnDef } from '@tanstack/table-core';
@@ -8,9 +9,12 @@ import { darkenColor } from '$lib/utils/color';
 import DataTableSortButton from './ticket-table-sort-button.svelte';
 
 declare module '@tanstack/table-core' {
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	interface ColumnMeta<TData, TValue> {
 		title?: string;
+	}
+
+	interface TableMeta<TData> {
+		ticketPrefix?: string;
 	}
 }
 
@@ -45,6 +49,11 @@ export const columns: ColumnDef<TicketList>[] = [
 				onclick: column.getToggleSortingHandler(),
 				text: 'No.'
 			}),
+		cell: ({ row, table }) => {
+			const prefix = table.options.meta?.ticketPrefix || 'TKT';
+			const number = row.original.ticketNumber;
+			return `${prefix}${String(number).padStart(4, '0')}`;
+		},
 		meta: {
 			title: 'No.'
 		},
@@ -254,8 +263,12 @@ export const columns: ColumnDef<TicketList>[] = [
 	},
 	{
 		id: 'actions',
-		cell: ({ row }) => {
-			return renderComponent(DataTableActions, { id: row.original.ticketNumber });
+		cell: ({ row, table }) => {
+			const prefix = table.options.meta?.ticketPrefix || 'TKT';
+			const number = row.original.ticketNumber;
+			return renderComponent(DataTableActions, {
+				id: `${prefix}${String(number).padStart(4, '0')}`
+			});
 		},
 		enableGlobalFilter: false,
 		enableHiding: false

@@ -36,11 +36,7 @@ import type {
 	Session as BaseSession
 } from '$lib/server/db/schema';
 
-import type { NotificationPreferences } from './configuration.ts';
-
-export interface User extends BaseUser {
-	notificationPreferences: NotificationPreferences;
-}
+export interface User extends BaseUser {}
 
 export interface Requester extends BaseRequester {}
 

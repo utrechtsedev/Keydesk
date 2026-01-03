@@ -2,7 +2,7 @@
 	import * as Rename from '$lib/components/ui/rename';
 	import { Button } from '$lib/components/ui/button';
 	import TicketIcon from '$lib/icons/ticket.svelte';
-	import type { TicketDetail } from '$lib/types';
+	import type { NewTag, TicketDetail } from '$lib/types';
 	import TicketRequester from '$lib/components/tickets/detail/ticket-requester.svelte';
 	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
 	import TicketInput from '$lib/components/tickets/detail/ticket-input.svelte';
@@ -16,15 +16,39 @@
 		data: TicketDetail;
 	} = $props();
 
-	let ticket = $state({
+	interface NewTicket {
+		subject: string;
+		message: string;
+		selectedFiles: [];
+		isPrivate: boolean;
+
+		requesterId: number;
+		assigneeId: number | null;
+		categoryId: number | null;
+		priorityId: number;
+		responseCount: number;
+		statusId: number;
+		tags: NewTag[];
+
+		requester: {
+			id: number;
+			name: string;
+			email: string;
+			phone: string;
+			createdAt: Date;
+			updatedAt: Date;
+		};
+	}
+
+	let ticket = $state<NewTicket>({
 		subject: '',
 		message: '',
 		selectedFiles: [],
 		isPrivate: false,
 
 		requesterId: -1,
-		assigneeId: -1,
-		categoryId: -1,
+		assigneeId: null,
+		categoryId: null,
 		priorityId: -1,
 		responseCount: -1,
 		statusId: -1,
@@ -50,7 +74,6 @@
 			if (ticket.requester.id < 0) return (highlightRequester = true);
 			if (ticket.priorityId < 0) return (highlightPriority = true);
 			if (ticket.statusId < 0) return (highlightStatus = true);
-			if (ticket.categoryId < 0) return (highlightCategory = true);
 			if (ticket.message.length < 10) return (highlightMessageInput = true);
 			if (!ticket.subject) return toast.error('Please add a subject.');
 
@@ -59,10 +82,12 @@
 			formData.append('message', ticket.message);
 			formData.append('isPrivate', JSON.stringify(ticket.isPrivate));
 			formData.append('requesterId', ticket.requesterId.toString());
-			formData.append('categoryId', ticket.categoryId.toString());
 			formData.append('priorityId', ticket.priorityId.toString());
 			formData.append('statusId', ticket.statusId.toString());
 			formData.append('channel', 'portal');
+			formData.append('tags', JSON.stringify(ticket.tags.map((t) => t.name)));
+
+			if (ticket.categoryId) formData.append('categoryId', ticket.categoryId.toString());
 
 			const targetDate = new Date();
 			targetDate.setDate(targetDate.getDate() + 7);
@@ -101,7 +126,6 @@
 		if (ticket.requester.id > 0) highlightRequester = false;
 		if (ticket.priorityId > 0) highlightPriority = false;
 		if (ticket.statusId > 0) highlightStatus = false;
-		if (ticket.categoryId > 0) highlightCategory = false;
 		if (ticket.message.length > 10) highlightMessageInput = false;
 	});
 </script>

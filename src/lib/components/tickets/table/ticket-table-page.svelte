@@ -58,6 +58,7 @@
 	data={data.tickets}
 	{columns}
 	pageCount={data.pageCount}
+	ticketPrefix={data.ticketPrefix}
 	totalCount={data.totalCount}
 	categories={data.categories}
 	priorities={data.priorities}

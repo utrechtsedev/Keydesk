@@ -114,7 +114,7 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 				// Extract ticket number from subject
 				const prefix = await ticketService.getTicketPrefix();
 				const match = message.envelope!.subject!.match(new RegExp(`${prefix}(\\d+)`, 'i'));
-				const ticketNumber = match ? match[0] : null;
+				const ticketNumber = match ? parseInt(match[1], 10) : null;
 
 				// Find or create ticket
 				let ticket;
@@ -132,11 +132,9 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 				}
 
 				if (!ticket) {
-					const newTicketNumber = await ticketService.generateTicketNumber(tx);
 					const [newTicket] = await tx
 						.insert(schema.ticket)
 						.values({
-							ticketNumber: newTicketNumber,
 							requesterId: requester.id,
 							assigneeId: null,
 							subject: message.envelope!.subject!,

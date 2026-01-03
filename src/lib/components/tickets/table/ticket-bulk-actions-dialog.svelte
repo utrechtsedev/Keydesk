@@ -30,26 +30,47 @@
 	const selected = $derived(items.find((i) => String(i.id) === value));
 
 	async function handleSave() {
-		if (itemType === 'tag') {
-			if (!selected?.name) {
+		try {
+			if (itemType === 'tag' && !selected?.name) {
 				return toast.error('Please select a tag');
 			}
+			const apiConfig = {
+				tag: {
+					method: 'post' as const,
+					endpoint: '/api/tickets/tags',
+					payload: { ids, tags: selected?.name ? [selected.name] : [] }
+				},
+				user: {
+					method: 'patch' as const,
+					endpoint: '/api/tickets',
+					payload: { ids, ticket: { assigneeId: Number(value) } }
+				},
+				category: {
+					method: 'patch' as const,
+					endpoint: '/api/tickets',
+					payload: { ids, ticket: { categoryId: Number(value) } }
+				},
+				status: {
+					method: 'patch' as const,
+					endpoint: '/api/tickets',
+					payload: { ids, ticket: { statusId: Number(value) } }
+				},
+				priority: {
+					method: 'patch' as const,
+					endpoint: '/api/tickets',
+					payload: { ids, ticket: { priorityId: Number(value) } }
+				}
+			}[itemType];
 
-			await api.patch('/api/tags/bulk', {
-				ids,
-				tag: selected.name,
-				type: 'ticket'
-			});
-		} else {
-			await api.patch('/api/tickets/bulk', {
-				ids,
-				itemId: Number(value),
-				itemType
-			});
+			await api[apiConfig.method](apiConfig.endpoint, apiConfig.payload);
+
+			invalidate('app:tickets');
+			open = false;
+			toast.success('Successfully updated ticket(s)');
+		} catch (error) {
+			toast.error('Failed to update ticket(s)');
+			console.error('Update error:', error);
 		}
-		invalidate('app:tickets');
-		open = false;
-		return toast.success('Successfully updated ticket(s)');
 	}
 </script>
 

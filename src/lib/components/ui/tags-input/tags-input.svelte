@@ -1,16 +1,14 @@
 <script lang="ts">
 	import type { TagsInputProps } from './types';
+	import type { NewTag } from '$lib/types';
 	import TagsInputTag from './tags-input-tag.svelte';
 	import { untrack } from 'svelte';
 	import { cn } from '$lib/utils';
 
 	const defaultValidate: TagsInputProps['validate'] = (val, tags) => {
 		const transformed = val.trim();
-
 		if (transformed.length === 0) return undefined;
-
-		if (tags.find((t) => transformed === t)) return undefined;
-
+		if (tags.find((t) => transformed === t.name)) return undefined;
 		return transformed;
 	};
 
@@ -20,8 +18,13 @@
 		class: className,
 		disabled = false,
 		validate = defaultValidate,
+		removeTag,
+		addTag,
 		...rest
-	}: TagsInputProps = $props();
+	}: TagsInputProps & {
+		removeTag?: (tagId: number) => Promise<void>;
+		addTag?: (tag: string) => Promise<void>;
+	} = $props();
 
 	let inputValue = $state('');
 	let tagIndex = $state<number>();
@@ -29,25 +32,25 @@
 	let isComposing = $state(false);
 
 	$effect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		inputValue;
-
+		void inputValue;
 		untrack(() => {
 			invalid = false;
 		});
 	});
 
-	const enter = () => {
+	const enter = async () => {
 		if (isComposing) return;
-
 		const validated = validate(inputValue, value);
-
 		if (!validated) {
 			invalid = true;
 			return;
 		}
+		if (addTag) await addTag(validated);
 
-		value = [...value, validated];
+		const newTag: NewTag = {
+			name: validated
+		};
+		value = [...value, newTag];
 		inputValue = '';
 	};
 
@@ -61,29 +64,22 @@
 
 	const keydown = (e: KeyboardEvent) => {
 		const target = e.target as HTMLInputElement;
-
 		if (e.key === 'Enter') {
 			e.preventDefault();
-
 			if (isComposing) return;
-
 			enter();
 			return;
 		}
 
 		const isAtBeginning = target.selectionStart === 0 && target.selectionEnd === 0;
-
 		let shouldResetIndex = true;
 
 		if (e.key === 'Backspace') {
 			if (isAtBeginning) {
 				e.preventDefault();
-
 				if (tagIndex !== undefined) {
 					deleteIndex(tagIndex);
-
 					const prev = tagIndex - 1;
-
 					if (prev < 0) {
 						tagIndex = undefined;
 					} else {
@@ -92,7 +88,6 @@
 				} else {
 					tagIndex = value.length - 1;
 				}
-
 				shouldResetIndex = false;
 			}
 		}
@@ -102,11 +97,8 @@
 				if (inputValue.length === 0) {
 					if (tagIndex !== undefined) {
 						e.preventDefault();
-
 						deleteIndex(tagIndex);
-
 						if (value.length === 0) tagIndex = undefined;
-
 						shouldResetIndex = false;
 					}
 				}
@@ -117,7 +109,6 @@
 			if (e.key === 'ArrowLeft') {
 				if (tagIndex !== undefined) {
 					const prev = tagIndex - 1;
-
 					if (prev < 0) {
 						tagIndex = 0;
 					} else {
@@ -126,7 +117,6 @@
 				} else {
 					tagIndex = value.length - 1;
 				}
-
 				shouldResetIndex = false;
 			}
 
@@ -134,13 +124,11 @@
 				if (e.key === 'ArrowRight') {
 					if (tagIndex !== undefined) {
 						const next = tagIndex + 1;
-
 						if (next > value.length - 1) {
 							tagIndex = undefined;
 						} else {
 							tagIndex = next;
 						}
-
 						shouldResetIndex = false;
 					}
 				}
@@ -152,11 +140,16 @@
 		}
 	};
 
-	const deleteValue = (val: string) => {
-		const index = value.findIndex((v) => val === v);
+	const deleteValue = async (tag: (typeof value)[number]) => {
+		if (removeTag && tag.id) await removeTag(tag.id);
 
+		const index = value.findIndex((v) => {
+			if ('id' in tag && tag.id !== undefined && 'id' in v && v.id !== undefined) {
+				return tag.id === v.id;
+			}
+			return tag.name === v.name;
+		});
 		if (index === -1) return;
-
 		deleteIndex(index);
 	};
 
@@ -171,13 +164,13 @@
 
 <div
 	class={cn(
-		'flex min-h-[36px] w-full flex-wrap place-items-center gap-1 rounded-md border border-input bg-background py-0.5 pr-1 pl-1 selection:bg-primary disabled:opacity-50 aria-disabled:cursor-not-allowed dark:bg-input/30',
+		'flex min-h-9 w-full flex-wrap place-items-center gap-1 rounded-md border border-input bg-background py-0.5 pr-1 pl-1 selection:bg-primary disabled:opacity-50 aria-disabled:cursor-not-allowed dark:bg-input/30',
 		className
 	)}
 	aria-disabled={disabled}
 >
-	{#each value as tag, i (tag)}
-		<TagsInputTag value={tag} {disabled} onDelete={deleteValue} active={i === tagIndex} />
+	{#each value as tag, i (tag.id ?? tag.name)}
+		<TagsInputTag {tag} {disabled} onDelete={deleteValue} active={i === tagIndex} />
 	{/each}
 	<input
 		{...rest}

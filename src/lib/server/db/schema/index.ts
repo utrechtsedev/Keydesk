@@ -1,24 +1,25 @@
 export * from './tables';
+export * from './validation';
 export * from './relations';
 import {
-  user,
-  account,
-  session,
-  verification,
-  requester,
-  category,
-  status,
-  priority,
-  tag,
-  ticket,
-  ticketMessage,
-  ticketAttachment,
-  task,
-  notification,
-  userNotification,
-  config,
-  image,
-  email,
+	user,
+	account,
+	session,
+	verification,
+	requester,
+	category,
+	status,
+	priority,
+	tag,
+	ticket,
+	ticketMessage,
+	ticketAttachment,
+	task,
+	notification,
+	userNotification,
+	config,
+	image,
+	email
 } from './tables';
 
 // ============================================================================

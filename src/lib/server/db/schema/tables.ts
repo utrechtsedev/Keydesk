@@ -13,6 +13,7 @@ import {
 	customType
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import type { NotificationPreferences } from '$lib/types';
 
 // ============================================================================
 // CUSTOM TYPES
@@ -68,20 +69,22 @@ export const relatedEntityTypeEnum = pgEnum('related_entity_type', [
 
 export const user = pgTable('user', {
 	id: integer('id').generatedByDefaultAsIdentity().primaryKey(),
-	name: text('name').notNull(),
-	email: text('email').notNull().unique(),
+	name: varchar('name', { length: 255 }).notNull(),
+	email: varchar('email', { length: 255 }).notNull().unique(),
 	emailVerified: boolean('email_verified').default(false).notNull(),
-	image: text('image'),
+	image: varchar('image', { length: 500 }),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at')
 		.defaultNow()
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
-	role: text('role'),
+	role: varchar('role', { length: 50 }),
 	banned: boolean('banned').default(false),
 	banReason: text('ban_reason'),
 	banExpires: timestamp('ban_expires'),
-	notificationPreferences: jsonb('notification_preferences').notNull()
+	notificationPreferences: jsonb('notification_preferences')
+		.$type<NotificationPreferences>()
+		.notNull()
 });
 
 export const session = pgTable(
@@ -89,17 +92,17 @@ export const session = pgTable(
 	{
 		id: integer('id').generatedByDefaultAsIdentity().primaryKey(),
 		expiresAt: timestamp('expires_at').notNull(),
-		token: text('token').notNull().unique(),
+		token: varchar('token', { length: 500 }).notNull().unique(),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at')
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
-		ipAddress: text('ip_address'),
-		userAgent: text('user_agent'),
+		ipAddress: varchar('ip_address', { length: 45 }),
+		userAgent: varchar('user_agent', { length: 500 }),
 		userId: integer('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		impersonatedBy: text('impersonated_by')
+		impersonatedBy: varchar('impersonated_by', { length: 255 })
 	},
 	(table) => [index('session_userId_idx').on(table.userId)]
 );
@@ -108,8 +111,8 @@ export const account = pgTable(
 	'account',
 	{
 		id: integer('id').generatedByDefaultAsIdentity().primaryKey(),
-		accountId: text('account_id').notNull(),
-		providerId: text('provider_id').notNull(),
+		accountId: varchar('account_id', { length: 255 }).notNull(),
+		providerId: varchar('provider_id', { length: 100 }).notNull(),
 		userId: integer('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
@@ -118,8 +121,8 @@ export const account = pgTable(
 		idToken: text('id_token'),
 		accessTokenExpiresAt: timestamp('access_token_expires_at'),
 		refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
-		scope: text('scope'),
-		password: text('password'),
+		scope: varchar('scope', { length: 500 }),
+		password: varchar('password', { length: 255 }),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at')
 			.$onUpdate(() => /* @__PURE__ */ new Date())
@@ -132,8 +135,8 @@ export const verification = pgTable(
 	'verification',
 	{
 		id: integer('id').generatedByDefaultAsIdentity().primaryKey(),
-		identifier: text('identifier').notNull(),
-		value: text('value').notNull(),
+		identifier: varchar('identifier', { length: 255 }).notNull(),
+		value: varchar('value', { length: 500 }).notNull(),
 		expiresAt: timestamp('expires_at').notNull(),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at')
@@ -150,7 +153,7 @@ export const verification = pgTable(
 
 export const config = pgTable('config', {
 	id: serial('id').primaryKey(),
-	key: text('key').notNull().unique(),
+	key: varchar('key', { length: 100 }).notNull().unique(),
 	value: jsonb('value').notNull(),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at')
@@ -222,7 +225,7 @@ export const priority = pgTable('priority', {
 
 export const tag = pgTable('tag', {
 	id: serial('id').primaryKey(),
-	name: text('name').notNull(),
+	name: varchar('name', { length: 100 }).notNull(),
 	updatedAt: timestamp('updated_at')
 		.notNull()
 		.$onUpdate(() => /* @__PURE__ */ new Date())
@@ -232,12 +235,12 @@ export const tag = pgTable('tag', {
 
 export const ticket = pgTable('ticket', {
 	id: serial('id').primaryKey(),
-	ticketNumber: varchar('ticket_number', { length: 10 }).notNull().unique(),
+	ticketNumber: serial('ticket_number').unique().notNull(),
 	requesterId: integer('requester_id')
 		.notNull()
 		.references(() => requester.id),
 	assigneeId: integer('assigned_user_id').references(() => user.id, { onDelete: 'set null' }),
-	subject: text('subject').notNull(),
+	subject: varchar('subject', { length: 500 }).notNull(),
 	channel: channelEnum('channel').notNull(),
 	statusId: integer('status_id')
 		.notNull()
@@ -360,7 +363,7 @@ export const userNotification = pgTable('user_notification', {
 	readAt: timestamp('read_at'),
 	sentViaEmail: boolean('sent_via_email').notNull().default(false),
 	emailSentAt: timestamp('email_sent_at'),
-	emailError: text('email_error'),
+	emailError: varchar('email_error', { length: 1000 }),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at')
 		.notNull()
@@ -373,9 +376,9 @@ export const email = pgTable(
 	{
 		id: serial('id').primaryKey(),
 		uid: integer('uid').notNull().unique(),
-		fromAddress: text('from_address').notNull(),
-		fromName: text('from_name'),
-		subject: text('subject').notNull(),
+		fromAddress: varchar('from_address', { length: 255 }).notNull(),
+		fromName: varchar('from_name', { length: 255 }),
+		subject: varchar('subject', { length: 500 }).notNull(),
 		textContent: text('text_content'),
 		htmlContent: text('html_content'),
 		rawSource: text('raw_source'),

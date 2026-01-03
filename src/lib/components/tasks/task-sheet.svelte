@@ -44,25 +44,21 @@
 	let priorityIdString = $state('');
 	let assigneeIdString = $state('');
 	let editDescription = $state<boolean>(false);
-	let editTags = $state<boolean>(false);
-	let editableTags = $derived<string[] | undefined>(editableTask?.tags?.map((t) => t.name));
-	const selectedStatus = $derived(statuses.find((s) => s.id === Number(statusIdString)));
 	const selectedPriority = $derived(priorities.find((p) => p.id === Number(priorityIdString)));
+	const selectedStatus = $derived(statuses.find((p) => p.id === Number(statusIdString)));
 	const selectedUser = $derived(
 		assigneeIdString === 'none' ? null : users.find((u) => u.id === Number(assigneeIdString))
 	);
 	const isNewTask = $derived(!task?.id);
 
-	async function handleSaveTags() {
-		await api.post('/api/tags/bulk', {
-			id: task?.id,
-			type: 'task',
-			tags: editableTags || []
-		});
-
-		toast.success('Succesfully saved tags.');
+	async function removeTag(tagId: number) {
+		await api.delete(`/api/tasks/${task?.id}/tags/${tagId}`);
 		invalidate('app:tasks');
-		editTags = false;
+	}
+
+	async function addTag(tag: string) {
+		await api.post(`/api/tasks/${task?.id}/tags`, { tag });
+		invalidate('app:tasks');
 	}
 
 	async function handleSave() {
@@ -74,10 +70,21 @@
 		let response;
 
 		if (isNewTask) {
-			response = await api.post('/api/tasks', { task: editableTask });
+			response = await api.post('/api/tasks', {
+				title: editableTask.title,
+				statusId: editableTask.statusId,
+				priorityId: editableTask.priorityId,
+				description: editableTask.description,
+				assigneeId: editableTask.assigneeId,
+				ticketId: editableTask.ticketId,
+				parentTaskId: editableTask.parentTaskId,
+				dueDate: editableTask.dueDate,
+				startDate: editableTask.startDate,
+				tags: editableTask.tags ? editableTask.tags.map((t) => t.name) : []
+			});
 			toast.success('Successfully created task.');
 		} else {
-			response = await api.patch(`/api/tasks/${editableTask.id}`, { task: editableTask });
+			response = await api.patch(`/api/tasks/${editableTask.id}`, { ...editableTask });
 			toast.success('Successfully saved task.');
 		}
 
@@ -104,6 +111,7 @@
 				const defaultPriority = priorities[0];
 
 				editableTask = {
+					id: 0,
 					title: '',
 					description: null,
 					ticketId: null,
@@ -117,7 +125,16 @@
 					completedAt: null,
 					position: 0,
 					createdAt: new Date(),
-					updatedAt: new Date()
+					updatedAt: new Date(),
+					deletedAt: null,
+					tags: [],
+					creator: undefined,
+					ticket: undefined,
+					subtasks: undefined,
+					status: undefined,
+					priority: undefined,
+					assignee: undefined,
+					parentTask: undefined
 				} as Task;
 
 				statusIdString = editableTask!.statusId.toString();
@@ -130,7 +147,6 @@
 		if (!open) {
 			editableTask = undefined;
 			editDescription = false;
-			editTags = false;
 		}
 
 		if (editableTask && priorityIdString) {
@@ -299,34 +315,20 @@
 				<Separator />
 
 				<!-- Tags -->
-				{#if !isNewTask}
-					<div class="space-y-2 px-4">
-						<div class="flex items-center justify-between">
-							<Label class="mb-3 flex items-center gap-1">
-								<Tags class="h-4 w-4" />
-								Tags
-							</Label>
-							{#if editTags}
-								<Button size="sm" onclick={handleSaveTags}>Save</Button>
-							{:else}
-								<Button size="sm" onclick={() => (editTags = true)}>Edit</Button>
-							{/if}
-						</div>
-						{#if editTags}
-							<TagsInput bind:value={editableTags} />
-						{:else if editableTask.tags && editableTask.tags.length > 0}
-							<div class="flex flex-wrap gap-2">
-								{#each editableTask.tags as tag (tag.id)}
-									<Badge variant="outline">{tag.name}</Badge>
-								{/each}
-							</div>
-						{:else}
-							<p class="text-sm font-light">No tags</p>
-						{/if}
+				<div class="space-y-2 px-4">
+					<div class="flex items-center justify-between">
+						<Label class="mb-3 flex items-center gap-1">
+							<Tags class="h-4 w-4" />
+							Tags
+						</Label>
 					</div>
-
-					<Separator />
-				{/if}
+					{#if isNewTask}
+						<TagsInput bind:value={editableTask.tags} />
+					{:else}
+						<TagsInput bind:value={editableTask.tags} {addTag} {removeTag} />
+					{/if}
+				</div>
+				<Separator />
 
 				<!-- Parent Task Selector -->
 				<div class="px-4">

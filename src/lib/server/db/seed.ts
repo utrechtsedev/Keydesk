@@ -581,7 +581,6 @@ class DatabaseSeeder {
 			const [ticket] = await db
 				.insert(schema.ticket)
 				.values({
-					ticketNumber: `TKT-${String(i + 1).padStart(4, '0')}`,
 					requesterId: requester.id,
 					assigneeId: assignee?.id || null,
 					subject,

@@ -4,6 +4,7 @@
 	import TicketMessage from '$lib/components/tickets/detail/ticket-message.svelte';
 	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
 	import TicketRequester from '$lib/components/tickets/detail/ticket-requester.svelte';
+	import TicketTask from '$lib/components/tickets/detail/ticket-tasks.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Rename from '$lib/components/ui/rename';
 	import TicketIcon from '$lib/icons/ticket.svelte';
@@ -17,6 +18,7 @@
 		data: TicketDetail;
 	} = $props();
 
+	// svelte-ignore state_referenced_locally
 	let ticket = $state(data.ticket);
 	let newTicketMessage = $state('');
 	let isPrivate = $state(false);
@@ -66,21 +68,20 @@
 			requesterId: ticket.requesterId,
 			assigneeId: ticket.assigneeId || null,
 			subject: ticket.subject,
-			channel: ticket.channel,
 			statusId: ticket.statusId,
 			priorityId: ticket.priorityId,
-			categoryId: ticket.categoryId,
-			firstResponseAt: ticket.firstResponseAt,
-			resolvedAt: ticket.resolvedAt,
-			closedAt: ticket.closedAt,
-			targetDate: ticket.targetDate,
-			lastUserResponseAt: ticket.lastUserResponseAt,
-			lastRequesterResponseAt: ticket.lastRequesterResponseAt,
-			responseCount: ticket.responseCount
+			categoryId: ticket.categoryId
 		};
 		await api.patch(`/api/tickets/${data.ticket.id}`, { ticket: ticketUpdate });
 		invalidate('app:ticket');
 		toast.success('Ticket updated succesfully');
+	}
+
+	async function removeTag(tagId: number) {
+		await api.delete(`/api/tickets/${ticket.id}/tags/${tagId}`);
+	}
+	async function addTag(tag: string) {
+		await api.post(`/api/tickets/${ticket.id}/tags`, { tag });
 	}
 </script>
 
@@ -107,7 +108,6 @@
 				{handleSave}
 			/>
 			<TicketProperties
-				ticketId={ticket.id}
 				bind:priorityId={ticket.priorityId}
 				bind:categoryId={ticket.categoryId}
 				bind:statusId={ticket.statusId}
@@ -117,6 +117,15 @@
 				users={data.users}
 				categories={data.categories}
 				priorities={data.priorities}
+				{addTag}
+				{removeTag}
+			/>
+			<TicketTask
+				tasks={ticket.tasks}
+				statuses={data.statuses}
+				priorities={data.priorities}
+				users={data.users}
+				parentTasks={data.parentTasks}
 			/>
 		</div>
 

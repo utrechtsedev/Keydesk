@@ -8,15 +8,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { TagsInput } from '$lib/components/ui/tags-input';
 	import { cn } from '$lib/utils';
-	import type { Category, Priority, Status, Tag, User } from '$lib/types';
-	import { invalidate } from '$app/navigation';
-	import { toast } from 'svelte-sonner';
-	import api from '$lib/utils/axios';
+	import type { Category, NewTag, Priority, Status, Tag, User } from '$lib/types';
 	import Check from '$lib/icons/check.svelte';
 	import ChevronDown from '$lib/icons/chevron-down.svelte';
 
 	let {
-		ticketId,
 		priorityId = $bindable(),
 		statusId = $bindable(),
 		categoryId = $bindable(),
@@ -28,9 +24,10 @@
 		users,
 		highlightPriority = $bindable(false),
 		highlightStatus = $bindable(false),
-		highlightCategory = $bindable(false)
+		highlightCategory = $bindable(false),
+		removeTag,
+		addTag
 	}: {
-		ticketId?: number;
 		priorityId: number;
 		statusId: number;
 		categoryId?: number | null;
@@ -39,14 +36,15 @@
 		categories: Category[];
 		userId: number | null;
 		users: User[];
-		tags: Tag[];
+		tags: (Tag | NewTag)[];
 		highlightPriority?: boolean;
 		highlightStatus?: boolean;
 		highlightCategory?: boolean;
+		removeTag?: (tagId: number) => Promise<void>;
+		addTag?: (tag: string) => Promise<void>;
 	} = $props();
 	let open = $state(false);
 
-	let editableTags = $derived<string[] | undefined>(tags?.map((t) => t.name));
 	const selectedPriority = $derived(priorities.find((p) => p.id === Number(priorityId)));
 	const selectedStatus = $derived(statuses.find((s) => s.id === Number(statusId)));
 	const selectedCategory = $derived(
@@ -56,16 +54,6 @@
 	function handleSelectAssignee(currentAssignedUser: number) {
 		userId = currentAssignedUser === userId ? 0 : currentAssignedUser;
 		open = false;
-	}
-
-	async function handleSaveTags() {
-		await api.post('/api/tags/bulk', {
-			id: ticketId,
-			type: 'ticket',
-			tags: editableTags || []
-		});
-		invalidate('app:ticket');
-		toast.success('Succesfully saved tags.');
 	}
 
 	let priorityIdString = $state(priorityId.toString());
@@ -207,8 +195,7 @@
 		<div class="space-y-2">
 			<Label>Tags</Label>
 			<div class="flex gap-1">
-				<TagsInput bind:value={editableTags} placeholder="Add a tag" />
-				<Button variant="outline" onclick={handleSaveTags}>Save</Button>
+				<TagsInput bind:value={tags} {removeTag} {addTag} placeholder="Add a tag" />
 			</div>
 		</div>
 	</Card.Content>

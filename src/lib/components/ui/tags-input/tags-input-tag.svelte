@@ -1,14 +1,15 @@
 <script lang="ts">
 	import Xmark from '$lib/icons/xmark.svelte';
+	import type { Tag, NewTag } from '$lib/types';
 
 	type Props = {
-		value: string;
+		tag: Tag | NewTag; // Changed from value: string
 		disabled: boolean | null;
 		active: boolean;
-		onDelete: (value: string) => void;
+		onDelete: (tag: Tag | NewTag) => void; // Changed parameter type
 	};
 
-	let { value, disabled, onDelete, active }: Props = $props();
+	let { tag, disabled, onDelete, active }: Props = $props();
 </script>
 
 <div
@@ -16,9 +17,9 @@
 	aria-selected={active}
 >
 	<span class="text-sm">
-		{value}
+		{tag.name}
 	</span>
-	<button type="button" {disabled} onclick={() => onDelete(value)}>
+	<button type="button" {disabled} onclick={() => onDelete(tag)}>
 		<Xmark class="size-4" />
 	</button>
 </div>

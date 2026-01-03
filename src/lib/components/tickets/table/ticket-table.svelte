@@ -57,6 +57,7 @@
 	type DataTableProps<TData, TValue> = {
 		columns: ColumnDef<TData, TValue>[];
 		data: TData[];
+		ticketPrefix: string;
 		pageCount: number;
 		totalCount: number;
 		users: User[];
@@ -70,6 +71,7 @@
 		data,
 		columns,
 		pageCount,
+		ticketPrefix,
 		totalCount,
 		users,
 		categories,
@@ -373,6 +375,9 @@
 			} else {
 				columnOrder = updater;
 			}
+		},
+		meta: {
+			ticketPrefix
 		}
 	});
 </script>
