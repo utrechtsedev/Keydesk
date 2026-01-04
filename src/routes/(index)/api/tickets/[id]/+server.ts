@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { NotFoundError } from '$lib/server/errors';
 
 export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
-	const { id: ticketId } = schema.idParamSchema.parse({ id: params.id });
+	const ticketId = schema.idParamSchema.parse(params.id);
 
 	const [findTicket] = await db
 		.select({
@@ -26,8 +26,7 @@ export const PATCH: RequestHandler = async ({ request, params }): Promise<Respon
 		throw new NotFoundError('Ticket not found');
 	}
 
-	const body = await request.json();
-	const ticket = schema.updateTicketSchema.parse(body.ticket);
+	const ticket = await schema.validate(schema.updateTicketSchema)(request);
 
 	if (ticket.requesterId) {
 		const [requester] = await db

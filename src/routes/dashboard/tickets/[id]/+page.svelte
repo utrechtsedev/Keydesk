@@ -72,7 +72,7 @@
 			priorityId: ticket.priorityId,
 			categoryId: ticket.categoryId
 		};
-		await api.patch(`/api/tickets/${data.ticket.id}`, { ticket: ticketUpdate });
+		await api.patch(`/api/tickets/${data.ticket.id}`, { ...ticketUpdate });
 		invalidate('app:ticket');
 		toast.success('Ticket updated succesfully');
 	}

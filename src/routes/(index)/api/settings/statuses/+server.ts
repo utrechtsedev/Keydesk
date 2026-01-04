@@ -1,17 +1,10 @@
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
-import type { NewStatus } from '$lib/server/db/schema';
-import { AppError, ValidationError } from '$lib/server/errors';
+import { AppError } from '$lib/server/errors';
 import { json, type RequestHandler } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-	const { status } = (await request.json()) as { status: NewStatus };
-
-	if (!status) throw new ValidationError('Status are required.');
-
-	delete status.id;
-	delete status.updatedAt;
-	delete status.createdAt;
+	const status = await schema.validate(schema.insertStatusSchema)(request);
 
 	const [created] = await db.insert(schema.status).values(status).returning();
 

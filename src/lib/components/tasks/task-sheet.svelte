@@ -6,9 +6,9 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { Label } from '$lib/components/ui/label';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Textarea } from '../ui/textarea';
-	import { TagsInput } from '../ui/tags-input';
-	import { Input } from '../ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { TagsInput } from '$lib/components/ui/tags-input';
+	import { Input } from '$lib/components/ui/input';
 	import type { Priority, Status, Task, User } from '$lib/types';
 	import { formatDate, formatRelativeDate } from '$lib/utils/date';
 	import { goto, invalidate } from '$app/navigation';
@@ -29,7 +29,8 @@
 		open = $bindable(false),
 		statuses,
 		users,
-		priorities
+		priorities,
+		ticketId
 	}: {
 		task: Task | null;
 		parentTasks: Task[];
@@ -37,6 +38,7 @@
 		statuses: Status[];
 		priorities: Priority[];
 		users: User[];
+		ticketId?: number;
 	} = $props();
 
 	let editableTask = $state<Task>();
@@ -54,11 +56,13 @@
 	async function removeTag(tagId: number) {
 		await api.delete(`/api/tasks/${task?.id}/tags/${tagId}`);
 		invalidate('app:tasks');
+		invalidate('app:ticket');
 	}
 
 	async function addTag(tag: string) {
 		await api.post(`/api/tasks/${task?.id}/tags`, { tag });
 		invalidate('app:tasks');
+		invalidate('app:ticket');
 	}
 
 	async function handleSave() {
@@ -67,10 +71,8 @@
 			return;
 		}
 
-		let response;
-
 		if (isNewTask) {
-			response = await api.post('/api/tasks', {
+			await api.post('/api/tasks', {
 				title: editableTask.title,
 				statusId: editableTask.statusId,
 				priorityId: editableTask.priorityId,
@@ -84,19 +86,13 @@
 			});
 			toast.success('Successfully created task.');
 		} else {
-			response = await api.patch(`/api/tasks/${editableTask.id}`, { ...editableTask });
+			await api.patch(`/api/tasks/${editableTask.id}`, { ...editableTask });
 			toast.success('Successfully saved task.');
 		}
+		invalidate('app:tasks');
+		invalidate('app:ticket');
 
-		if (response.data.success) {
-			invalidate('app:tasks');
-
-			if (isNewTask && response.data.task) {
-				task = response.data.task;
-			}
-
-			open = false;
-		}
+		open = false;
 	}
 
 	$effect(() => {
@@ -114,7 +110,7 @@
 					id: 0,
 					title: '',
 					description: null,
-					ticketId: null,
+					ticketId: ticketId ?? null,
 					assigneeId: null,
 					parentTaskId: null,
 					createdById: 0,
@@ -123,7 +119,6 @@
 					dueDate: new Date(),
 					startDate: null,
 					completedAt: null,
-					position: 0,
 					createdAt: new Date(),
 					updatedAt: new Date(),
 					deletedAt: null,

@@ -1051,7 +1051,6 @@ class DatabaseSeeder {
 					dueDate,
 					startDate,
 					completedAt,
-					position: i,
 					createdAt,
 					updatedAt: completedAt || createdAt
 				})
@@ -1130,7 +1129,6 @@ class DatabaseSeeder {
 						dueDate,
 						startDate: null,
 						completedAt,
-						position: j,
 						createdAt,
 						updatedAt: completedAt || createdAt
 					})

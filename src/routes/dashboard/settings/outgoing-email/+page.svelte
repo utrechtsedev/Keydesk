@@ -11,6 +11,7 @@
 
 	const { data }: { data: PageData & { smtp: SMTP } } = $props();
 
+	// svelte-ignore state_referenced_locally
 	let smtp: SMTP = $state(data.smtp);
 
 	let saveDisabled = $state(true);
@@ -37,7 +38,7 @@
 			);
 		}
 
-		await api.post('/api/settings/outgoing-email', { smtp });
+		await api.post('/api/settings/outgoing-email', { ...smtp });
 		toast.success('Succesfully saved SMTP settings.');
 	}
 

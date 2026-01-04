@@ -5,7 +5,8 @@ import { db } from '$lib/server/db/database';
 import { requireAuth } from '$lib/server/auth';
 import { redirect } from '@sveltejs/kit';
 
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, depends }) => {
+	depends('app:root');
 	const { user, session } = requireAuth(locals);
 
 	const notifications = await db.query.userNotification.findMany({

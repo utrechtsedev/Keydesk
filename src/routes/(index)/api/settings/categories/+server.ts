@@ -1,17 +1,10 @@
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
-import type { NewCategory } from '$lib/server/db/schema';
-import { AppError, ValidationError } from '$lib/server/errors';
+import { AppError } from '$lib/server/errors';
 import { json, type RequestHandler } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-	const { category } = (await request.json()) as { category: NewCategory };
-
-	if (!category) throw new ValidationError('Category is required.');
-
-	delete category.id;
-	delete category.updatedAt;
-	delete category.createdAt;
+	const category = await schema.validate(schema.insertCategorySchema)(request);
 
 	const [created] = await db.insert(schema.category).values(category).returning();
 

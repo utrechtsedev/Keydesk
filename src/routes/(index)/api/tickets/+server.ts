@@ -324,7 +324,7 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 };
 
 export const DELETE: RequestHandler = async ({ request }) => {
-	const { ids } = (await request.json()) as { ids: number[] };
+	const ids = await schema.validate(schema.idsBulkSchema)(request);
 
 	if (!ids || !Array.isArray(ids) || ids.length < 1)
 		throw new ValidationError('Some fields are missing. Please retry your request.');

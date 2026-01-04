@@ -4,12 +4,9 @@ import { db } from '$lib/server/db/database';
 import { json } from '@sveltejs/kit';
 import { ConflictError, NotFoundError, ValidationError } from '$lib/server/errors';
 import { eq, sql } from 'drizzle-orm';
-import type { Priority } from '$lib/types';
 
 export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
-	const id = Number(params.id);
-
-	if (!id) throw new ValidationError('Priority ID is required.');
+	const id = schema.idParamSchema.parse(params.id);
 
 	const [priority] = await db.select().from(schema.priority).where(eq(schema.priority.id, id));
 
@@ -44,10 +41,8 @@ export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 };
 
 export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
-	const id = Number(params.id);
-	const { priority } = (await request.json()) as { priority: Priority };
-
-	if (id !== priority.id) throw new ValidationError('Incorrect priority ID.');
+	const id = schema.idParamSchema.parse(params.id);
+	const priority = await schema.validate(schema.updatePrioritySchema)(request);
 
 	const [updatedPriority] = await db
 		.update(schema.priority)

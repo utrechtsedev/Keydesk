@@ -6,8 +6,8 @@ import { NotFoundError } from '$lib/server/errors';
 import { json } from '@sveltejs/kit';
 
 export const DELETE: RequestHandler = async ({ params }) => {
-	const { id: ticketId } = schema.idParamSchema.parse({ id: params.id });
-	const { id: tagId } = schema.idParamSchema.parse({ id: params.tagId });
+	const ticketId = schema.idParamSchema.parse(params.id);
+	const tagId = schema.idParamSchema.parse(params.tagId);
 
 	const [ticket] = await db.select().from(schema.ticket).where(eq(schema.ticket.id, ticketId));
 

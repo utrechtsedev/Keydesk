@@ -1,17 +1,10 @@
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
-import type { NewPriority } from '$lib/server/db/schema';
-import { AppError, ValidationError } from '$lib/server/errors';
+import { AppError } from '$lib/server/errors';
 import { json, type RequestHandler } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-	const { priority } = (await request.json()) as { priority: NewPriority };
-
-	if (!priority) throw new ValidationError('Priority are required.');
-
-	delete priority.id;
-	delete priority.updatedAt;
-	delete priority.createdAt;
+	const priority = await schema.validate(schema.insertPrioritySchema)(request);
 
 	const [created] = await db.insert(schema.priority).values(priority).returning();
 

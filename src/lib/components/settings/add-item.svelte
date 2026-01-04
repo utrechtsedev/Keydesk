@@ -28,28 +28,22 @@
 			switch (type) {
 				case 'status':
 					response = await api.post('/api/settings/statuses', {
-						status: {
-							name,
-							color
-						}
+						name,
+						color
 					});
 					invalidate('app:statuses');
 					break;
 				case 'category':
 					response = await api.post('/api/settings/categories', {
-						category: {
-							name,
-							description
-						}
+						name,
+						description
 					});
 					invalidate('app:categories');
 					break;
 				case 'priority':
 					response = await api.post('/api/settings/priorities', {
-						priority: {
-							name,
-							color
-						}
+						name,
+						color
 					});
 					invalidate('app:priorities');
 					break;

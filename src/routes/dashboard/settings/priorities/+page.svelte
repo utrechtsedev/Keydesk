@@ -53,7 +53,7 @@
 		if (!currentPriority || currentPriority.name.length === 0)
 			return toast.error('Priority name must be at least 1 character');
 
-		await api.patch(`/api/settings/priorities/${priority.id}`, { priority: currentPriority });
+		await api.patch(`/api/settings/priorities/${priority.id}`, { ...currentPriority });
 		await invalidate('app:priorities');
 		toast.success('Successfully saved priority.');
 

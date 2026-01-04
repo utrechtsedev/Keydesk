@@ -4,61 +4,55 @@ import * as schema from '$lib/server/db/schema';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { type IMAP } from '$lib/types';
-import { ValidationError } from '$lib/server/errors';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-  const { imap } = await request.json() as { imap: IMAP };
+	const imap = await schema.validate(schema.imapSettingsSchema)(request);
+	if (imap.password) imap.password = encrypt(imap.password);
 
-  if (!imap.host || !imap.port || !imap.username || !imap.password)
-    throw new ValidationError('Please enter IMAP details.');
+	// Try to insert, if exists then update
+	const [config] = await db
+		.insert(schema.config)
+		.values({
+			key: 'imap',
+			value: imap
+		})
+		.onConflictDoUpdate({
+			target: schema.config.key,
+			set: {
+				value: imap,
+				updatedAt: new Date()
+			}
+		})
+		.returning();
 
-  if (imap.password) imap.password = encrypt(imap.password);
+	// Check if it was created or updated by checking if updatedAt equals createdAt
+	const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
-  // Try to insert, if exists then update
-  const [config] = await db
-    .insert(schema.config)
-    .values({
-      key: 'imap',
-      value: imap
-    })
-    .onConflictDoUpdate({
-      target: schema.config.key,
-      set: {
-        value: imap,
-        updatedAt: new Date()
-      }
-    })
-    .returning();
-
-  // Check if it was created or updated by checking if updatedAt equals createdAt
-  const created = config.createdAt.getTime() === config.updatedAt.getTime();
-
-  return json({
-    success: true,
-    data: config.value,
-    created
-  }, { status: created ? 201 : 200 });
-
+	return json(
+		{
+			success: true,
+			data: config.value,
+			created
+		},
+		{ status: created ? 201 : 200 }
+	);
 };
 
 export const GET: RequestHandler = async () => {
-  const [config] = await db
-    .select()
-    .from(schema.config)
-    .where(eq(schema.config.key, 'imap'));
+	const [config] = await db.select().from(schema.config).where(eq(schema.config.key, 'imap'));
 
-  if (!config) {
-    return json({
-      success: true,
-      data: null,
-    });
-  }
+	if (!config) {
+		return json({
+			success: true,
+			data: null
+		});
+	}
 
-  const response: IMAP = config.value as IMAP;
-  response.password = decrypt(response.password);
+	const response: IMAP = config.value as IMAP;
+	response.password = decrypt(response.password);
 
-  return json({
-    success: true,
-    data: response,
-  });
+	return json({
+		success: true,
+		data: response
+	});
 };

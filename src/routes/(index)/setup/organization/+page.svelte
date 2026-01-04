@@ -64,7 +64,7 @@
 		)
 			return toast.error('Fill in all required fields.');
 
-		await api.post('', { organization });
+		await api.post('', { ...organization });
 		toast.success('Succesfully saved organization settings.');
 		return goto('/setup/outgoing-email');
 	}

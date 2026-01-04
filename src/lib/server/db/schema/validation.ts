@@ -27,6 +27,20 @@ import {
 // USER & AUTH SCHEMAS
 // ============================================================================
 
+const notificationPreferencesSchema = z.object({
+	dashboard: z.object({
+		ticketCreated: z.boolean(),
+		itemAssigned: z.boolean(),
+		itemUpdated: z.boolean(),
+		itemClosed: z.boolean()
+	}),
+	email: z.object({
+		ticketCreated: z.boolean(),
+		itemAssigned: z.boolean(),
+		itemUpdated: z.boolean(),
+		itemClosed: z.boolean()
+	})
+});
 export const insertUserSchema = createInsertSchema(user, {
 	name: z.string().min(1, 'Name is required').max(255),
 	email: z.email('Invalid email address').max(255),
@@ -36,13 +50,7 @@ export const insertUserSchema = createInsertSchema(user, {
 	banned: z.boolean().default(false).optional(),
 	banReason: z.string().nullable().optional(),
 	banExpires: z.date().nullable().optional(),
-	notificationPreferences: z.object({
-		email: z.boolean().default(true),
-		dashboard: z.boolean().default(true),
-		ticketUpdates: z.boolean().default(true),
-		taskAssignments: z.boolean().default(true),
-		mentions: z.boolean().default(true)
-	})
+	notificationPreferences: notificationPreferencesSchema
 }).omit({
 	id: true,
 	createdAt: true,
@@ -378,9 +386,9 @@ export const bulkAssignmentSchema = z.object({
 	itemType: z.enum(['user', 'category', 'status', 'priority', 'tag'])
 });
 
-export const idsBulkSchema = z.object({
-	ids: z.array(z.number().int().positive()).min(1, 'At least one ID required')
-});
+export const idsBulkSchema = z
+	.array(z.number().int().positive())
+	.min(1, 'At least one ID required');
 
 export const ticketExportQuerySchema = z
 	.object({
@@ -443,8 +451,7 @@ export const insertTaskSchema = createInsertSchema(task, {
 	statusId: z.number().int().positive(),
 	priorityId: z.number().int().positive(),
 	dueDate: z.coerce.date().optional(),
-	startDate: z.coerce.date().nullable().optional(),
-	position: z.number().int().min(0).default(0).optional()
+	startDate: z.coerce.date().nullable().optional()
 })
 	.omit({
 		id: true,
@@ -621,14 +628,160 @@ export const taskFilterSchema = z.object({
 });
 
 // ID parameter schema
-export const idParamSchema = z.object({
-	id: z.coerce.number().int().positive()
+export const idParamSchema = z.coerce.number().int().positive();
+//
+// ============================================================================
+// CUSTOM CONFIG SCHEMAS
+// ============================================================================
+
+export const notificationSettingsSchema = z.object({
+	dashboard: z.object({
+		item: z.object({
+			assigned: z.object({
+				notifyUser: z.boolean()
+			}),
+			updated: z.object({
+				notifyUser: z.boolean()
+			}),
+			resolved: z.object({
+				notifyUser: z.boolean()
+			}),
+			closed: z.object({
+				notifyUser: z.boolean()
+			})
+		}),
+		notifyAllUsersOnNewTicket: z.boolean()
+	}),
+	email: z.object({
+		item: z.object({
+			created: z.object({
+				notifyRequester: z.boolean()
+			}),
+			assigned: z.object({
+				notifyUser: z.boolean(),
+				notifyRequester: z.boolean()
+			}),
+			updated: z.object({
+				notifyUser: z.boolean(),
+				notifyRequester: z.boolean()
+			}),
+			resolved: z.object({
+				notifyUser: z.boolean(),
+				notifyRequester: z.boolean()
+			}),
+			closed: z.object({
+				notifyUser: z.boolean(),
+				notifyRequester: z.boolean()
+			})
+		}),
+		notifyAllUsersOnNewTicket: z.boolean()
+	})
+});
+
+export const attachmentSettingsSchema = z.object({
+	enabled: z.boolean(),
+	maxFileSizeMB: z.number().optional(),
+	allowedMimeTypes: z.array(z.string()).optional()
+});
+
+export const organizationSettingsSchema = z.object({
+	name: z.string(),
+	domain: z.string(),
+	address: z.string(),
+	country: z.string(),
+	city: z.string(),
+	zipCode: z.string(),
+	language: z.string(),
+	timezone: z.string()
+});
+
+export const businessHoursSettingsSchema = z.object({
+	schedule: z.object({
+		monday: z.object({
+			enabled: z.boolean(),
+			start: z.string().nullable(),
+			end: z.string().nullable()
+		}),
+		tuesday: z.object({
+			enabled: z.boolean(),
+			start: z.string().nullable(),
+			end: z.string().nullable()
+		}),
+		wednesday: z.object({
+			enabled: z.boolean(),
+			start: z.string().nullable(),
+			end: z.string().nullable()
+		}),
+		thursday: z.object({
+			enabled: z.boolean(),
+			start: z.string().nullable(),
+			end: z.string().nullable()
+		}),
+		friday: z.object({
+			enabled: z.boolean(),
+			start: z.string().nullable(),
+			end: z.string().nullable()
+		}),
+		saturday: z.object({
+			enabled: z.boolean(),
+			start: z.string().nullable(),
+			end: z.string().nullable()
+		}),
+		sunday: z.object({
+			enabled: z.boolean(),
+			start: z.string().nullable(),
+			end: z.string().nullable()
+		})
+	})
+});
+
+export const ticketConfigSchema = z.object({
+	nextTicketNumber: z.number(),
+	autoCreateRequesters: z.boolean(),
+	ticketPrefix: z.string()
+});
+
+export const imapSettingsSchema = z.object({
+	host: z.string(),
+	port: z.number(),
+	SSL: z.boolean(),
+	username: z.string(),
+	password: z.string()
+});
+
+export const holidaySettingsSchema = z.array(
+	z.object({
+		id: z.number().optional(),
+		name: z.string(),
+		start: z.date(),
+		end: z.date(),
+		createdAt: z.date().optional(),
+		updatedAt: z.date().optional()
+	})
+);
+
+export const portalSettingsSchema = z.object({
+	enabled: z.boolean(),
+	allowGuestTickets: z.boolean(),
+	requireEmailVerification: z.boolean(),
+	showKnowledgeBase: z.boolean()
+});
+
+export const smtpSettingsSchema = z.object({
+	senderName: z.string(),
+	senderEmail: z.email(),
+	host: z.union([z.hostname(), z.ipv4(), z.ipv6()]),
+	port: z.number().max(4),
+	SSL: z.boolean(),
+	enableAuthentication: z.boolean(),
+	username: z.string().optional(),
+	password: z.string().optional()
 });
 
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-//
+
 export function validate<T extends z.ZodTypeAny>(schema: T) {
 	return async (request: Request) => {
 		const body = await request.json();

@@ -3,13 +3,10 @@ import * as schema from '$lib/server/db/schema';
 import { db } from '$lib/server/db/database';
 import { eq, sql } from 'drizzle-orm';
 import { json } from '@sveltejs/kit';
-import { ConflictError, NotFoundError, ValidationError } from '$lib/server/errors';
-import type { Status } from '$lib/types';
+import { ConflictError, NotFoundError } from '$lib/server/errors';
 
 export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
-	const id = Number(params.id);
-
-	if (!id) throw new ValidationError('Status ID is required.');
+	const id = schema.idParamSchema.parse(params.id);
 
 	const [status] = await db.select().from(schema.status).where(eq(schema.status.id, id));
 
@@ -37,10 +34,8 @@ export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 };
 
 export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
-	const id = Number(params.id);
-	const { status } = (await request.json()) as { status: Status };
-
-	if (id !== status.id) throw new ValidationError('Incorrect status ID.');
+	const id = schema.idParamSchema.parse(params.id);
+	const status = await schema.validate(schema.updateStatusSchema)(request);
 
 	const [updatedStatus] = await db
 		.update(schema.status)

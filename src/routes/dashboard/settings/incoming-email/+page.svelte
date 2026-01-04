@@ -11,6 +11,7 @@
 
 	const { data }: { data: PageData & { imap: IMAP } } = $props();
 
+	// svelte-ignore state_referenced_locally
 	let imap: IMAP = $state(data.imap);
 
 	let saveDisabled = $state(true);
@@ -19,7 +20,7 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await api.post('/api/settings/incoming-email/test', { imap });
+			const response = await api.post('/api/settings/incoming-email/test', { ...imap });
 			saveDisabled = false;
 			return toast.success(response.data.message);
 		} finally {

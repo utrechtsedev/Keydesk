@@ -1,17 +1,10 @@
 import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
-import { ValidationError } from '$lib/server/errors';
-import type { TicketConfig } from '$lib/types';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-	const { tickets } = (await request.json()) as { tickets: TicketConfig };
-
-	if (!tickets) throw new ValidationError('Ticket settings are required.');
-
-	if (!tickets.ticketPrefix || !tickets.nextTicketNumber)
-		throw new ValidationError('Ticket prefix and next number are required');
+	const tickets = await schema.validate(schema.ticketConfigSchema)(request);
 
 	const [config] = await db
 		.insert(schema.config)

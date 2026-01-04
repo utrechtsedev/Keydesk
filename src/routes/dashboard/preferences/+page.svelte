@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invalidate } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Field from '$lib/components/ui/field';
@@ -10,12 +11,13 @@
 
 	const { data }: { data: PageData } = $props();
 
+	// svelte-ignore state_referenced_locally
 	let user = $state(data.user);
 
 	async function handleSave() {
-		const response = await api.patch('/api/preferences', { user });
+		await api.patch(`/api/users/${user.id}`, { ...user });
+		invalidate('app:root');
 		toast.success('Succesfully updated preferences.');
-		user = response.data.user;
 	}
 </script>
 
@@ -38,7 +40,7 @@
 								id="first-name"
 								name="first-name"
 								placeholder="Emma"
-								value={user.name}
+								bind:value={user.name}
 							/>
 						</Field.Set>
 					</div>
@@ -50,7 +52,7 @@
 								id="email"
 								name="email"
 								placeholder="emma@company.com"
-								value={user.email}
+								bind:value={user.email}
 								disabled
 							/>
 						</Field.Set>
@@ -58,7 +60,13 @@
 					<div class="col-span-full sm:col-span-3">
 						<Field.Set class="gap-2">
 							<Field.Label>Role</Field.Label>
-							<Input type="text" id="role" name="role" placeholder={user.role} disabled />
+							<Input
+								type="text"
+								id="role"
+								name="role"
+								placeholder={user.role!.charAt(0).toUpperCase() + user.role!.slice(1)}
+								disabled
+							/>
 							<Field.Description>Roles can only be changed by system admin.</Field.Description>
 						</Field.Set>
 					</div>

@@ -16,6 +16,7 @@
 
 	let { initialNotifications }: { initialNotifications: UserNotification[] } = $props();
 
+	// svelte-ignore state_referenced_locally
 	let notifications = $state(initialNotifications);
 
 	let isPopoverOpen = $state(false);
@@ -26,8 +27,11 @@
 
 		if (unreadIds.length === 0) return;
 
-		await api.patch('/api/notifications/bulk', {
-			ids: unreadIds
+		await api.patch('/api/notifications', {
+			ids: unreadIds,
+			notification: {
+				isRead: true
+			}
 		});
 
 		notifications = notifications.map((n) => {
@@ -42,8 +46,7 @@
 		const actionUrl = notification.notification!.actionUrl;
 
 		try {
-			await api.patch('/api/notifications', {
-				id: notification.id,
+			await api.patch(`/api/notifications/${notification.id}`, {
 				isRead: true
 			});
 

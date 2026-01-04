@@ -46,7 +46,7 @@
 		if (!currentCategory || currentCategory.name.length === 0)
 			return toast.error('Category name must be at least 1 character');
 
-		await api.patch(`/api/settings/categories/${category.id}`, { category: currentCategory });
+		await api.patch(`/api/settings/categories/${category.id}`, { ...currentCategory });
 		await invalidate('app:categories');
 		toast.success('Successfully saved category.');
 

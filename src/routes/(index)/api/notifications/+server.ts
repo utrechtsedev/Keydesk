@@ -3,61 +3,75 @@ import { db } from '$lib/server/db/database';
 import * as schema from '$lib/server/db/schema';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
+import z from 'zod';
 
 export const PATCH: RequestHandler = async ({ request, locals }) => {
 	const { user } = requireAuth(locals);
 
-	const { id, isRead } = (await request.json()) as { id: number; isRead?: boolean };
+	const updateBulkNotificationSchema = z.object({
+		ids: schema.idsBulkSchema,
+		notification: schema.updateUserNotificationSchema
+	});
 
-	if (!id || typeof id !== 'number') throw new ValidationError('Notification ID is required');
+	const { ids, notification } = await schema.validate(updateBulkNotificationSchema)(request);
 
-	const [notification] = await db
-		.select()
-		.from(schema.userNotification)
-		.where(and(eq(schema.userNotification.userId, user.id), eq(schema.userNotification.id, id)));
-
-	if (!notification)
-		throw new NotFoundError('Notification not found or you do not have permission to update it');
-
-	const readStatus = isRead !== undefined ? isRead : true;
-	const [updatedNotification] = await db
+	const updated = await db
 		.update(schema.userNotification)
-		.set({ isRead: readStatus, readAt: readStatus ? new Date() : null })
-		.where(eq(schema.userNotification.id, id))
+		.set({
+			isRead: notification.isRead,
+			readAt: new Date()
+		})
+		.where(
+			and(inArray(schema.userNotification.id, ids), eq(schema.userNotification.userId, user.id))
+		)
 		.returning();
+
+	const updatedCount = updated.length;
+
+	if (updatedCount === 0)
+		throw new NotFoundError(
+			'No notifications were updated. They may not exist or you may not have permission.'
+		);
 
 	return json(
 		{
 			success: true,
-			notification: {
-				id: updatedNotification.id,
-				isRead: updatedNotification.isRead,
-				readAt: updatedNotification.readAt
-			},
-			message: `Notification marked as ${readStatus ? 'read' : 'unread'}`
+			updatedCount,
+			message: `Marked ${updatedCount} notification(s) as read`
 		},
 		{ status: 200 }
 	);
 };
 
-export const DELETE: RequestHandler = async ({ url, locals }) => {
+export const DELETE: RequestHandler = async ({ request, locals }) => {
 	const { user } = requireAuth(locals);
 
-	const id = url.searchParams.get('id');
+	const ids = await schema.validate(schema.idsBulkSchema)(request);
 
-	if (!id || isNaN(Number(id))) throw new ValidationError('Valid notification ID is required');
+	if (!ids || !Array.isArray(ids) || ids.length < 1)
+		throw new ValidationError('Notification IDs are required');
 
 	const deleted = await db
 		.delete(schema.userNotification)
 		.where(
-			and(eq(schema.userNotification.id, Number(id)), eq(schema.userNotification.userId, user.id))
+			and(inArray(schema.userNotification.id, ids), eq(schema.userNotification.userId, user.id))
+		)
+		.returning();
+
+	const deletedCount = deleted.length;
+
+	if (deletedCount === 0)
+		throw new NotFoundError(
+			'No notifications were deleted. They may not exist or you may not have permission.'
 		);
 
-	if (deleted.rowCount === 0) throw new NotFoundError('Notification not found or unauthorized');
-
-	return json({
-		success: true,
-		message: 'Notification deleted successfully'
-	});
+	return json(
+		{
+			success: true,
+			deletedCount,
+			message: `Deleted ${deletedCount} notification(s)`
+		},
+		{ status: 200 }
+	);
 };

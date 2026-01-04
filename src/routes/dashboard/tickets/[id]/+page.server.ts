@@ -27,6 +27,20 @@ export const load: PageServerLoad = async ({ params, depends }) => {
 					priority: true,
 					creator: true,
 					ticket: true,
+					subtasks: {
+						with: {
+							assignee: true,
+							status: true,
+							priority: true,
+							creator: true,
+							ticket: true,
+							taskTags: {
+								with: {
+									tag: true
+								}
+							}
+						}
+					},
 					taskTags: {
 						with: {
 							tag: true

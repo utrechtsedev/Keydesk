@@ -7,6 +7,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { requireAuth } from '$lib/server/auth';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 import { sendNotification } from '$lib/server/queue';
+import z from 'zod';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
 	const { user } = requireAuth(locals);
@@ -134,10 +135,11 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 };
 
 export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
-	const { ids, task } = (await request.json()) as {
-		ids: number[];
-		task: Partial<TaskType>;
-	};
+	const updateBulkTaskSchema = z.object({
+		task: schema.updateTaskSchema,
+		ids: schema.idsBulkSchema
+	});
+	const { task, ids } = await schema.validate(updateBulkTaskSchema)(request);
 
 	if (!ids || !Array.isArray(ids) || ids.length < 1)
 		throw new ValidationError('Task IDs are required');
@@ -209,7 +211,6 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 	if (task.parentTaskId !== undefined) updateData.parentTaskId = task.parentTaskId || null;
 	if (task.statusId !== undefined) updateData.statusId = task.statusId;
 	if (task.priorityId !== undefined) updateData.priorityId = task.priorityId;
-	if (task.position !== undefined) updateData.position = task.position;
 
 	if (task.dueDate !== undefined) {
 		updateData.dueDate = task.dueDate ? new Date(task.dueDate) : new Date();

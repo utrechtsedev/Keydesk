@@ -57,7 +57,7 @@
 		)
 			return toast.error('Fill in all required fields.');
 
-		await api.post('/api/settings/organization', { organization });
+		await api.post('/api/settings/organization', { ...organization });
 		toast.success('Succesfully saved organization settings.');
 	}
 </script>

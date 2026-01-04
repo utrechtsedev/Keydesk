@@ -11,7 +11,7 @@ import type { Tag } from '$lib/types';
  * Body: { tag: "bug" }
  */
 export const POST: RequestHandler = async ({ params, request }) => {
-	const { id: ticketId } = schema.idParamSchema.parse({ id: params.id });
+	const ticketId = schema.idParamSchema.parse(params.id);
 
 	const [ticket] = await db.select().from(schema.ticket).where(eq(schema.ticket.id, ticketId));
 	if (!ticket) {
@@ -55,7 +55,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
  * Body: { tags: ["bug", "urgent", "frontend"] }
  */
 export const PUT: RequestHandler = async ({ params, request }) => {
-	const { id: ticketId } = schema.idParamSchema.parse({ id: params.id });
+	const ticketId = schema.idParamSchema.parse(params.id);
 
 	const [ticket] = await db.select().from(schema.ticket).where(eq(schema.ticket.id, ticketId));
 
@@ -108,7 +108,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
  * Get all tags for a ticket
  */
 export const GET: RequestHandler = async ({ params }) => {
-	const { id: ticketId } = schema.idParamSchema.parse({ id: params.id });
+	const ticketId = schema.idParamSchema.parse(params.id);
 
 	const [ticket] = await db.select().from(schema.ticket).where(eq(schema.ticket.id, ticketId));
 
@@ -136,7 +136,7 @@ export const GET: RequestHandler = async ({ params }) => {
  * Remove all tags from a ticket
  */
 export const DELETE: RequestHandler = async ({ params }) => {
-	const { id: ticketId } = schema.idParamSchema.parse({ id: params.id });
+	const ticketId = schema.idParamSchema.parse(params.id);
 
 	const [ticket] = await db.select().from(schema.ticket).where(eq(schema.ticket.id, ticketId));
 

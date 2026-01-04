@@ -83,7 +83,7 @@
 	];
 
 	async function handleSave() {
-		await api.post('/api/settings/notifications', { notifications });
+		await api.post('/api/settings/notifications', { ...notifications });
 		toast.success('Successfully saved notification settings.');
 	}
 </script>

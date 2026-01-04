@@ -26,7 +26,7 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await api.post('/setup/outgoing-email/test', { smtp });
+			const response = await api.post('/setup/outgoing-email/test', { ...smtp });
 			saveDisabled = false;
 			return toast.success(response.data.message);
 		} finally {
@@ -45,7 +45,7 @@
 			);
 		}
 
-		await api.post('', { smtp });
+		await api.post('', { ...smtp });
 		toast.success('Succesfully saved SMTP settings.');
 		return goto('/setup/incoming-email');
 	}

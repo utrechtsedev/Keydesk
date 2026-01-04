@@ -16,7 +16,7 @@
 	});
 
 	async function handleNext() {
-		await api.post('', { portal });
+		await api.post('', { ...portal });
 		toast.success('Succesfully saved portal settings.');
 		return goto('/setup/admin-account');
 	}

@@ -2,7 +2,6 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Empty from '$lib/components/ui/empty';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { Label } from '$lib/components/ui/label';
 	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { Priority, Status, Task, User } from '$lib/types';
@@ -11,6 +10,7 @@
 	import TaskSheet from '$lib/components/tasks/task-sheet.svelte';
 	import Plus from '$lib/icons/plus.svelte';
 	import { page } from '$app/state';
+	import { Badge } from '$lib/components/ui/badge';
 
 	const {
 		tasks,
@@ -30,6 +30,8 @@
 		open: false,
 		task: null as Task | null
 	});
+
+	const topLevelTasks = $derived(tasks.filter((t) => !t.parentTaskId));
 </script>
 
 <Card.Root>
@@ -42,12 +44,15 @@
 					Add
 				</Button>
 			</div>
-			{#each tasks as task, i (i)}
+			{#each topLevelTasks as task (task.id)}
 				<div
 					class="flex items-center justify-between rounded-lg border bg-transparent p-2 dark:bg-input/30 dark:hover:bg-input/50"
 				>
 					<p class="text-xs">
 						{task.title}
+						{#if task.subtasks && task.subtasks?.length !== 0}
+							<Badge>{task.subtasks.length}</Badge>
+						{/if}
 					</p>
 					<div class="flex gap-1">
 						<Tooltip.Root>
@@ -79,7 +84,6 @@
 				</div>
 			{/each}
 		{/if}
-
 		{#if tasks.length === 0}
 			<Empty.Root>
 				<Empty.Header>
@@ -91,7 +95,7 @@
 				</Empty.Header>
 				<Empty.Content>
 					<div class="flex gap-2">
-						<Button>Create Task</Button>
+						<Button onclick={() => (currentTask = { open: true, task: null })}>Create Task</Button>
 					</div>
 				</Empty.Content>
 			</Empty.Root>
@@ -106,4 +110,5 @@
 	{statuses}
 	{priorities}
 	{users}
+	ticketId={Number(page.params.id)}
 />

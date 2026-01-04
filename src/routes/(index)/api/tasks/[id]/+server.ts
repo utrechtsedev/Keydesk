@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { NotFoundError, ValidationError } from '$lib/server/errors';
 
 export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
-	const { id: taskId } = schema.idParamSchema.parse({ id: params.id });
+	const taskId = schema.idParamSchema.parse(params.id);
 
 	const [findTask] = await db
 		.select({
@@ -56,8 +56,7 @@ export const PATCH: RequestHandler = async ({ request, params }): Promise<Respon
 			priorityId: task.priorityId,
 			dueDate: task.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
 			startDate: task.startDate ?? null,
-			completedAt: null, // Don't let frontend set this
-			position: task.position ?? 0
+			completedAt: null // Don't let frontend set this
 		})
 		.where(eq(schema.task.id, taskId));
 

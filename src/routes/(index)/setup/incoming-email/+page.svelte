@@ -24,7 +24,7 @@
 	async function testConfiguration() {
 		testLoading = '';
 		try {
-			const response = await api.post('/setup/incoming-email/test', { imap });
+			const response = await api.post('/setup/incoming-email/test', { ...imap });
 			if (response.data.success) {
 				saveDisabled = false;
 				toast.success(response.data.message);
@@ -38,7 +38,7 @@
 			return toast.error('Please enter IMAP details.');
 		}
 
-		await api.post('', { imap });
+		await api.post('', { ...imap });
 
 		toast.success('Succesfully saved IMAP settings.');
 		return goto('/setup/portal');

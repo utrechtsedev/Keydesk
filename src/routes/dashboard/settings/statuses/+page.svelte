@@ -32,7 +32,7 @@
 		if (!currentStatus || currentStatus.name.length < 1)
 			return toast.error('Status name must be at least 1 character');
 
-		await api.patch(`/api/settings/statuses/${status.id}`, { status: currentStatus });
+		await api.patch(`/api/settings/statuses/${status.id}`, { ...currentStatus });
 		await invalidate('app:statuses');
 		toast.success('Successfully saved status.');
 

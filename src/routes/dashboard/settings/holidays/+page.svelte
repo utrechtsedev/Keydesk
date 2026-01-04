@@ -14,6 +14,7 @@
 
 	const { data }: { data: PageData & { holidays: Holiday[] } } = $props();
 
+	// svelte-ignore state_referenced_locally
 	let holidays = $state<Holiday[]>(data.holidays);
 	let editing = $state<Holiday>();
 
@@ -67,7 +68,7 @@
 	}
 
 	async function handleSave() {
-		await api.post('/api/settings/holidays', { holidays });
+		await api.post('/api/settings/holidays', { ...holidays });
 		toast.success('Successfully saved holiday settings.');
 	}
 </script>

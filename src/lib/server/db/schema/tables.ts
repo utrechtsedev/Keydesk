@@ -325,7 +325,6 @@ export const task = pgTable('task', {
 	dueDate: timestamp('due_date').notNull(),
 	startDate: timestamp('start_date'),
 	completedAt: timestamp('completed_at'),
-	position: integer('position').notNull().default(0),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at')
 		.notNull()

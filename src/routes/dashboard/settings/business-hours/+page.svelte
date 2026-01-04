@@ -12,7 +12,7 @@
 	let businessHours = $state(data.businessHours);
 
 	async function handleSave() {
-		await api.post('/api/settings/business-hours', { businessHours });
+		await api.post('/api/settings/business-hours', { ...businessHours });
 		toast.success('Successfully saved business hours.');
 	}
 </script>
@@ -30,9 +30,7 @@
 			<div class="sm:max-w-3xl md:col-span-2">
 				<div class="space-y-3">
 					{#each Object.entries(businessHours.schedule) as [day, hours], i (i)}
-						<div
-							class="flex min-h-15 items-center justify-between rounded-lg border bg-card p-4"
-						>
+						<div class="flex min-h-15 items-center justify-between rounded-lg border bg-card p-4">
 							<div class="flex items-center gap-4">
 								<Field.Label class="w-28 text-base font-medium capitalize">{day}</Field.Label>
 								<div class="flex items-center gap-2">

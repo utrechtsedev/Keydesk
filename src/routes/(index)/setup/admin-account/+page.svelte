@@ -24,11 +24,9 @@
 			return toast.error('Please check the strength of your password and try again');
 
 		await api.post('', {
-			user: {
-				name,
-				email,
-				password: passwordStrength.password
-			}
+			name,
+			email,
+			password: passwordStrength.password
 		});
 
 		toast.success('Welcome to Ticketing. Please login.');

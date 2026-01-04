@@ -12,7 +12,7 @@
 	let portal = $state(data.portal);
 
 	async function handleNext() {
-		await api.post('/api/settings/portal', { portal });
+		await api.post('/api/settings/portal', { ...portal });
 		toast.success('Succesfully saved portal settings.');
 	}
 </script>
