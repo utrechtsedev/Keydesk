@@ -64,11 +64,6 @@
 			icon: SuitcaseClock
 		},
 		{
-			path: '/dashboard/settings/holidays',
-			name: 'Holidays',
-			icon: UmbrellaBeach
-		},
-		{
 			path: '/dashboard/settings/priorities',
 			name: 'Priorities',
 			icon: PriorityMedium2

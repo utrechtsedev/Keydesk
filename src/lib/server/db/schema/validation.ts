@@ -749,17 +749,6 @@ export const imapSettingsSchema = z.object({
 	password: z.string()
 });
 
-export const holidaySettingsSchema = z.array(
-	z.object({
-		id: z.number().optional(),
-		name: z.string(),
-		start: z.date(),
-		end: z.date(),
-		createdAt: z.date().optional(),
-		updatedAt: z.date().optional()
-	})
-);
-
 export const portalSettingsSchema = z.object({
 	enabled: z.boolean(),
 	allowGuestTickets: z.boolean(),
