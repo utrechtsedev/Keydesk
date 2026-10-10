@@ -15,7 +15,7 @@ export type {
 	NewNotification,
 	NewUserNotification,
 	NewSession
-} from '$lib/server/db/schema';
+} from '#lib/server/db/schema/index.js';
 
 // ============================================================================
 // EXTENDED TYPES (with relations for frontend)
@@ -34,7 +34,7 @@ import type {
 	Notification as BaseNotification,
 	UserNotification as BaseUserNotification,
 	Session as BaseSession
-} from '$lib/server/db/schema';
+} from '#lib/server/db/schema/index.js';
 
 export interface User extends BaseUser {}
 

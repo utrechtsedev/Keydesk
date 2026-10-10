@@ -1,14 +1,14 @@
 <script lang="ts">
-	import * as Rename from '$lib/components/ui/rename';
-	import { Button } from '$lib/components/ui/button';
-	import TicketIcon from '$lib/icons/ticket.svelte';
-	import type { NewTag, TicketDetail } from '$lib/types';
-	import TicketRequester from '$lib/components/tickets/detail/ticket-requester.svelte';
-	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
-	import TicketInput from '$lib/components/tickets/detail/ticket-input.svelte';
+	import * as Rename from '#lib/components/ui/rename/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import TicketIcon from '#lib/icons/ticket.svelte';
+	import type { NewTag, TicketDetail } from '#lib/types/index.js';
+	import TicketRequester from '#lib/components/tickets/detail/ticket-requester.svelte';
+	import TicketProperties from '#lib/components/tickets/detail/ticket-properties.svelte';
+	import TicketInput from '#lib/components/tickets/detail/ticket-input.svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
-	import api from '$lib/utils/axios';
+	import api from '#lib/utils/axios.js';
 
 	const {
 		data

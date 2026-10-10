@@ -1,15 +1,15 @@
 <script lang="ts">
-	import * as Empty from '$lib/components/ui/empty';
-	import * as Table from '$lib/components/ui/table';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import type { PageData, Task, User } from '$lib/types';
-	import { ConfirmDialog, confirmDialog } from '$lib/components/ui/confirm-dialog';
-	import api from '$lib/utils/axios';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import type { PageData, Task, User } from '#lib/types/index.js';
+	import { ConfirmDialog, confirmDialog } from '#lib/components/ui/confirm-dialog/index.js';
+	import api from '#lib/utils/axios.js';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
-	import TaskBulkActionsDialog from '$lib/components/tasks/task-bulk-actions-dialog.svelte';
-	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
+	import TaskBulkActionsDialog from '#lib/components/tasks/task-bulk-actions-dialog.svelte';
+	import ClipboardContent from '#lib/icons/clipboard-content.svelte';
 
 	const { data }: { data: PageData & { tasks: Task[]; users: User[] } } = $props();
 

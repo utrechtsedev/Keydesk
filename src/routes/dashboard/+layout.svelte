@@ -1,8 +1,8 @@
 <script lang="ts">
-	import AppSidebar from '$lib/components/sidebar/app-sidebar.svelte';
-	import TopNavbar from '$lib/components/sidebar/top-navbar.svelte';
-	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import type { PageData } from '$lib/types';
+	import AppSidebar from '#lib/components/sidebar/app-sidebar.svelte';
+	import TopNavbar from '#lib/components/sidebar/top-navbar.svelte';
+	import * as Sidebar from '#lib/components/ui/sidebar/index.js';
+	import type { PageData } from '#lib/types/index.js';
 	import { onMount, type Snippet } from 'svelte';
 
 	let {

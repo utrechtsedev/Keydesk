@@ -1,11 +1,11 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { type RequestHandler } from '@sveltejs/kit';
 import fs from 'fs';
 import path from 'path';
-import { logger } from '$lib/server/logger';
-import { AppError, ForbiddenError, NotFoundError, ValidationError } from '$lib/server/errors';
+import { logger } from '#lib/server/logger.js';
+import { AppError, ForbiddenError, NotFoundError, ValidationError } from '#lib/server/errors.js';
 
 export const GET: RequestHandler = async ({ params }): Promise<Response> => {
   const { id: ticketId, fileName } = params;

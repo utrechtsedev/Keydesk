@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db/database';
+import { db } from '#lib/server/db/database.js';
 
 export const load: PageServerLoad = async ({ depends, params }) => {
 	const id = Number(params.id);

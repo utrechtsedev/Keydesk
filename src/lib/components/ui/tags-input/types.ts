@@ -1,5 +1,5 @@
 import type { HTMLInputAttributes } from 'svelte/elements';
-import type { NewTag, Tag } from '$lib/types';
+import type { NewTag, Tag } from '#lib/types/index.js';
 
 export type TagsInputPropsWithoutHTML = {
 	value?: (Tag | NewTag)[]; // Changed from Tag[] | NewTag[]

@@ -1,8 +1,7 @@
 import type { RequestHandler } from './$types';
-import * as schema from '$lib/server/db/schema';
-import { db } from '$lib/server/db/database';
-import { json } from '@sveltejs/kit';
-import { ConflictError, NotFoundError, ValidationError } from '$lib/server/errors';
+import * as schema from '#lib/server/db/schema/index.js';
+import { db } from '#lib/server/db/database.js';
+import { ConflictError, NotFoundError, ValidationError } from '#lib/server/errors.js';
 import { eq, sql } from 'drizzle-orm';
 
 export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
@@ -34,7 +33,7 @@ export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 
 	await db.delete(schema.priority).where(eq(schema.priority.id, id));
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'Priority deleted successfully.'
 	});
@@ -58,7 +57,7 @@ export const PATCH: RequestHandler = async ({ request, params }): Promise<Respon
 		throw new NotFoundError('Priority not found.');
 	}
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'Priority updated successfully.',
 		data: updatedPriority

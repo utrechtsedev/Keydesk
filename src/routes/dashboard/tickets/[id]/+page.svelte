@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
-	import TicketInput from '$lib/components/tickets/detail/ticket-input.svelte';
-	import TicketMessage from '$lib/components/tickets/detail/ticket-message.svelte';
-	import TicketProperties from '$lib/components/tickets/detail/ticket-properties.svelte';
-	import TicketRequester from '$lib/components/tickets/detail/ticket-requester.svelte';
-	import TicketTask from '$lib/components/tickets/detail/ticket-tasks.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import * as Rename from '$lib/components/ui/rename';
-	import TicketIcon from '$lib/icons/ticket.svelte';
-	import type { TicketDetail } from '$lib/types';
-	import api from '$lib/utils/axios';
+	import TicketInput from '#lib/components/tickets/detail/ticket-input.svelte';
+	import TicketMessage from '#lib/components/tickets/detail/ticket-message.svelte';
+	import TicketProperties from '#lib/components/tickets/detail/ticket-properties.svelte';
+	import TicketRequester from '#lib/components/tickets/detail/ticket-requester.svelte';
+	import TicketTask from '#lib/components/tickets/detail/ticket-tasks.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Rename from '#lib/components/ui/rename/index.js';
+	import TicketIcon from '#lib/icons/ticket.svelte';
+	import type { TicketDetail } from '#lib/types/index.js';
+	import api from '#lib/utils/axios.js';
 	import { toast } from 'svelte-sonner';
 
 	const {

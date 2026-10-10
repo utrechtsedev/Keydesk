@@ -441,7 +441,7 @@ export const setTagSchema = z.object({
 // TASK SCHEMAS
 // ============================================================================
 
-export const insertTaskSchema = createInsertSchema(task, {
+const taskFieldsSchema = createInsertSchema(task, {
 	title: z.string().min(1, 'Title is required').max(255),
 	description: z.string().nullable().optional(),
 	ticketId: z.number().int().positive().nullable().optional(),
@@ -452,29 +452,30 @@ export const insertTaskSchema = createInsertSchema(task, {
 	priorityId: z.number().int().positive(),
 	dueDate: z.coerce.date().optional(),
 	startDate: z.coerce.date().nullable().optional()
-})
-	.omit({
-		id: true,
-		createdAt: true,
-		updatedAt: true,
-		deletedAt: true,
-		completedAt: true
-	})
-	.refine(
-		(data) => {
-			// If startDate exists, it must be before dueDate
-			if (data.startDate && data.dueDate) {
-				return data.startDate <= data.dueDate;
-			}
-			return true;
-		},
-		{
-			message: 'Start date must be before due date',
-			path: ['startDate']
-		}
-	);
+}).omit({
+	id: true,
+	createdAt: true,
+	updatedAt: true,
+	deletedAt: true,
+	completedAt: true
+});
 
-export const updateTaskSchema = insertTaskSchema
+export const insertTaskSchema = taskFieldsSchema.refine(
+	(data) => {
+		// If startDate exists, it must be before dueDate
+		if (data.startDate && data.dueDate) {
+			return data.startDate <= data.dueDate;
+		}
+		return true;
+	},
+	{
+		message: 'Start date must be before due date',
+		path: ['startDate']
+	}
+);
+
+// Zod rejects .partial() on a refined schema (older versions silently dropped the date check), so updates derive from the unrefined fields
+export const updateTaskSchema = taskFieldsSchema
 	.partial()
 	.refine((data) => Object.keys(data).length > 0, {
 		message: 'At least one field must be provided for update'

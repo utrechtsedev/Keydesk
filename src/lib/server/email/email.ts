@@ -1,10 +1,10 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { decrypt } from '$lib/server/db/encrypt';
-import type { SMTP } from '$lib/types';
+import { decrypt } from '#lib/server/db/encrypt.js';
+import type { SMTP } from '#lib/types/index.js';
 import { logger } from '../logger';
 
 let transporter: Transporter | null = null;

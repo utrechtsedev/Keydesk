@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import * as UnderlineTabs from '$lib/components/ui/underline-tabs';
-	import type { PageData } from '$lib/types';
+	import * as UnderlineTabs from '#lib/components/ui/underline-tabs/index.js';
+	import type { PageData } from '#lib/types/index.js';
 	import type { Snippet } from 'svelte';
 
 	const { data, children }: { data: PageData; children: Snippet } = $props();

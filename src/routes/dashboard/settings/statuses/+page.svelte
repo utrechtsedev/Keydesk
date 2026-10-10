@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
 	import { toast } from 'svelte-sonner';
-	import type { PageData, Status, NewStatus } from '$lib/types';
-	import api from '$lib/utils/axios';
-	import AddItem from '$lib/components/settings/add-item.svelte';
+	import type { PageData, Status, NewStatus } from '#lib/types/index.js';
+	import api from '#lib/utils/axios.js';
+	import AddItem from '#lib/components/settings/add-item.svelte';
 	import { invalidate } from '$app/navigation';
-	import Plus from '$lib/icons/plus.svelte';
-	import Trash2 from '$lib/icons/trash-2.svelte';
-	import Xmark from '$lib/icons/xmark.svelte';
-	import FloppyDisk from '$lib/icons/floppy-disk.svelte';
-	import Check from '$lib/icons/check.svelte';
-	import Compose3 from '$lib/icons/compose-3.svelte';
+	import Plus from '#lib/icons/plus.svelte';
+	import Trash2 from '#lib/icons/trash-2.svelte';
+	import Xmark from '#lib/icons/xmark.svelte';
+	import FloppyDisk from '#lib/icons/floppy-disk.svelte';
+	import Check from '#lib/icons/check.svelte';
+	import Compose3 from '#lib/icons/compose-3.svelte';
 
 	let { data }: { data: PageData & { statuses: Status[] } } = $props();
 

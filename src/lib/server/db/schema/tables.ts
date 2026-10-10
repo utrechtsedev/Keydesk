@@ -13,7 +13,7 @@ import {
 	customType
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import type { NotificationPreferences } from '$lib/types';
+import type { NotificationPreferences } from '#lib/types/index.js';
 
 // ============================================================================
 // CUSTOM TYPES

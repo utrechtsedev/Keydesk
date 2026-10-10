@@ -24,8 +24,8 @@
 	import { Dialog as SheetPrimitive } from 'bits-ui';
 	import type { Snippet } from 'svelte';
 	import SheetOverlay from './sheet-overlay.svelte';
-	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
-	import Xmark from '$lib/icons/xmark.svelte';
+	import { cn, type WithoutChildrenOrChild } from '#lib/utils.js';
+	import Xmark from '#lib/icons/xmark.svelte';
 
 	let {
 		ref = $bindable(null),

@@ -1,7 +1,7 @@
 import { ImapFlow } from 'imapflow';
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { logger } from '$lib/server/logger';
-import * as schema from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { logger } from '#lib/server/logger.js';
+import * as schema from '#lib/server/db/schema/index.js';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 	const imap = await schema.validate(schema.imapSettingsSchema)(request);
@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 	const mailboxInfo = (await Promise.race([connectionPromise, timeoutPromise])) as any;
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			message: `Connection successful! Found ${mailboxInfo.messages} messages in Inbox.`

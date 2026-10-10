@@ -1,9 +1,8 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
-import { NotFoundError } from '$lib/server/errors';
-import { json } from '@sveltejs/kit';
+import { NotFoundError } from '#lib/server/errors.js';
 
 export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
 	const id = schema.idParamSchema.parse(params.id);
@@ -26,7 +25,7 @@ export const PATCH: RequestHandler = async ({ request, params }): Promise<Respon
 		throw new NotFoundError('User not found.');
 	}
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'User updated successfully.',
 		data: updatedUser

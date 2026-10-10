@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import Office3 from '$lib/icons/office-3.svelte';
-	import type { Organization } from '$lib/types';
+	import * as Sidebar from '#lib/components/ui/sidebar/index.js';
+	import Office3 from '#lib/icons/office-3.svelte';
+	import type { Organization } from '#lib/types/index.js';
 
 	let { organization }: { organization: Organization } = $props();
 </script>

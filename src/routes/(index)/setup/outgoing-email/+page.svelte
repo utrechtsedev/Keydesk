@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
-	import { Input } from '$lib/components/ui/input';
-	import { Switch } from '$lib/components/ui/switch';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import type { SMTP } from '$lib/types';
-	import { Spinner } from '$lib/components/ui/spinner';
-	import api from '$lib/utils/axios';
+	import type { SMTP } from '#lib/types/index.js';
+	import { Spinner } from '#lib/components/ui/spinner/index.js';
+	import api from '#lib/utils/axios.js';
 
 	let smtp: SMTP = $state({
 		senderName: '',

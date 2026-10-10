@@ -1,27 +1,27 @@
 <script lang="ts">
-	import * as Sheet from '$lib/components/ui/sheet';
-	import * as Select from '$lib/components/ui/select';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import { Separator } from '$lib/components/ui/separator';
-	import { Label } from '$lib/components/ui/label';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Textarea } from '$lib/components/ui/textarea';
-	import { TagsInput } from '$lib/components/ui/tags-input';
-	import { Input } from '$lib/components/ui/input';
-	import type { Priority, Status, Task, User } from '$lib/types';
-	import { formatDate, formatRelativeDate } from '$lib/utils/date';
+	import * as Sheet from '#lib/components/ui/sheet/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+	import { Textarea } from '#lib/components/ui/textarea/index.js';
+	import { TagsInput } from '#lib/components/ui/tags-input/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import type { Priority, Status, Task, User } from '#lib/types/index.js';
+	import { formatDate, formatRelativeDate } from '#lib/utils/date.js';
 	import { goto, invalidate } from '$app/navigation';
-	import CalendarDays from '$lib/icons/calendar-days.svelte';
-	import Ticket from '$lib/icons/ticket.svelte';
+	import CalendarDays from '#lib/icons/calendar-days.svelte';
+	import Ticket from '#lib/icons/ticket.svelte';
 	import { toast } from 'svelte-sonner';
-	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
-	import Tags from '$lib/icons/tags.svelte';
-	import Subtitles2 from '$lib/icons/subtitles-2.svelte';
-	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
-	import MediaRecord from '$lib/icons/media-record.svelte';
-	import api from '$lib/utils/axios';
-	import ChevronRight from '$lib/icons/chevron-right.svelte';
+	import ClipboardContent from '#lib/icons/clipboard-content.svelte';
+	import Tags from '#lib/icons/tags.svelte';
+	import Subtitles2 from '#lib/icons/subtitles-2.svelte';
+	import CircleCheck3 from '#lib/icons/circle-check-3.svelte';
+	import MediaRecord from '#lib/icons/media-record.svelte';
+	import api from '#lib/utils/axios.js';
+	import ChevronRight from '#lib/icons/chevron-right.svelte';
 
 	let {
 		task = $bindable(),

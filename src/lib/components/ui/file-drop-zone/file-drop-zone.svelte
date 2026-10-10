@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { cn } from '$lib/utils';
+	import { cn } from '#lib/utils.js';
 	import { displaySize } from '.';
 	import { useId } from 'bits-ui';
 	import type { FileDropZoneProps, FileRejectedReason } from './types';
-	import CloudUpload2 from '$lib/icons/cloud-upload-2.svelte';
+	import CloudUpload2 from '#lib/icons/cloud-upload-2.svelte';
 
 	let {
 		id = useId(),

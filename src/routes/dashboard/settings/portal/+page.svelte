@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Field from '$lib/components/ui/field';
-	import { Switch } from '$lib/components/ui/switch';
-	import { Separator } from '$lib/components/ui/separator';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
 	import { toast } from 'svelte-sonner';
-	import type { PageData, Portal } from '$lib/types';
-	import api from '$lib/utils/axios';
+	import type { PageData, Portal } from '#lib/types/index.js';
+	import api from '#lib/utils/axios.js';
 
 	const { data }: { data: PageData & { portal: Portal } } = $props();
 

@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { browser } from '$app/environment';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
-	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import Ticket from '$lib/icons/ticket.svelte';
-	import ViewAll from '$lib/icons/view-all.svelte';
-	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
-	import Slider from '$lib/icons/slider.svelte';
-	import Toggles from '$lib/icons/toggles.svelte';
+	import { browser } from '$app/env';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
+	import * as Sidebar from '#lib/components/ui/sidebar/index.js';
+	import Ticket from '#lib/icons/ticket.svelte';
+	import ViewAll from '#lib/icons/view-all.svelte';
+	import ClipboardContent from '#lib/icons/clipboard-content.svelte';
+	import Slider from '#lib/icons/slider.svelte';
+	import Toggles from '#lib/icons/toggles.svelte';
 	import { onMount } from 'svelte';
-	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte.js';
-	import type { User } from '$lib/types';
-	import ChevronRight from '$lib/icons/chevron-right.svelte';
+	import { useSidebar } from '#lib/components/ui/sidebar/context.svelte.js';
+	import type { User } from '#lib/types/index.js';
+	import ChevronRight from '#lib/icons/chevron-right.svelte';
 	const sidebar = useSidebar();
 
 	let {

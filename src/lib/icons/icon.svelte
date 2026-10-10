@@ -1,6 +1,6 @@
 <script lang="ts">
-	import defaultAttributes from '$lib/icons/defaultAttributes';
-	import { cn } from '$lib/utils';
+	import defaultAttributes from '#lib/icons/defaultAttributes.js';
+	import { cn } from '#lib/utils.js';
 
 	const {
 		name,

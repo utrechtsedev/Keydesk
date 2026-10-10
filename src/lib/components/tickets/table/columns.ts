@@ -1,24 +1,51 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { renderComponent, renderSnippet } from '$lib/components/ui/data-table';
-import type { TicketList } from '$lib/types';
-import type { ColumnDef } from '@tanstack/table-core';
+import { renderComponent, renderSnippet } from '#lib/components/ui/data-table/index.js';
+import type { TicketList } from '#lib/types/index.js';
+import {
+	columnFilteringFeature,
+	columnOrderingFeature,
+	columnVisibilityFeature,
+	globalFilteringFeature,
+	rowPaginationFeature,
+	rowSelectionFeature,
+	rowSortingFeature,
+	tableFeatures,
+	type CellData,
+	type ColumnDef,
+	type RowData,
+	type TableFeatures
+} from '@tanstack/table-core';
 import { createRawSnippet } from 'svelte';
 import DataTableCheckbox from './ticket-table-checkbox.svelte';
 import DataTableActions from './ticket-table-actions.svelte';
-import { darkenColor } from '$lib/utils/color';
+import { darkenColor } from '#lib/utils/color.js';
 import DataTableSortButton from './ticket-table-sort-button.svelte';
 
 declare module '@tanstack/table-core' {
-	interface ColumnMeta<TData, TValue> {
+	interface ColumnMeta<
+		TFeatures extends TableFeatures,
+		TData extends RowData,
+		TValue extends CellData = CellData
+	> {
 		title?: string;
 	}
 
-	interface TableMeta<TData> {
+	interface TableMeta<TFeatures extends TableFeatures, TData extends RowData> {
 		ticketPrefix?: string;
 	}
 }
 
-export const columns: ColumnDef<TicketList>[] = [
+export const ticketTableFeatures = tableFeatures({
+	columnFilteringFeature,
+	globalFilteringFeature,
+	rowSortingFeature,
+	rowPaginationFeature,
+	rowSelectionFeature,
+	columnVisibilityFeature,
+	columnOrderingFeature
+});
+
+export const columns: ColumnDef<typeof ticketTableFeatures, TicketList>[] = [
 	{
 		id: 'select',
 		header: ({ table }) =>

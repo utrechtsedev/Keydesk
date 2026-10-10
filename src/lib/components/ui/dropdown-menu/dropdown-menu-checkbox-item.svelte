@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
-	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
+	import { cn, type WithoutChildrenOrChild } from '#lib/utils.js';
 	import type { Snippet } from 'svelte';
-	import Minus from '$lib/icons/minus.svelte';
-	import Check from '$lib/icons/check.svelte';
+	import Minus from '#lib/icons/minus.svelte';
+	import Check from '#lib/icons/check.svelte';
 
 	let {
 		ref = $bindable(null),

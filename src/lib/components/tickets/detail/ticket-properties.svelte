@@ -1,16 +1,16 @@
 <script lang="ts">
-	import * as Popover from '$lib/components/ui/popover';
-	import * as Command from '$lib/components/ui/command';
-	import * as Select from '$lib/components/ui/select';
-	import * as Card from '$lib/components/ui/card';
-	import * as Avatar from '$lib/components/ui/avatar';
-	import { Label } from '$lib/components/ui/label';
-	import { Button } from '$lib/components/ui/button';
-	import { TagsInput } from '$lib/components/ui/tags-input';
-	import { cn } from '$lib/utils';
-	import type { Category, NewTag, Priority, Status, Tag, User } from '$lib/types';
-	import Check from '$lib/icons/check.svelte';
-	import ChevronDown from '$lib/icons/chevron-down.svelte';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import * as Command from '#lib/components/ui/command/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import * as Avatar from '#lib/components/ui/avatar/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { TagsInput } from '#lib/components/ui/tags-input/index.js';
+	import { cn } from '#lib/utils.js';
+	import type { Category, NewTag, Priority, Status, Tag, User } from '#lib/types/index.js';
+	import Check from '#lib/icons/check.svelte';
+	import ChevronDown from '#lib/icons/chevron-down.svelte';
 
 	let {
 		priorityId = $bindable(),

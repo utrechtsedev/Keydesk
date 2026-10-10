@@ -1,5 +1,5 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq, and, gte, lte, asc, SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 

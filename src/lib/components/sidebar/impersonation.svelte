@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { authClient } from '$lib/auth-client';
-	import * as Avatar from '$lib/components/ui/avatar';
-	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import type { User } from '$lib/types';
+	import { authClient } from '#lib/auth-client.js';
+	import * as Avatar from '#lib/components/ui/avatar/index.js';
+	import * as Sidebar from '#lib/components/ui/sidebar/index.js';
+	import type { User } from '#lib/types/index.js';
 
 	const { user }: { user: User } = $props();
 

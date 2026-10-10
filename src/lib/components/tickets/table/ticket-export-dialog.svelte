@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import * as Select from '$lib/components/ui/select';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import type { Category, Priority, Status, User } from '$lib/types';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+	import type { Category, Priority, Status, User } from '#lib/types/index.js';
 	import { toast } from 'svelte-sonner';
-	import Download from '$lib/icons/download.svelte';
-	import { Spinner } from '$lib/components/ui/spinner';
-	import api from '$lib/utils/axios';
+	import Download from '#lib/icons/download.svelte';
+	import { Spinner } from '#lib/components/ui/spinner/index.js';
+	import api from '#lib/utils/axios.js';
 
 	let {
 		open = $bindable(),

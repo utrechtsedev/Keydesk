@@ -7,7 +7,7 @@ import { db } from './db/database';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import * as schema from './db/schema/index.js';
 import { redirect } from '@sveltejs/kit';
-import type { User } from '$lib/types';
+import type { User } from '#lib/types/index.js';
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {

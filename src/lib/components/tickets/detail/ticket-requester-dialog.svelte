@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import type { Requester } from '$lib/types';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import type { Requester } from '#lib/types/index.js';
 	import { slide } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
-	import api from '$lib/utils/axios';
+	import api from '#lib/utils/axios.js';
 
 	const uid = $props.id();
 

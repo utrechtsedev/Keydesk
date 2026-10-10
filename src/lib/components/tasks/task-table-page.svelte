@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Gear3 from '$lib/icons/gear-3.svelte';
-	import TaskTable from '$lib/components/tasks/task-table.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import type { TaskPageData } from '$lib/types';
-	import TaskFilterDialog from '$lib/components/tasks/task-filter-dialog.svelte';
+	import Gear3 from '#lib/icons/gear-3.svelte';
+	import TaskTable from '#lib/components/tasks/task-table.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import type { TaskPageData } from '#lib/types/index.js';
+	import TaskFilterDialog from '#lib/components/tasks/task-filter-dialog.svelte';
 	import TaskSheet from './task-sheet.svelte';
 
 	const { data }: { data: TaskPageData } = $props();

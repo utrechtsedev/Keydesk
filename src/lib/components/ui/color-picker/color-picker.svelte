@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$lib/utils';
-	import { Input } from '$lib/components/ui/input';
+	import { cn } from '#lib/utils.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 
 	let {
 		value = $bindable('#000000'),
@@ -80,10 +80,9 @@
 		const max = Math.max(r, g, b),
 			min = Math.min(r, g, b);
 		let h = 0,
-			s = 0,
 			v = max;
 		const d = max - min;
-		s = max === 0 ? 0 : d / max;
+		const s = max === 0 ? 0 : d / max;
 		if (max !== min) {
 			switch (max) {
 				case r:

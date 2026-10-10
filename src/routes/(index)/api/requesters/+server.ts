@@ -1,7 +1,7 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { ValidationError } from '$lib/server/errors';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import { ValidationError } from '#lib/server/errors.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import { or, ilike, asc } from 'drizzle-orm';
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -29,7 +29,7 @@ export const GET: RequestHandler = async ({ url }) => {
     .orderBy(asc(schema.requester.name))
     .limit(limit);
 
-  return json({
+  return Response.json({
     requesters
   });
 };

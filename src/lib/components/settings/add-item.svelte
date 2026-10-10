@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Button, buttonVariants } from '$lib/components/ui/button';
-	import * as Popover from '$lib/components/ui/popover';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import * as ColorPicker from '$lib/components/ui/color-picker';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
-	import api from '$lib/utils/axios';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import * as ColorPicker from '#lib/components/ui/color-picker/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import Textarea from '#lib/components/ui/textarea/textarea.svelte';
+	import api from '#lib/utils/axios.js';
 	import { toast } from 'svelte-sonner';
 	import Badge from '../ui/badge/badge.svelte';
 	import { invalidate } from '$app/navigation';

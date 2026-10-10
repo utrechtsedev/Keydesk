@@ -1,16 +1,16 @@
 <script lang="ts">
-	import * as Card from '$lib/components/ui/card';
-	import * as Empty from '$lib/components/ui/empty';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import ClipboardContent from '$lib/icons/clipboard-content.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import type { Priority, Status, Task, User } from '$lib/types';
-	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
-	import CircleInfo from '$lib/icons/circle-info.svelte';
-	import TaskSheet from '$lib/components/tasks/task-sheet.svelte';
-	import Plus from '$lib/icons/plus.svelte';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import ClipboardContent from '#lib/icons/clipboard-content.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import type { Priority, Status, Task, User } from '#lib/types/index.js';
+	import CircleCheck3 from '#lib/icons/circle-check-3.svelte';
+	import CircleInfo from '#lib/icons/circle-info.svelte';
+	import TaskSheet from '#lib/components/tasks/task-sheet.svelte';
+	import Plus from '#lib/icons/plus.svelte';
 	import { page } from '$app/state';
-	import { Badge } from '$lib/components/ui/badge';
+	import { Badge } from '#lib/components/ui/badge/index.js';
 
 	const {
 		tasks,

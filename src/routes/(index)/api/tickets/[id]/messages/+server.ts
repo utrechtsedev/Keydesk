@@ -1,11 +1,11 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { uploadFile } from '$lib/server/file-upload';
-import type { Attachment } from '$lib/types';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import { uploadFile } from '#lib/server/file-upload.js';
+import type { Attachment } from '#lib/types/index.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
-import { requireAuth } from '$lib/server/auth';
-import { NotFoundError } from '$lib/server/errors';
+import { requireAuth } from '#lib/server/auth.js';
+import { NotFoundError } from '#lib/server/errors.js';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
 	const { user } = requireAuth(locals);
@@ -73,7 +73,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 		return ticketMessage;
 	});
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			data: {

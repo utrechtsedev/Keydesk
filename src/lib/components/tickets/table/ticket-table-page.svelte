@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import DataTable from '$lib/components/tickets/table/ticket-table.svelte';
-	import { columns } from '$lib/components/tickets/table/columns.js';
-	import type { TicketPageData } from '$lib/types';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import DataTable from '#lib/components/tickets/table/ticket-table.svelte';
+	import { columns } from '#lib/components/tickets/table/columns.js';
+	import type { TicketPageData } from '#lib/types/index.js';
 	import { onMount } from 'svelte';
 	import { goto, invalidate } from '$app/navigation';
-	import Refresh from '$lib/icons/refresh.svelte';
+	import Refresh from '#lib/icons/refresh.svelte';
 
 	let {
 		data = $bindable()

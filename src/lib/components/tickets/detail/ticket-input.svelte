@@ -1,16 +1,16 @@
 <script lang="ts">
-	import * as Card from '$lib/components/ui/card';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { Button } from '$lib/components/ui/button';
-	import { MessageInput } from '$lib/components/ui/messageinput';
-	import { Switch } from '$lib/components/ui/switch';
-	import Page from '$lib/icons/page.svelte';
-	import Plus from '$lib/icons/plus.svelte';
-	import PaperPlane from '$lib/icons/paper-plane.svelte';
-	import { displaySize } from '$lib/components/ui/file-drop-zone';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { MessageInput } from '#lib/components/ui/messageinput/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
+	import Page from '#lib/icons/page.svelte';
+	import Plus from '#lib/icons/plus.svelte';
+	import PaperPlane from '#lib/icons/paper-plane.svelte';
+	import { displaySize } from '#lib/components/ui/file-drop-zone/index.js';
 	import { slide, scale } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
-	import Xmark from '$lib/icons/xmark.svelte';
+	import Xmark from '#lib/icons/xmark.svelte';
 
 	let {
 		value = $bindable(),

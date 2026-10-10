@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Xmark from '$lib/icons/xmark.svelte';
-	import type { Tag, NewTag } from '$lib/types';
+	import Xmark from '#lib/icons/xmark.svelte';
+	import type { Tag, NewTag } from '#lib/types/index.js';
 
 	type Props = {
 		tag: Tag | NewTag; // Changed from value: string

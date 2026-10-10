@@ -1,15 +1,15 @@
 <script lang="ts">
-	import * as Table from '$lib/components/ui/table';
-	import { Input } from '$lib/components/ui/input';
-	import type { PageData, User } from '$lib/types';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import { authClient } from '$lib/auth-client';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import type { PageData, User } from '#lib/types/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import { authClient } from '#lib/auth-client.js';
 	import { toast } from 'svelte-sonner';
-	import { Badge } from '$lib/components/ui/badge';
+	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { goto, invalidate } from '$app/navigation';
-	import { ConfirmDialog, confirmDialog } from '$lib/components/ui/confirm-dialog';
-	import Dots from '$lib/icons/dots.svelte';
+	import { ConfirmDialog, confirmDialog } from '#lib/components/ui/confirm-dialog/index.js';
+	import Dots from '#lib/icons/dots.svelte';
 
 	let { data }: { data: PageData & { users: User[] } } = $props();
 

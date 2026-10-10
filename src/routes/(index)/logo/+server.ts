@@ -1,7 +1,7 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { NotFoundError, ValidationError } from '$lib/server/errors';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import { NotFoundError, ValidationError } from '#lib/server/errors.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
       }
     });
 
-  return json({
+  return Response.json({
     success: true,
     message: 'Image uploaded successfully',
   });

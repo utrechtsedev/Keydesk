@@ -1,12 +1,12 @@
 <script>
-	import * as Card from '$lib/components/ui/card';
-	import * as Item from '$lib/components/ui/item';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
 	import { page } from '$app/state';
-	import Organization from '$lib/icons/organization.svelte';
-	import Email from '$lib/icons/email.svelte';
-	import GridSquareCirclePlus from '$lib/icons/grid-square-circle-plus.svelte';
-	import UsersSparkle from '$lib/icons/users-sparkle.svelte';
-	import InboxArrowUp from '$lib/icons/inbox-arrow-up.svelte';
+	import Organization from '#lib/icons/organization.svelte';
+	import Email from '#lib/icons/email.svelte';
+	import GridSquareCirclePlus from '#lib/icons/grid-square-circle-plus.svelte';
+	import UsersSparkle from '#lib/icons/users-sparkle.svelte';
+	import InboxArrowUp from '#lib/icons/inbox-arrow-up.svelte';
 	const { children } = $props();
 
 	const routes = [

@@ -1,5 +1,5 @@
-import type { Task, Ticket, User } from '$lib/types';
-import { formatDate } from '$lib/utils/date';
+import type { Task, Ticket, User } from '#lib/types/index.js';
+import { formatDate } from '#lib/utils/date.js';
 
 // notification-rules.ts
 type TicketChangeRule = {

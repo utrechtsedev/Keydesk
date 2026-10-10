@@ -1,11 +1,11 @@
 <script lang="ts">
-	import * as Card from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
-	import Page from '$lib/icons/page.svelte';
-	import { formatDate } from '$lib/utils/date';
-	import type { TicketMessageDetail } from '$lib/types';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import Page from '#lib/icons/page.svelte';
+	import { formatDate } from '#lib/utils/date.js';
+	import type { TicketMessageDetail } from '#lib/types/index.js';
 	import { page } from '$app/state';
-	import { handleDownloadAttachment } from '$lib/utils/download';
+	import { handleDownloadAttachment } from '#lib/utils/download.js';
 	import { toast } from 'svelte-sonner';
 
 	let { messages = $bindable() }: { messages: TicketMessageDetail[] } = $props();

@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
-import * as schema from '$lib/server/db/schema';
-import { db } from '$lib/server/db/database';
+import * as schema from '#lib/server/db/schema/index.js';
+import { db } from '#lib/server/db/database.js';
 
 export const load: PageServerLoad = async ({ depends }) => {
   depends('app:categories');

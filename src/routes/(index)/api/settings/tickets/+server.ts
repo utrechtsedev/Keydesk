@@ -1,6 +1,6 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
@@ -27,7 +27,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 	const created = config.createdAt.getTime() === config.updatedAt.getTime();
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			data: config.value,
@@ -41,13 +41,13 @@ export const GET: RequestHandler = async () => {
 	const [config] = await db.select().from(schema.config).where(eq(schema.config.key, 'tickets'));
 
 	if (!config) {
-		return json({
+		return Response.json({
 			success: true,
 			data: null
 		});
 	}
 
-	return json({
+	return Response.json({
 		success: true,
 		data: config.value
 	});

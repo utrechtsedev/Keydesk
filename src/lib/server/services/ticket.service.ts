@@ -1,6 +1,6 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import type { TicketConfig } from '$lib/types';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import type { TicketConfig } from '#lib/types/index.js';
 import { eq } from 'drizzle-orm';
 
 class TicketService {

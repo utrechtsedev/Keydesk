@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { ContextMenu as ContextMenuPrimitive } from 'bits-ui';
-	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
+	import { cn, type WithoutChildrenOrChild } from '#lib/utils.js';
 	import type { Snippet } from 'svelte';
-	import Check from '$lib/icons/check.svelte';
+	import Check from '#lib/icons/check.svelte';
 
 	let {
 		ref = $bindable(null),

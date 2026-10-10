@@ -1,16 +1,13 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { logger } from '$lib/server/logger';
+import { logger } from '#lib/server/logger.js';
+import type { MessageEnvelopeObject } from 'imapflow';
 
 interface ArchiveEmailParams {
   uid: number;
   source: Buffer | string;
-  envelope: {
-    from?: Array<{ name?: string; address?: string }>;
-    subject?: string;
-    date?: Date;
-  };
+  envelope: MessageEnvelopeObject;
   parsedEmail?: {
     text?: string;
     html?: string;

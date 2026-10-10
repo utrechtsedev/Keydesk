@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ComponentProps } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
-	import ArrowsFilter from '$lib/icons/arrows-filter.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import ArrowsFilter from '#lib/icons/arrows-filter.svelte';
 
 	let {
 		variant = 'link',

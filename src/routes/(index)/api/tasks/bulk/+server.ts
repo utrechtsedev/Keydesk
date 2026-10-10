@@ -1,7 +1,7 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { NotFoundError } from '$lib/server/errors';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import { NotFoundError } from '#lib/server/errors.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
 
 export const PATCH: RequestHandler = async ({ request }) => {
@@ -55,7 +55,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
 				)
 			);
 
-			return json(
+			return Response.json(
 				{
 					success: true,
 					updatedCount: ids.length,
@@ -72,7 +72,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
 		);
 	}
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			updated: updatedCount
@@ -90,7 +90,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
 		throw new NotFoundError('No tasks were found.');
 	}
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			deleted: deleted.length

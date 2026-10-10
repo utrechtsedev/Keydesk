@@ -1,5 +1,5 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import type { LayoutServerLoad } from '../$types';
 
 export const load: LayoutServerLoad = async () => {

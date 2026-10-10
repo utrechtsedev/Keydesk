@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Label } from '$lib/components/ui/label';
-	import * as Select from '$lib/components/ui/select';
-	import type { Category, Priority, Status, Tag, User } from '$lib/types';
-	import api from '$lib/utils/axios';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import type { Category, Priority, Status, Tag, User } from '#lib/types/index.js';
+	import api from '#lib/utils/axios.js';
 	import { toast } from 'svelte-sonner';
 
 	const uid = $props.id();

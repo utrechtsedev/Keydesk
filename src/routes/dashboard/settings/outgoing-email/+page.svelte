@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Field from '$lib/components/ui/field';
-	import { Input } from '$lib/components/ui/input';
-	import { Switch } from '$lib/components/ui/switch';
-	import { Separator } from '$lib/components/ui/separator';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
 	import { toast } from 'svelte-sonner';
-	import type { PageData, SMTP } from '$lib/types';
-	import { Spinner } from '$lib/components/ui/spinner';
-	import api from '$lib/utils/axios';
+	import type { PageData, SMTP } from '#lib/types/index.js';
+	import { Spinner } from '#lib/components/ui/spinner/index.js';
+	import api from '#lib/utils/axios.js';
 
 	const { data }: { data: PageData & { smtp: SMTP } } = $props();
 

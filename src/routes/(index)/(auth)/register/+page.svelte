@@ -1,16 +1,16 @@
 <script>
-	import { Label } from '$lib/components/ui/label';
-	import { Input } from '$lib/components/ui/input';
-	import { Button } from '$lib/components/ui/button';
-	import { usePasswordStrength } from '$lib/hooks/use-password-strength.svelte';
-	import { cn } from '$lib/utils.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { usePasswordStrength } from '#lib/hooks/use-password-strength.svelte.js';
+	import { cn } from '#lib/utils.js';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
-	import { authClient } from '$lib/auth-client';
-	import Check from '$lib/icons/check.svelte';
-	import Eye from '$lib/icons/eye.svelte';
-	import EyeSlash from '$lib/icons/eye-slash.svelte';
-	import Xmark from '$lib/icons/xmark.svelte';
+	import { authClient } from '#lib/auth-client.js';
+	import Check from '#lib/icons/check.svelte';
+	import Eye from '#lib/icons/eye.svelte';
+	import EyeSlash from '#lib/icons/eye-slash.svelte';
+	import Xmark from '#lib/icons/xmark.svelte';
 
 	const passwordStrength = usePasswordStrength({ id: 'password' });
 

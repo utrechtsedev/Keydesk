@@ -1,10 +1,10 @@
-import { type Attachment } from '$lib/types';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { type Attachment } from '#lib/types/index.js';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { getClient } from './client';
 import { processMessage } from './process';
-import { logger } from '$lib/server/logger';
+import { logger } from '#lib/server/logger.js';
 import fs from 'fs';
 
 const client = await getClient();
