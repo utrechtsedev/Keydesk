@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { Label } from '$lib/components/ui/label';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Textarea } from '$lib/components/ui/textarea';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Textarea } from '#lib/components/ui/textarea/index.js';
 	import { toast } from 'svelte-sonner';
-	import type { Category, PageData } from '$lib/types';
-	import api from '$lib/utils/axios';
+	import type { Category, PageData } from '#lib/types/index.js';
+	import api from '#lib/utils/axios.js';
 	import { invalidate } from '$app/navigation';
-	import AddItem from '$lib/components/settings/add-item.svelte';
-	import Xmark from '$lib/icons/xmark.svelte';
-	import Plus from '$lib/icons/plus.svelte';
-	import Compose3 from '$lib/icons/compose-3.svelte';
-	import Trash2 from '$lib/icons/trash-2.svelte';
-	import FloppyDisk from '$lib/icons/floppy-disk.svelte';
+	import AddItem from '#lib/components/settings/add-item.svelte';
+	import Xmark from '#lib/icons/xmark.svelte';
+	import Plus from '#lib/icons/plus.svelte';
+	import Compose3 from '#lib/icons/compose-3.svelte';
+	import Trash2 from '#lib/icons/trash-2.svelte';
+	import FloppyDisk from '#lib/icons/floppy-disk.svelte';
 
 	let { data }: { data: PageData & { categories: Category[] } } = $props();
 

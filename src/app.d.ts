@@ -1,5 +1,5 @@
 import type { Session } from 'better-auth';
-import type { User } from '$lib/types';
+import type { User } from '#lib/types/index.js';
 
 declare global {
 	namespace App {

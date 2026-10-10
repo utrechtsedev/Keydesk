@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Loader6 from '$lib/icons/loader-6.svelte';
-	import { cn } from '$lib/utils.js';
+	import Loader6 from '#lib/icons/loader-6.svelte';
+	import { cn } from '#lib/utils.js';
 	import type { ComponentProps } from 'svelte';
 
 	let { class: className, ...restProps }: ComponentProps<typeof Loader6> = $props();

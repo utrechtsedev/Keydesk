@@ -3,14 +3,14 @@
 	import NavProjects from './nav-projects.svelte';
 	import NavUser from './nav-user.svelte';
 	import TeamSwitcher from './team-switcher.svelte';
-	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+	import * as Sidebar from '#lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
-	import Office3 from '$lib/icons/office-3.svelte';
+	import Office3 from '#lib/icons/office-3.svelte';
 	import Impersonation from './impersonation.svelte';
-	import type { Organization, Session, User } from '$lib/types';
-	import ChartPie from '$lib/icons/chart-pie.svelte';
-	import Hashtag from '$lib/icons/hashtag.svelte';
-	import Map from '$lib/icons/map.svelte';
+	import type { Organization, Session, User } from '#lib/types/index.js';
+	import ChartPie from '#lib/icons/chart-pie.svelte';
+	import Hashtag from '#lib/icons/hashtag.svelte';
+	import Map from '#lib/icons/map.svelte';
 
 	let {
 		ref = $bindable(null),

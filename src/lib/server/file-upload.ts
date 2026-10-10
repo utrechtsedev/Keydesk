@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { generateRandomString } from '$lib/utils/string';
-import { getFileExtension } from '$lib/utils/string';
-import type { Attachment } from '$lib/types';
+import { generateRandomString } from '#lib/utils/string.js';
+import { getFileExtension } from '#lib/utils/string.js';
+import type { Attachment } from '#lib/types/index.js';
 import { logger } from './logger';
 
 export interface UploadedFileData {
@@ -75,7 +75,8 @@ export async function uploadFile(
         fs.mkdirSync('./uploads', { recursive: true });
       } catch (error) {
         throw new Error(
-          `Failed to create uploads directory: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `Failed to create uploads directory: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          { cause: error }
         );
       }
     }
@@ -87,7 +88,8 @@ export async function uploadFile(
       buffer = Buffer.from(arrayBuffer);
     } catch (error) {
       throw new Error(
-        `Failed to read file "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to read file "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error }
       );
     }
 
@@ -96,7 +98,8 @@ export async function uploadFile(
       await fs.promises.writeFile(filePath, buffer);
     } catch (error) {
       throw new Error(
-        `Failed to save file "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to save file "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error }
       );
     }
 

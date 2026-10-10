@@ -1,6 +1,6 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import type { RequestHandler } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 	const bulkTagTaskSchema = schema.idsBulkSchema.extend(schema.setTagsSchema.shape);
@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 	await db.insert(schema.taskTag).values(tagAssociations).onConflictDoNothing();
 
-	return json({
+	return Response.json({
 		success: true
 	});
 };

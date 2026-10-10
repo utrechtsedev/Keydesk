@@ -1,9 +1,8 @@
 import type { RequestHandler } from './$types';
-import { json } from '@sveltejs/kit';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq, sql } from 'drizzle-orm';
-import { ConflictError, NotFoundError, ValidationError } from '$lib/server/errors';
+import { ConflictError, NotFoundError, ValidationError } from '#lib/server/errors.js';
 
 export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 	const id = schema.idParamSchema.parse(params.id);
@@ -31,7 +30,7 @@ export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 
 	await db.delete(schema.category).where(eq(schema.category.id, id));
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'Category deleted successfully.'
 	});
@@ -55,7 +54,7 @@ export const PATCH: RequestHandler = async ({ request, params }): Promise<Respon
 		throw new NotFoundError('Category not found');
 	}
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'Category updated successfully',
 		data: updatedCategory

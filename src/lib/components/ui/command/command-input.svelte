@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Command as CommandPrimitive } from 'bits-ui';
-	import { cn } from '$lib/utils.js';
-	import MagnifierSparkle2 from '$lib/icons/magnifier-sparkle-2.svelte';
+	import { cn } from '#lib/utils.js';
+	import MagnifierSparkle2 from '#lib/icons/magnifier-sparkle-2.svelte';
 
 	let {
 		ref = $bindable(null),

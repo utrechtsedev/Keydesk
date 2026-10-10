@@ -1,9 +1,9 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { requireAuth } from '$lib/server/auth';
-import { NotFoundError, UnauthorizedError } from '$lib/server/errors';
+import type { RequestHandler } from '@sveltejs/kit';
+import { requireAuth } from '#lib/server/auth.js';
+import { NotFoundError, UnauthorizedError } from '#lib/server/errors.js';
 
 export const PATCH: RequestHandler = async ({ request, locals, params }): Promise<Response> => {
 	const { user } = requireAuth(locals);
@@ -28,5 +28,5 @@ export const PATCH: RequestHandler = async ({ request, locals, params }): Promis
 		.where(eq(schema.user.id, id))
 		.returning();
 
-	return json({ success: true, user: updated });
+	return Response.json({ success: true, user: updated });
 };

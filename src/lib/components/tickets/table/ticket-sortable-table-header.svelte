@@ -2,7 +2,7 @@
 	import { useSortable } from '@dnd-kit-svelte/sortable';
 	import { CSS, styleObjectToString } from '@dnd-kit-svelte/utilities';
 	import type { Snippet } from 'svelte';
-	import GripVertical from '$lib/icons/grip-dots-vertical.svelte';
+	import GripVertical from '#lib/icons/grip-dots-vertical.svelte';
 
 	let {
 		id,

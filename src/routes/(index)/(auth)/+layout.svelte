@@ -1,6 +1,6 @@
 <script>
 	const { children } = $props();
-	import Office3 from '$lib/icons/office-3.svelte';
+	import Office3 from '#lib/icons/office-3.svelte';
 </script>
 
 <div class="grid min-h-svh lg:grid-cols-2">

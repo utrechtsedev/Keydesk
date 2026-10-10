@@ -1,19 +1,19 @@
 <script lang="ts">
-	import * as Table from '$lib/components/ui/table';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import type { Priority, Status, Task, User } from '$lib/types';
-	import { formatRelativeDate } from '$lib/utils/date';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import type { Priority, Status, Task, User } from '#lib/types/index.js';
+	import { formatRelativeDate } from '#lib/utils/date.js';
 	import TaskSheet from './task-sheet.svelte';
-	import ChevronDown from '$lib/icons/chevron-down.svelte';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import CircleInfo from '$lib/icons/circle-info.svelte';
-	import CircleCheck3 from '$lib/icons/circle-check-3.svelte';
+	import ChevronDown from '#lib/icons/chevron-down.svelte';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import CircleInfo from '#lib/icons/circle-info.svelte';
+	import CircleCheck3 from '#lib/icons/circle-check-3.svelte';
 	import TaskFinishDialog from './task-finish-dialog.svelte';
 	import { toast } from 'svelte-sonner';
 	import { invalidate } from '$app/navigation';
-	import api from '$lib/utils/axios';
-	import ChevronRight from '$lib/icons/chevron-right.svelte';
+	import api from '#lib/utils/axios.js';
+	import ChevronRight from '#lib/icons/chevron-right.svelte';
 
 	const {
 		users,

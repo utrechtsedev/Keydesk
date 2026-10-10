@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { logger } from '$lib/server/logger';
-import * as schema from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { logger } from '#lib/server/logger.js';
+import * as schema from '#lib/server/db/schema/index.js';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 	const smtp = await schema.validate(schema.smtpSettingsSchema)(request);
@@ -29,7 +29,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 
 	await Promise.race([connectionPromise, timeoutPromise]);
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			message: 'SMTP connection successful! Server is ready to send emails.'

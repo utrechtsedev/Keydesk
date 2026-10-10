@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ContextMenu as ContextMenuPrimitive } from 'bits-ui';
-	import { cn, type WithoutChild } from '$lib/utils.js';
-	import ChevronRight from '$lib/icons/chevron-right.svelte';
+	import { cn, type WithoutChild } from '#lib/utils.js';
+	import ChevronRight from '#lib/icons/chevron-right.svelte';
 
 	let {
 		ref = $bindable(null),

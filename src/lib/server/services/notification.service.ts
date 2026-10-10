@@ -7,12 +7,12 @@ import type {
 	NotificationSettings,
 	NotificationOptions,
 	Organization
-} from '$lib/types';
-import { logger } from '$lib/server/logger';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+} from '#lib/types/index.js';
+import { logger } from '#lib/server/logger.js';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq, inArray } from 'drizzle-orm';
-import { generateEmailTemplate, sendEmail } from '$lib/server/email';
+import { generateEmailTemplate, sendEmail } from '#lib/server/email/index.js';
 
 class NotificationService {
 	/**
@@ -597,7 +597,7 @@ class NotificationService {
 				return true;
 			}
 
-			let adminAllows = false;
+			let adminAllows: boolean;
 			switch (event) {
 				case 'assigned':
 					adminAllows = adminSettings.dashboard.item.assigned.notifyUser;
@@ -645,7 +645,7 @@ class NotificationService {
 				return true;
 			}
 
-			let adminAllows = false;
+			let adminAllows: boolean;
 			switch (event) {
 				case 'created':
 					adminAllows = isRequester ? adminSettings.email.item.created.notifyRequester : false;

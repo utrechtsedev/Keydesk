@@ -1,8 +1,8 @@
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import type { SMTP } from '$lib/types';
-import { decrypt } from '$lib/server/db/encrypt';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import type { SMTP } from '#lib/types/index.js';
+import { decrypt } from '#lib/server/db/encrypt.js';
 import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async () => {

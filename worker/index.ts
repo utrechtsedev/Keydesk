@@ -1,6 +1,6 @@
 import { startEmailMonitoring } from './monitor';
-import { logger } from '$lib/server/logger';
-import { initQueue, registerWorkers } from '$lib/server/queue';
+import { logger } from '#lib/server/logger.js';
+import { initQueue, registerWorkers } from '#lib/server/queue.js';
 
 async function main() {
 	await Promise.all([startEmailMonitoring(), initQueue(), registerWorkers()]);

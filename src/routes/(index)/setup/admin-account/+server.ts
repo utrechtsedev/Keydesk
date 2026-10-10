@@ -1,8 +1,8 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { ValidationError } from '$lib/server/errors';
-import { hashPassword } from '$lib/utils/password';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import { ValidationError } from '#lib/server/errors.js';
+import { hashPassword } from '#lib/utils/password.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -61,7 +61,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		password: await hashPassword(user.password)
 	});
 
-	return json({
+	return Response.json({
 		success: true
 	});
 };

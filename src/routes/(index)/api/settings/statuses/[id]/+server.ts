@@ -1,9 +1,8 @@
 import type { RequestHandler } from './$types';
-import * as schema from '$lib/server/db/schema';
-import { db } from '$lib/server/db/database';
+import * as schema from '#lib/server/db/schema/index.js';
+import { db } from '#lib/server/db/database.js';
 import { eq, sql } from 'drizzle-orm';
-import { json } from '@sveltejs/kit';
-import { ConflictError, NotFoundError } from '$lib/server/errors';
+import { ConflictError, NotFoundError } from '#lib/server/errors.js';
 
 export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 	const id = schema.idParamSchema.parse(params.id);
@@ -27,7 +26,7 @@ export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 
 	await db.delete(schema.status).where(eq(schema.status.id, id));
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'Status deleted successfully.'
 	});
@@ -51,7 +50,7 @@ export const PATCH: RequestHandler = async ({ request, params }): Promise<Respon
 		throw new NotFoundError('Status not found.');
 	}
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'Status updated successfully.',
 		data: updatedStatus

@@ -1,12 +1,11 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import type { Task, Task as TaskType } from '$lib/types';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import type { Task, Task as TaskType } from '#lib/types/index.js';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq, inArray } from 'drizzle-orm';
-import { requireAuth } from '$lib/server/auth';
-import { NotFoundError, ValidationError } from '$lib/server/errors';
-import { sendNotification } from '$lib/server/queue';
+import { requireAuth } from '#lib/server/auth.js';
+import { NotFoundError, ValidationError } from '#lib/server/errors.js';
+import { sendNotification } from '#lib/server/queue.js';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
@@ -125,7 +124,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 		});
 	}
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			message: 'Task created successfully'
@@ -259,7 +258,7 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 		}
 	}
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			updated: findTasks.length,

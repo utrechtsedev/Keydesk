@@ -1,11 +1,11 @@
-import { auth } from '$lib/server/auth';
+import { auth } from '#lib/server/auth.js';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
-import { building, dev } from '$app/environment';
-import { logger } from '$lib/server/logger';
-import { AppError } from '$lib/server/errors';
-import { initQueue, registerWorkers } from '$lib/server/queue';
-import type { Handle, HandleServerError } from '@sveltejs/kit';
-import { db } from '$lib/server/db/database';
+import { building, dev } from '$app/env';
+import { logger } from '#lib/server/logger.js';
+import { AppError } from '#lib/server/errors.js';
+import { initQueue, registerWorkers } from '#lib/server/queue.js';
+import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
+import { db } from '#lib/server/db/database.js';
 
 await initQueue();
 await registerWorkers();
@@ -27,7 +27,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handleError: HandleServerError = async ({ error, event, status, message }) => {
+export const handleError: HandleServerError = ({ kind, error, event }) => {
 	const errorId = crypto.randomUUID();
 
 	if (error instanceof AppError) {
@@ -44,12 +44,18 @@ export const handleError: HandleServerError = async ({ error, event, status, mes
 			'Application error'
 		);
 	} else {
+		// Since SvelteKit 3 this hook also receives framework errors (such as 404s), which carry their own status and message
+		const { status, message } =
+			kind === 'unknown' ? { status: 500, message: 'Internal Error' } : error;
+
 		logger.error(
 			{
 				errorId,
+				kind,
 				status,
 				message,
-				error: error instanceof Error ? error.message : String(error),
+				error:
+					error instanceof Error ? error.message : kind === 'unknown' ? String(error) : undefined,
 				stack: error instanceof Error ? error.stack : undefined,
 				path: event.url.pathname,
 				method: event.request.method,
@@ -59,8 +65,5 @@ export const handleError: HandleServerError = async ({ error, event, status, mes
 		);
 	}
 
-	return {
-		message: dev && error instanceof Error ? error.message : message,
-		errorId
-	};
+	return dev && error instanceof Error ? { message: error.message, errorId } : { errorId };
 };

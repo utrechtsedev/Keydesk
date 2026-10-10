@@ -1,11 +1,11 @@
 <script lang="ts">
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte.js';
-	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import ArrowFromCornerUpRight from '$lib/icons/arrow-from-corner-up-right.svelte';
-	import Dots from '$lib/icons/dots.svelte';
-	import Folder from '$lib/icons/folder.svelte';
-	import Trash2 from '$lib/icons/trash-2.svelte';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import { useSidebar } from '#lib/components/ui/sidebar/context.svelte.js';
+	import * as Sidebar from '#lib/components/ui/sidebar/index.js';
+	import ArrowFromCornerUpRight from '#lib/icons/arrow-from-corner-up-right.svelte';
+	import Dots from '#lib/icons/dots.svelte';
+	import Folder from '#lib/icons/folder.svelte';
+	import Trash2 from '#lib/icons/trash-2.svelte';
 	let {
 		projects
 	}: {

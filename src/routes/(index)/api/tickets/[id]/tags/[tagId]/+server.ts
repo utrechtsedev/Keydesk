@@ -1,9 +1,8 @@
-import * as schema from '$lib/server/db/schema';
-import { db } from '$lib/server/db/database';
+import * as schema from '#lib/server/db/schema/index.js';
+import { db } from '#lib/server/db/database.js';
 import type { RequestHandler } from './$types';
 import { and, eq } from 'drizzle-orm';
-import { NotFoundError } from '$lib/server/errors';
-import { json } from '@sveltejs/kit';
+import { NotFoundError } from '#lib/server/errors.js';
 
 export const DELETE: RequestHandler = async ({ params }) => {
 	const ticketId = schema.idParamSchema.parse(params.id);
@@ -24,7 +23,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 		throw new NotFoundError('Tag not found on this ticket');
 	}
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'Tag removed from ticket'
 	});

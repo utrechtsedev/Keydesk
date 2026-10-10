@@ -1,20 +1,21 @@
-<script lang="ts" generics="TData, TValue">
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import * as Select from '$lib/components/ui/select/index.js';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import { FlexRender, createSvelteTable } from '$lib/components/ui/data-table/index.js';
+<script lang="ts" generics="TData extends RowData">
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { FlexRender, createTable } from '#lib/components/ui/data-table/index.js';
 	import {
 		type ColumnDef,
 		type ColumnFiltersState,
 		type PaginationState,
+		type RowData,
 		type RowSelectionState,
 		type SortingState,
-		type VisibilityState,
-		type ColumnOrderState,
-		getCoreRowModel
+		type ColumnVisibilityState,
+		type ColumnOrderState
 	} from '@tanstack/table-core';
+	import { ticketTableFeatures } from './columns.js';
 	import {
 		DndContext,
 		DragOverlay,
@@ -26,14 +27,14 @@
 		arrayMove,
 		horizontalListSortingStrategy
 	} from '@dnd-kit-svelte/sortable';
-	import { sensors } from '$lib/utils/sensors';
+	import { sensors } from '#lib/utils/sensors.js';
 	import SortableTableHeader from './ticket-sortable-table-header.svelte';
-	import Change from '$lib/icons/change.svelte';
-	import Connection2 from '$lib/icons/connection-2.svelte';
-	import Flag7 from '$lib/icons/flag-7.svelte';
-	import Tags from '$lib/icons/tags.svelte';
-	import Trash2 from '$lib/icons/trash-2.svelte';
-	import Download from '$lib/icons/download.svelte';
+	import Change from '#lib/icons/change.svelte';
+	import Connection2 from '#lib/icons/connection-2.svelte';
+	import Flag7 from '#lib/icons/flag-7.svelte';
+	import Tags from '#lib/icons/tags.svelte';
+	import Trash2 from '#lib/icons/trash-2.svelte';
+	import Download from '#lib/icons/download.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import {
@@ -43,19 +44,19 @@
 		type Tag,
 		type Ticket,
 		type User
-	} from '$lib/types';
-	import VShapedArrowDown from '$lib/icons/v-shaped-arrow-down.svelte';
-	import ListTree from '$lib/icons/list-tree.svelte';
+	} from '#lib/types/index.js';
+	import VShapedArrowDown from '#lib/icons/v-shaped-arrow-down.svelte';
+	import ListTree from '#lib/icons/list-tree.svelte';
 	import BulkActions from './ticket-bulk-actions-dialog.svelte';
 	import ExportActions from './ticket-export-dialog.svelte';
 	import DataDeleteDialog from './ticket-delete-dialog.svelte';
 	import DataFilterDialog from './ticket-filter-dialog.svelte';
-	import Gear3 from '$lib/icons/gear-3.svelte';
-	import { browser } from '$app/environment';
-	import Check from '$lib/icons/check.svelte';
+	import Gear3 from '#lib/icons/gear-3.svelte';
+	import { browser } from '$app/env';
+	import Check from '#lib/icons/check.svelte';
 
-	type DataTableProps<TData, TValue> = {
-		columns: ColumnDef<TData, TValue>[];
+	type DataTableProps<TData extends RowData> = {
+		columns: ColumnDef<typeof ticketTableFeatures, TData>[];
 		data: TData[];
 		ticketPrefix: string;
 		pageCount: number;
@@ -78,7 +79,7 @@
 		statuses,
 		priorities,
 		tags
-	}: DataTableProps<TData, TValue> = $props();
+	}: DataTableProps<TData> = $props();
 
 	// LocalStorage keys
 	const COLUMN_ORDER_KEY = 'table-column-order';
@@ -119,7 +120,7 @@
 	let rowSelection = $state<RowSelectionState>({});
 	let globalFilter = $state<string>(currentSearch);
 	let columnOrder = $state<ColumnOrderState>(loadFromLocalStorage(COLUMN_ORDER_KEY, []));
-	let columnVisibility = $state<VisibilityState>(
+	let columnVisibility = $state<ColumnVisibilityState>(
 		loadFromLocalStorage(COLUMN_VISIBILITY_KEY, {
 			updatedAt: false,
 			'priority-name': false,
@@ -251,7 +252,8 @@
 	}
 
 	// Table instance
-	const table = createSvelteTable({
+	const table = createTable({
+		features: ticketTableFeatures,
 		get data() {
 			return data;
 		},
@@ -287,7 +289,6 @@
 			}
 		},
 		manualPagination: true,
-		getCoreRowModel: getCoreRowModel(),
 
 		onPaginationChange: (updater) => {
 			if (typeof updater === 'function') {
@@ -363,9 +364,8 @@
 				pagination = { pageIndex: 0, pageSize: pagination.pageSize };
 
 				goto(`?page=1&pageSize=${pagination.pageSize}${sortParams}${searchParam}${filterParams}`, {
-					replaceState: true,
-					keepFocus: true,
-					noScroll: true
+					replace: true,
+					reset: false
 				});
 			}, 300);
 		},
@@ -550,10 +550,7 @@
 							{#if selectHeader}
 								<Table.Head class="[&:has([role=checkbox])]:pl-3">
 									{#if !selectHeader.isPlaceholder}
-										<FlexRender
-											content={selectHeader.column.columnDef.header}
-											context={selectHeader.getContext()}
-										/>
+										<FlexRender header={selectHeader} />
 									{/if}
 								</Table.Head>
 							{/if}
@@ -563,10 +560,7 @@
 								{#each draggableHeaders as header (header.id)}
 									<SortableTableHeader id={header.id}>
 										{#if !header.isPlaceholder}
-											<FlexRender
-												content={header.column.columnDef.header}
-												context={header.getContext()}
-											/>
+											<FlexRender {header} />
 										{/if}
 									</SortableTableHeader>
 								{/each}
@@ -576,10 +570,7 @@
 							{#if actionsHeader}
 								<Table.Head>
 									{#if !actionsHeader.isPlaceholder}
-										<FlexRender
-											content={actionsHeader.column.columnDef.header}
-											context={actionsHeader.getContext()}
-										/>
+										<FlexRender header={actionsHeader} />
 									{/if}
 								</Table.Head>
 							{/if}
@@ -606,27 +597,21 @@
 							<!-- Select cell (always first) -->
 							{#if selectCell}
 								<Table.Cell class="[&:has([role=checkbox])]:pl-3">
-									<FlexRender
-										content={selectCell.column.columnDef.cell}
-										context={selectCell.getContext()}
-									/>
+									<FlexRender cell={selectCell} />
 								</Table.Cell>
 							{/if}
 
 							<!-- Draggable cells in order -->
 							{#each draggableCells as cell (cell.id)}
 								<Table.Cell class="[&:has([role=checkbox])]:pl-3">
-									<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+									<FlexRender {cell} />
 								</Table.Cell>
 							{/each}
 
 							<!-- Actions cell (always last) -->
 							{#if actionsCell}
 								<Table.Cell>
-									<FlexRender
-										content={actionsCell.column.columnDef.cell}
-										context={actionsCell.getContext()}
-									/>
+									<FlexRender cell={actionsCell} />
 								</Table.Cell>
 							{/if}
 						</Table.Row>

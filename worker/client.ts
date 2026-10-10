@@ -1,9 +1,9 @@
 import { ImapFlow } from 'imapflow';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { type IMAP } from '$lib/types';
-import { decrypt } from '$lib/server/db/encrypt';
+import { type IMAP } from '#lib/types/index.js';
+import { decrypt } from '#lib/server/db/encrypt.js';
 
 let client: ImapFlow | null = null;
 

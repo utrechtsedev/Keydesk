@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
-	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-	import api from '$lib/utils/axios';
+	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
+	import api from '#lib/utils/axios.js';
 	import { toast } from 'svelte-sonner';
 
 	let { open = $bindable(), ids }: { open: boolean; ids: number[] } = $props();

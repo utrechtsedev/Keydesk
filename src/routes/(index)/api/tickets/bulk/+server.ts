@@ -1,8 +1,8 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq, inArray } from 'drizzle-orm';
-import { NotFoundError } from '$lib/server/errors';
+import { NotFoundError } from '#lib/server/errors.js';
 
 export const PATCH: RequestHandler = async ({ request }) => {
 	const { ids, itemId, itemType } = await schema.validate(schema.bulkAssignmentSchema)(request);
@@ -64,7 +64,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
 				)
 			);
 
-			return json(
+			return Response.json(
 				{
 					success: true,
 					updatedCount: ids.length,
@@ -81,7 +81,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
 		);
 	}
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			updated: updatedCount
@@ -99,7 +99,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
 		throw new NotFoundError('No tickets were found.');
 	}
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			deleted: deleted.length

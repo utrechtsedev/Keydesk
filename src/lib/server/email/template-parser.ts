@@ -1,7 +1,7 @@
 import Handlebars from 'handlebars';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { NotificationOptions, Organization } from '$lib/types';
+import type { NotificationOptions, Organization } from '#lib/types/index.js';
 
 // Template directory path
 const templateDir = join(process.cwd(), 'src/lib/server/email/templates');

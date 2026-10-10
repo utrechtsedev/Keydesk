@@ -1,16 +1,16 @@
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq, sql, and, gte } from 'drizzle-orm';
-import { getFileExtension, generateRandomString } from '$lib/utils/string';
-import { type Attachment } from '$lib/types';
+import { getFileExtension, generateRandomString } from '#lib/utils/string.js';
+import { type Attachment } from '#lib/types/index.js';
 import { MailParser } from 'mailparser';
 import { sanitize } from './sanitize';
 import { getClient } from './client';
-import { logger } from '$lib/server/logger';
+import { logger } from '#lib/server/logger.js';
 import path from 'path';
 import fs from 'fs';
 import { archiveEmail, markEmailFailed, updateArchivedEmail } from './archive';
-import { ticketService } from '$lib/server/services/ticket.service';
+import { ticketService } from '#lib/server/services/ticket.service.js';
 
 const client = await getClient();
 

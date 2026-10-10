@@ -1,9 +1,8 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { NotFoundError, ValidationError } from '$lib/server/errors';
+import { NotFoundError, ValidationError } from '#lib/server/errors.js';
 
 export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
 	const taskId = schema.idParamSchema.parse(params.id);
@@ -78,7 +77,7 @@ export const PATCH: RequestHandler = async ({ request, params }): Promise<Respon
 			.where(eq(schema.task.parentTaskId, taskId));
 	}
 
-	return json({
+	return Response.json({
 		success: true,
 		task: updatedTask.task
 	});

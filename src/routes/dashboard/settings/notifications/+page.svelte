@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Field from '$lib/components/ui/field';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Separator } from '$lib/components/ui/separator';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
 	import { toast } from 'svelte-sonner';
-	import type { NotificationSettings, PageData } from '$lib/types';
-	import api from '$lib/utils/axios';
+	import type { NotificationSettings, PageData } from '#lib/types/index.js';
+	import api from '#lib/utils/axios.js';
 
 	const { data }: { data: PageData & { notificationConfig: NotificationSettings } } = $props();
 

@@ -1,8 +1,8 @@
-import { requireAuth } from '$lib/server/auth';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { NotFoundError, ValidationError } from '$lib/server/errors';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { requireAuth } from '#lib/server/auth.js';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import { NotFoundError, ValidationError } from '#lib/server/errors.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import { and, eq, inArray } from 'drizzle-orm';
 import z from 'zod';
 
@@ -34,7 +34,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 			'No notifications were updated. They may not exist or you may not have permission.'
 		);
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			updatedCount,
@@ -66,7 +66,7 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 			'No notifications were deleted. They may not exist or you may not have permission.'
 		);
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			deletedCount,

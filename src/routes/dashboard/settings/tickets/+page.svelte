@@ -1,12 +1,12 @@
 <script lang="ts">
-	import * as Field from '$lib/components/ui/field';
-	import { Input } from '$lib/components/ui/input';
-	import { Button } from '$lib/components/ui/button';
-	import { Separator } from '$lib/components/ui/separator';
-	import { Switch } from '$lib/components/ui/switch';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { toast } from 'svelte-sonner';
-	import type { PageData, TicketConfig } from '$lib/types';
-	import api from '$lib/utils/axios';
+	import type { PageData, TicketConfig } from '#lib/types/index.js';
+	import api from '#lib/utils/axios.js';
 
 	const { data }: { data: PageData & { tickets: TicketConfig } } = $props();
 

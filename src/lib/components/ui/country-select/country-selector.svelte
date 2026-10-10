@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import Check2 from '$lib/icons/check-2.svelte';
-	import ChevronExpandY from '$lib/icons/chevron-expand-y.svelte';
-	import * as Command from '$lib/components/ui/command';
-	import * as Popover from '$lib/components/ui/popover';
-	import { cn } from '$lib/utils';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import Check2 from '#lib/icons/check-2.svelte';
+	import ChevronExpandY from '#lib/icons/chevron-expand-y.svelte';
+	import * as Command from '#lib/components/ui/command/index.js';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import { cn } from '#lib/utils.js';
 
 	let { class: className = '', value = $bindable('') } = $props();
 

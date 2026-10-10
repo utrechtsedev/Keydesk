@@ -1,11 +1,11 @@
 <script lang="ts">
-	import * as Card from '$lib/components/ui/card';
-	import { Button } from '$lib/components/ui/button';
-	import UserUpdate from '$lib/icons/user-update.svelte';
-	import Envelope from '$lib/icons/envelope.svelte';
-	import Phone from '$lib/icons/phone.svelte';
-	import TicketRequesterDialog from '$lib/components/tickets/detail/ticket-requester-dialog.svelte';
-	import type { Requester } from '$lib/types';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import UserUpdate from '#lib/icons/user-update.svelte';
+	import Envelope from '#lib/icons/envelope.svelte';
+	import Phone from '#lib/icons/phone.svelte';
+	import TicketRequesterDialog from '#lib/components/tickets/detail/ticket-requester-dialog.svelte';
+	import type { Requester } from '#lib/types/index.js';
 
 	let {
 		id = $bindable(),

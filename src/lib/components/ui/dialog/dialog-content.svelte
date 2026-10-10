@@ -2,8 +2,8 @@
 	import { Dialog as DialogPrimitive } from 'bits-ui';
 	import type { Snippet } from 'svelte';
 	import * as Dialog from './index.js';
-	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
-	import Xmark from '$lib/icons/xmark.svelte';
+	import { cn, type WithoutChildrenOrChild } from '#lib/utils.js';
+	import Xmark from '#lib/icons/xmark.svelte';
 
 	let {
 		ref = $bindable(null),

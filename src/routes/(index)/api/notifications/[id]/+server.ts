@@ -1,8 +1,8 @@
-import { requireAuth } from '$lib/server/auth';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { NotFoundError } from '$lib/server/errors';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { requireAuth } from '#lib/server/auth.js';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import { NotFoundError } from '#lib/server/errors.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 
 export const PATCH: RequestHandler = async ({ request, locals, params }) => {
@@ -27,7 +27,7 @@ export const PATCH: RequestHandler = async ({ request, locals, params }) => {
 		.where(eq(schema.userNotification.id, id))
 		.returning();
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			notification: {
@@ -54,7 +54,7 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 
 	if (deleted.rowCount === 0) throw new NotFoundError('Notification not found or unauthorized');
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'Notification deleted successfully'
 	});

@@ -1,9 +1,9 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { NotFoundError } from '$lib/server/errors';
-import type { Tag } from '$lib/types';
+import { NotFoundError } from '#lib/server/errors.js';
+import type { Tag } from '#lib/types/index.js';
 
 /**
  * POST /api/tickets/{id}/tags
@@ -43,7 +43,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		})
 		.onConflictDoNothing();
 
-	return json({
+	return Response.json({
 		success: true,
 		tag: tagInstance
 	});
@@ -68,7 +68,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 	await db.delete(schema.ticketTag).where(eq(schema.ticketTag.ticketId, ticketId));
 
 	if (tags.length === 0) {
-		return json({ success: true, tags: [] });
+		return Response.json({ success: true, tags: [] });
 	}
 
 	const tagInstances = await Promise.all(
@@ -97,7 +97,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 		}))
 	);
 
-	return json({
+	return Response.json({
 		success: true,
 		tags: tagInstances
 	});
@@ -125,7 +125,7 @@ export const GET: RequestHandler = async ({ params }) => {
 
 	const tags = ticketTags.map((tt) => tt.tag);
 
-	return json({
+	return Response.json({
 		success: true,
 		tags
 	});
@@ -146,7 +146,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 
 	await db.delete(schema.ticketTag).where(eq(schema.ticketTag.ticketId, ticketId));
 
-	return json({
+	return Response.json({
 		success: true,
 		message: 'All tags removed from ticket'
 	});

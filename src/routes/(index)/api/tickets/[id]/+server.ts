@@ -1,10 +1,9 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import type { Ticket } from '$lib/types';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
+import type { Ticket } from '#lib/types/index.js';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { NotFoundError } from '$lib/server/errors';
+import { NotFoundError } from '#lib/server/errors.js';
 
 export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
 	const ticketId = schema.idParamSchema.parse(params.id);
@@ -134,7 +133,7 @@ export const PATCH: RequestHandler = async ({ request, params }): Promise<Respon
 		}
 	}
 
-	return json({
+	return Response.json({
 		success: true,
 		ticket: updatedTicket.ticket,
 		priority: updatedTicket.priority,

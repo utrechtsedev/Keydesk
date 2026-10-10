@@ -1,18 +1,18 @@
 <script lang="ts">
-	import * as Sidebar from '$lib/components/ui/sidebar';
-	import * as Popover from '$lib/components/ui/popover';
-	import * as Empty from '$lib/components/ui/empty';
-	import { Separator } from '$lib/components/ui/separator';
-	import { Input } from '$lib/components/ui/input';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import BellOn from '$lib/icons/bell-on.svelte';
-	import GridSearch from '$lib/icons/grid-search.svelte';
-	import VShapedArrowRight from '$lib/icons/v-shaped-arrow-right.svelte';
-	import BellDot from '$lib/icons/bell-dot.svelte';
+	import * as Sidebar from '#lib/components/ui/sidebar/index.js';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import BellOn from '#lib/icons/bell-on.svelte';
+	import GridSearch from '#lib/icons/grid-search.svelte';
+	import VShapedArrowRight from '#lib/icons/v-shaped-arrow-right.svelte';
+	import BellDot from '#lib/icons/bell-dot.svelte';
 	import { goto } from '$app/navigation';
-	import type { UserNotification } from '$lib/types';
-	import api from '$lib/utils/axios';
+	import type { UserNotification } from '#lib/types/index.js';
+	import api from '#lib/utils/axios.js';
 
 	let { initialNotifications }: { initialNotifications: UserNotification[] } = $props();
 

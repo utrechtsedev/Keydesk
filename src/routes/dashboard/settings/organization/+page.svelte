@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { Input } from '$lib/components/ui/input';
-	import * as Select from '$lib/components/ui/select';
-	import * as Field from '$lib/components/ui/field';
-	import { Button } from '$lib/components/ui/button';
-	import { Separator } from '$lib/components/ui/separator';
-	import { timezones } from '$lib/utils/timezones';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import { timezones } from '#lib/utils/timezones.js';
 	import { toast } from 'svelte-sonner';
-	import type { Organization, PageData } from '$lib/types';
-	import Upload4 from '$lib/icons/upload-4.svelte';
-	import Check2 from '$lib/icons/check-2.svelte';
-	import { CountrySelector } from '$lib/components/ui/country-select';
-	import api from '$lib/utils/axios';
+	import type { Organization, PageData } from '#lib/types/index.js';
+	import Upload4 from '#lib/icons/upload-4.svelte';
+	import Check2 from '#lib/icons/check-2.svelte';
+	import { CountrySelector } from '#lib/components/ui/country-select/index.js';
+	import api from '#lib/utils/axios.js';
 
 	const { data }: { data: PageData & { organization: Organization } } = $props();
 

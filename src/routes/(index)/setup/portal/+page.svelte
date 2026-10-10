@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
-	import { Switch } from '$lib/components/ui/switch';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
-	import type { Portal } from '$lib/types';
+	import type { Portal } from '#lib/types/index.js';
 	import { goto } from '$app/navigation';
-	import api from '$lib/utils/axios';
+	import api from '#lib/utils/axios.js';
 
 	let portal: Portal = $state({
 		enabled: true,

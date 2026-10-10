@@ -1,12 +1,12 @@
-import { requireAuth } from '$lib/server/auth';
-import { db } from '$lib/server/db/database';
-import * as schema from '$lib/server/db/schema';
-import { NotFoundError, ValidationError } from '$lib/server/errors';
-import { uploadFile } from '$lib/server/file-upload';
-import type { Attachment, Ticket } from '$lib/types';
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { requireAuth } from '#lib/server/auth.js';
+import { db } from '#lib/server/db/database.js';
+import * as schema from '#lib/server/db/schema/index.js';
+import { NotFoundError, ValidationError } from '#lib/server/errors.js';
+import { uploadFile } from '#lib/server/file-upload.js';
+import type { Attachment, Ticket } from '#lib/types/index.js';
+import type { RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
-import { sendNotification } from '$lib/server/queue';
+import { sendNotification } from '#lib/server/queue.js';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
@@ -190,7 +190,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 		});
 	}
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			message: 'Ticket created successfully'
@@ -313,7 +313,7 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 		}
 	}
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			updated: findTickets.length,
@@ -333,7 +333,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
 
 	if (!deleted || deleted.length === 0) throw new NotFoundError('No tickets were found.');
 
-	return json(
+	return Response.json(
 		{
 			success: true,
 			deleted: deleted.length

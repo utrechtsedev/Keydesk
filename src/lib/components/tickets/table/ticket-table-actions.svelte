@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import Dots from '$lib/icons/dots.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import Dots from '#lib/icons/dots.svelte';
 
 	let { id }: { id: string } = $props();
 </script>

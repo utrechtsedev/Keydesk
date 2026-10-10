@@ -1,19 +1,19 @@
 <script>
-	import * as Card from '$lib/components/ui/card';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import { page } from '$app/state';
-	import Organization from '$lib/icons/organization.svelte';
-	import Email from '$lib/icons/email.svelte';
-	import GridSquareCirclePlus from '$lib/icons/grid-square-circle-plus.svelte';
-	import InboxArrowUp from '$lib/icons/inbox-arrow-up.svelte';
-	import FileClip from '$lib/icons/file-clip.svelte';
-	import SuitcaseClock from '$lib/icons/suitcase-clock.svelte';
-	import UmbrellaBeach from '$lib/icons/umbrella-beach.svelte';
-	import Grid2 from '$lib/icons/grid-2.svelte';
-	import BellDot from '$lib/icons/bell-dot.svelte';
-	import PriorityMedium2 from '$lib/icons/priority-medium-2.svelte';
-	import Wip from '$lib/icons/wip.svelte';
-	import Ticket from '$lib/icons/ticket.svelte';
-	import People from '$lib/icons/people.svelte';
+	import Organization from '#lib/icons/organization.svelte';
+	import Email from '#lib/icons/email.svelte';
+	import GridSquareCirclePlus from '#lib/icons/grid-square-circle-plus.svelte';
+	import InboxArrowUp from '#lib/icons/inbox-arrow-up.svelte';
+	import FileClip from '#lib/icons/file-clip.svelte';
+	import SuitcaseClock from '#lib/icons/suitcase-clock.svelte';
+	import UmbrellaBeach from '#lib/icons/umbrella-beach.svelte';
+	import Grid2 from '#lib/icons/grid-2.svelte';
+	import BellDot from '#lib/icons/bell-dot.svelte';
+	import PriorityMedium2 from '#lib/icons/priority-medium-2.svelte';
+	import Wip from '#lib/icons/wip.svelte';
+	import Ticket from '#lib/icons/ticket.svelte';
+	import People from '#lib/icons/people.svelte';
 
 	const { children } = $props();
 
