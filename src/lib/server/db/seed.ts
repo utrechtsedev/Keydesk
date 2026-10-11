@@ -1,4 +1,4 @@
-import { db } from './database.js';
+import { assertDatabaseUrl, db } from './database.js';
 import { sql } from 'drizzle-orm';
 import * as schema from './schema/index.js';
 import type {
@@ -1212,6 +1212,7 @@ function parseArgs(): SeederOptions {
 	return options;
 }
 
+assertDatabaseUrl();
 const options = parseArgs();
 const seeder = new DatabaseSeeder(options);
 

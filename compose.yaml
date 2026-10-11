@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: keydesk
+      POSTGRES_PASSWORD: keydesk
+      POSTGRES_DB: keydesk
+    ports:
+      - '5433:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+
+volumes:
+  db:

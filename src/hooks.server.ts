@@ -1,16 +1,25 @@
-import { auth } from '#lib/server/auth.js';
+import { getAuth } from '#lib/server/auth.js';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building, dev } from '$app/env';
 import { logger } from '#lib/server/logger.js';
 import { AppError } from '#lib/server/errors.js';
 import { initQueue, registerWorkers } from '#lib/server/queue.js';
-import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
-import { db } from '#lib/server/db/database.js';
+import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
+import { assertDatabaseUrl, db } from '#lib/server/db/database.js';
 
-await initQueue();
-await registerWorkers();
+export const init: ServerInit = async () => {
+	// Only prerendering runs this during a build; there is nothing to queue then
+	if (building) return;
+
+	assertDatabaseUrl();
+	// Created here so a missing BETTER_AUTH_SECRET stops the server at startup, not on the first request
+	getAuth();
+	await initQueue();
+	await registerWorkers();
+};
 
 export const handle: Handle = async ({ event, resolve }) => {
+	const auth = getAuth();
 	const session = await auth.api.getSession({
 		headers: event.request.headers
 	});

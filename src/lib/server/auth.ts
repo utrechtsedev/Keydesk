@@ -9,72 +9,85 @@ import * as schema from './db/schema/index.js';
 import { redirect } from '@sveltejs/kit';
 import type { User } from '#lib/types/index.js';
 
-export const auth = betterAuth({
-	database: drizzleAdapter(db, {
-		provider: 'pg',
-		schema: {
-			user: schema.user,
-			verification: schema.verification,
-			account: schema.account,
-			session: schema.session
-		}
-	}),
-	advanced: {
-		database: {
-			generateId: 'serial'
-		}
-	},
-	plugins: [
-		magicLink({
-			sendMagicLink: async ({ email, url }: { email: string; url: string }): Promise<void> => {
-				sendEmail(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`);
+function createAuth() {
+	return betterAuth({
+		database: drizzleAdapter(db, {
+			provider: 'pg',
+			schema: {
+				user: schema.user,
+				verification: schema.verification,
+				account: schema.account,
+				session: schema.session
 			}
 		}),
-		admin({
-			adminRoles: ['admin']
-		}),
-		sveltekitCookies(getRequestEvent)
-	],
-	emailAndPassword: {
-		enabled: true,
-		requireEmailVerification: true,
-		autoSignIn: false
-	},
-	emailVerification: {
-		sendOnSignUp: true,
-		sendVerificationEmail: async ({
-			user,
-			url
-		}: {
-			user: BetterAuthUser;
-			url: string;
-		}): Promise<void> => {
-			sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
-		}
-	},
-	user: {
-		additionalFields: {
-			notificationPreferences: {
-				type: 'json',
-				required: false,
-				defaultValue: {
-					dashboard: {
-						ticketCreated: true,
-						itemAssigned: true,
-						itemUpdated: true,
-						itemClosed: true
-					},
-					email: {
-						ticketCreated: true,
-						itemAssigned: true,
-						itemUpdated: true,
-						itemClosed: true
+		advanced: {
+			database: {
+				generateId: 'serial'
+			}
+		},
+		plugins: [
+			magicLink({
+				sendMagicLink: async ({ email, url }: { email: string; url: string }): Promise<void> => {
+					sendEmail(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`);
+				}
+			}),
+			admin({
+				adminRoles: ['admin']
+			}),
+			sveltekitCookies(getRequestEvent)
+		],
+		emailAndPassword: {
+			enabled: true,
+			requireEmailVerification: true,
+			autoSignIn: false
+		},
+		emailVerification: {
+			sendOnSignUp: true,
+			sendVerificationEmail: async ({
+				user,
+				url
+			}: {
+				user: BetterAuthUser;
+				url: string;
+			}): Promise<void> => {
+				sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
+			}
+		},
+		user: {
+			additionalFields: {
+				notificationPreferences: {
+					type: 'json',
+					required: false,
+					defaultValue: {
+						dashboard: {
+							ticketCreated: true,
+							itemAssigned: true,
+							itemUpdated: true,
+							itemClosed: true
+						},
+						email: {
+							ticketCreated: true,
+							itemAssigned: true,
+							itemUpdated: true,
+							itemClosed: true
+						}
 					}
 				}
 			}
 		}
-	}
-});
+	});
+}
+
+let instance: ReturnType<typeof createAuth> | undefined;
+
+/**
+ * Creates the auth instance on first use instead of at import: better-auth requires
+ * BETTER_AUTH_SECRET when it is created, and the build has no secrets.
+ */
+export function getAuth() {
+	instance ??= createAuth();
+	return instance;
+}
 
 export function requireAuth(locals: App.Locals): { user: User; session: Session } {
 	if (!locals.user || !locals.session) {

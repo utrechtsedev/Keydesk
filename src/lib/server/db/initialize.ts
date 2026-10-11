@@ -1,4 +1,4 @@
-import { db } from './database.js';
+import { assertDatabaseUrl, db } from './database.js';
 import { sql } from 'drizzle-orm';
 import * as schema from './schema/index.js';
 
@@ -324,6 +324,7 @@ class DatabaseInitializer {
 }
 
 // Run the initializer
+assertDatabaseUrl();
 const initializer = new DatabaseInitializer();
 
 initializer.initialize()

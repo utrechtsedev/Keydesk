@@ -2,7 +2,11 @@ import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { loadEnv } from 'vite';
+import { defineConfig } from 'vitest/config';
+
+// TEST_ variables come from .env.test locally and from the environment in CI
+const testEnv = loadEnv('test', process.cwd(), 'TEST_');
 
 export default defineConfig({
 	plugins: [
@@ -17,5 +21,17 @@ export default defineConfig({
 			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 			adapter: adapter()
 		})
-	]
+	],
+	test: {
+		include: ['src/**/*.test.ts'],
+		environment: 'node',
+		globalSetup: ['test/global-setup.ts'],
+		env: {
+			DATABASE_URL: testEnv.TEST_DATABASE_URL,
+			ENCRYPTION_KEY: testEnv.TEST_ENCRYPTION_KEY
+		},
+		// Test files share one database, so they run one after another
+		fileParallelism: false,
+		expect: { requireAssertions: true }
+	}
 });
