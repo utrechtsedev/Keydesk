@@ -4,6 +4,7 @@ import { systemDb, withTenant, type TenantDb } from '#lib/server/db/database.js'
 import * as schema from '#lib/server/db/schema/index.js';
 import { createOrganizationDefaults } from '#lib/server/db/initialize.js';
 import { allocateTicketNumber } from '#lib/server/services/ticket.service.js';
+import { defaultNotificationPreferences } from '#lib/server/services/user.service.js';
 import { hashPassword } from '#lib/utils/password.js';
 
 export const appUrl = inject('appUrl');
@@ -48,11 +49,6 @@ export function inOrganization<T>(
 	return withTenant(organization.id, work);
 }
 
-const notificationPreferences = {
-	dashboard: { ticketCreated: true, itemAssigned: true, itemUpdated: true, itemClosed: true },
-	email: { ticketCreated: true, itemAssigned: true, itemUpdated: true, itemClosed: true }
-};
-
 export async function createUser(
 	organization: TestOrganization,
 	role: 'admin' | 'user' = 'user',
@@ -67,7 +63,7 @@ export async function createUser(
 				emailVerified: true,
 				role,
 				banned: false,
-				notificationPreferences
+				notificationPreferences: defaultNotificationPreferences
 			})
 			.returning();
 		return user;
@@ -99,11 +95,15 @@ export async function signIn(organization: TestOrganization, role: 'admin' | 'us
 		throw new Error(`Sign-in failed with ${response.status}: ${await response.text()}`);
 	}
 
-	const cookie = response.headers
+	return { browser: new Browser(cookies(response)), user };
+}
+
+/** The cookies a response sets, as a browser would send them back */
+export function cookies(response: Response): string {
+	return response.headers
 		.getSetCookie()
 		.map((header) => header.split(';')[0])
 		.join('; ');
-	return { browser: new Browser(cookie), user };
 }
 
 /** The organization's default status and priority */

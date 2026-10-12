@@ -5,6 +5,7 @@ import { assertDatabaseUrl, systemDb, withTenant } from './database.js';
 import * as schema from './schema/index.js';
 import { createOrganizationDefaults } from './initialize.js';
 import { hashPassword } from '../../utils/password.js';
+import { defaultNotificationPreferences } from '../services/user.service.js';
 
 /**
  * Creates an organization with its default settings and its first admin, and prints a generated
@@ -46,15 +47,7 @@ async function main(): Promise<void> {
 					email: adminEmail,
 					emailVerified: true,
 					role: 'admin',
-					notificationPreferences: {
-						dashboard: {
-							ticketCreated: true,
-							itemAssigned: true,
-							itemUpdated: true,
-							itemClosed: true
-						},
-						email: { ticketCreated: true, itemAssigned: true, itemUpdated: true, itemClosed: true }
-					}
+					notificationPreferences: defaultNotificationPreferences
 				})
 				.returning();
 			return admin;

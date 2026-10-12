@@ -1,21 +1,31 @@
 <script lang="ts">
 	import * as Table from '#lib/components/ui/table/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
-	import type { PageData, User } from '#lib/types/index.js';
-	import { Button } from '#lib/components/ui/button/index.js';
+	import type { PageProps } from './$types';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { authClient } from '#lib/auth-client.js';
+	import api from '#lib/utils/axios.js';
 	import { toast } from 'svelte-sonner';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { goto, invalidate } from '$app/navigation';
 	import { ConfirmDialog, confirmDialog } from '#lib/components/ui/confirm-dialog/index.js';
+	import InviteUser from '#lib/components/settings/invite-user.svelte';
+	import InvitationLink from '#lib/components/settings/invitation-link.svelte';
 	import Dots from '#lib/icons/dots.svelte';
+	import Plus from '#lib/icons/plus.svelte';
 
-	let { data }: { data: PageData & { users: User[] } } = $props();
+	let { data }: PageProps = $props();
+
+	type ListedUser = (typeof data.users)[number];
 
 	let searchTerm = $state('');
 	let currentPage = $state(0);
 	const pageSize = 10;
+	let inviteOpen = $state(false);
+	/** A renewed invitation link the admin passes on, because the email couldn't be sent */
+	let renewedInvitationUrl = $state<string>();
 
 	let filteredUsers = $derived(
 		data.users.filter(
@@ -53,32 +63,49 @@
 		const { error } = await authClient.admin.impersonateUser({
 			userId
 		});
-		if (error?.message) toast.error(error.message);
+		if (error) {
+			toast.error(error.message ?? 'Could not impersonate this user.');
+			return;
+		}
 		window.location.href = '/dashboard';
 	}
 
-	async function disableUser(userId: number) {
-		const { data, error } = await authClient.admin.banUser({
-			userId
-		});
-		if (error?.message) toast.error(error.message);
-		if (data) toast.success(`Succesfully disabled ${data.user.name}`);
-		invalidate('app:users');
+	async function setDisabled(user: ListedUser, banned: boolean) {
+		await api.patch(`/api/settings/users/${user.id}`, { banned });
+		toast.success(`${banned ? 'Disabled' : 'Enabled'} ${user.name}.`);
+		await invalidate('app:users');
 	}
 
-	async function enableUser(userId: number) {
-		const { data, error } = await authClient.admin.unbanUser({
-			userId
+	async function resendInvitation(user: ListedUser) {
+		const { data: result } = await api.post(`/api/settings/users/${user.id}/invitation`);
+		await invalidate('app:users');
+		if (result.emailSent) {
+			toast.success(`Sent a new invitation to ${user.email}.`);
+		} else {
+			renewedInvitationUrl = result.invitationUrl;
+		}
+	}
+
+	function deleteUser(user: ListedUser) {
+		confirmDialog({
+			title: 'Delete User',
+			description: `Delete ${user.name}? Their tickets and tasks stay, without an assignee.`,
+			onConfirm: async () => {
+				await api.delete(`/api/settings/users/${user.id}`);
+				toast.success(`Deleted ${user.name}.`);
+				await invalidate('app:users');
+			}
 		});
-		if (error?.message) toast.error(error.message);
-		if (data) toast.success(`Succesfully enabled ${data.user.name}`);
-		invalidate('app:users');
 	}
 </script>
 
 <div class="w-full">
-	<div class="flex items-center px-4 pb-4">
+	<div class="flex items-center justify-between gap-2 px-4 pb-4">
 		<Input placeholder="Search by name or email..." bind:value={searchTerm} class="max-w-sm" />
+		<Button onclick={() => (inviteOpen = true)} variant="secondary">
+			<Plus />
+			Invite User
+		</Button>
 	</div>
 
 	<div class="border-y">
@@ -99,6 +126,13 @@
 							{user.name}
 							{#if user.banned}
 								<Badge>Disabled</Badge>
+							{/if}
+							{#if user.invitationExpiresAt}
+								<Badge variant="outline">
+									{new Date(user.invitationExpiresAt) < new Date()
+										? 'Invitation expired'
+										: 'Invited'}
+								</Badge>
 							{/if}
 						</Table.Cell>
 						<Table.Cell>{user.email}</Table.Cell>
@@ -121,38 +155,25 @@
 											Edit User
 										</DropdownMenu.Item>
 									</DropdownMenu.Group>
-									<DropdownMenu.Separator />
-									<DropdownMenu.Item onclick={() => impersonateUser(user.id)}>
-										Impersonate
-									</DropdownMenu.Item>
-
-									{#if !user.banned}
-										<DropdownMenu.Item onclick={() => disableUser(user.id)}>
-											Disable User
-										</DropdownMenu.Item>
-									{:else}
-										<DropdownMenu.Item onclick={() => enableUser(user.id)}>
-											Enable User
+									{#if user.invitationExpiresAt}
+										<DropdownMenu.Item onclick={() => resendInvitation(user)}>
+											Resend Invitation
 										</DropdownMenu.Item>
 									{/if}
-									<DropdownMenu.Item
-										onclick={() => {
-											confirmDialog({
-												title: 'Delete User',
-												description: 'Are you sure you want to delete this user?',
-												onConfirm: async () => {
-													const { data, error } = await authClient.admin.removeUser({
-														userId: user.id
-													});
-													if (error?.message) toast.error(error.message);
-													if (data) toast.success(`Succesfully deleted ${user.name}`);
-													invalidate('app:users');
-												}
-											});
-										}}
-									>
-										Delete User
-									</DropdownMenu.Item>
+									{#if user.id !== data.user.id}
+										<DropdownMenu.Separator />
+										{#if user.role !== 'admin'}
+											<DropdownMenu.Item onclick={() => impersonateUser(user.id)}>
+												Impersonate
+											</DropdownMenu.Item>
+										{/if}
+										<DropdownMenu.Item onclick={() => setDisabled(user, !user.banned)}>
+											{user.banned ? 'Enable User' : 'Disable User'}
+										</DropdownMenu.Item>
+										<DropdownMenu.Item onclick={() => deleteUser(user)}>
+											Delete User
+										</DropdownMenu.Item>
+									{/if}
 								</DropdownMenu.Content>
 							</DropdownMenu.Root>
 						</Table.Cell>
@@ -192,3 +213,23 @@
 </div>
 
 <ConfirmDialog />
+<InviteUser bind:open={inviteOpen} />
+
+<Dialog.Root
+	open={renewedInvitationUrl !== undefined}
+	onOpenChange={(open) => {
+		if (!open) renewedInvitationUrl = undefined;
+	}}
+>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>New invitation link</Dialog.Title>
+		</Dialog.Header>
+		{#if renewedInvitationUrl}
+			<InvitationLink url={renewedInvitationUrl} />
+		{/if}
+		<Dialog.Footer>
+			<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Done</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

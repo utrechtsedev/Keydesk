@@ -22,6 +22,13 @@
       "when": 1791812740952,
       "tag": "20261012134540_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791828173742,
+      "tag": "20261012180253_invitations",
+      "breakpoints": true
     }
   ]
 }

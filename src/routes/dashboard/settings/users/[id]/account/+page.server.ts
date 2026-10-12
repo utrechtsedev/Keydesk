@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { requireAuth } from '#lib/server/auth.js';
 
@@ -9,6 +10,8 @@ export const load: PageServerLoad = async ({ depends, params, locals }) => {
 	const targetUser = await db.query.user.findFirst({
 		where: (users, { eq }) => eq(users.id, id)
 	});
+	if (!targetUser) error(404, 'User not found');
+
 	return {
 		targetUser
 	};
