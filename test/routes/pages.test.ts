@@ -1,13 +1,13 @@
 import { readdirSync } from 'node:fs';
 import { basename, dirname, sep } from 'node:path';
 import { afterAll, beforeAll, expect, it } from 'vitest';
-import { systemDb } from '#lib/server/db/database.js';
 import {
 	Browser,
 	createOrganization,
 	createTask,
 	createTicket,
 	signIn,
+	systemDb,
 	type TestOrganization
 } from '../app.js';
 

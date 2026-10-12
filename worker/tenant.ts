@@ -1,4 +1,10 @@
-import { withTenant, type TenantDb } from '#lib/server/db/database.js';
+import {
+	connect,
+	databaseUrl,
+	withTenant,
+	type SystemDb,
+	type TenantDb
+} from '#lib/server/db/database.js';
 
 /**
  * Until mailboxes arrive, this worker reads one IMAP inbox for one organization: the one in
@@ -12,7 +18,11 @@ export function workerOrganizationId(): number {
 	return organizationId;
 }
 
+/** The worker is one long-running Node process, so it keeps one connection pool */
+let systemDb: SystemDb | undefined;
+
 /** Runs database work in a tenant transaction of the worker's organization */
 export function inOrganization<T>(work: (db: TenantDb) => Promise<T>): Promise<T> {
-	return withTenant(workerOrganizationId(), work);
+	systemDb ??= connect(databaseUrl());
+	return withTenant(systemDb, workerOrganizationId(), work);
 }

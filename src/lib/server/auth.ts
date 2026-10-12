@@ -2,10 +2,11 @@ import { betterAuth, type Session, type User as BetterAuthUser } from 'better-au
 import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
 import { admin, magicLink } from 'better-auth/plugins';
 import { inArray } from 'drizzle-orm';
-import { sendEmailToUser } from './email/email';
+import { sendEmailToUser } from './email/email.js';
+import { messageEmail } from './email/compose.js';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
-import { systemDb, type TenantDb } from './db/database';
+import type { SystemDb, TenantDb } from './db/database.js';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import * as schema from './db/schema/index.js';
 import { redirect } from '@sveltejs/kit';
@@ -17,30 +18,38 @@ import { defaultNotificationPreferences } from './services/user.service.js';
  * its own endpoints, in the admin's tenant transaction, and uses the plugin only to impersonate a
  * user of the admin's own organization (and to stop again).
  */
-const limitAdminEndpoints = createAuthMiddleware(async (ctx) => {
-	if (!ctx.path.startsWith('/admin/') || ctx.path === '/admin/stop-impersonating') return;
-	if (ctx.path !== '/admin/impersonate-user') {
-		throw new APIError('FORBIDDEN', { message: 'Users are managed under Settings > Users.' });
-	}
+const limitAdminEndpoints = (systemDb: SystemDb) =>
+	createAuthMiddleware(async (ctx) => {
+		if (!ctx.path.startsWith('/admin/') || ctx.path === '/admin/stop-impersonating') return;
+		if (ctx.path !== '/admin/impersonate-user') {
+			throw new APIError('FORBIDDEN', { message: 'Users are managed under Settings > Users.' });
+		}
 
-	// The body isn't validated yet: only an id that the endpoint will read the same way passes
-	const requestedId: unknown = ctx.body?.userId;
-	const targetId = Number(requestedId);
-	const session = await getSessionFromCtx(ctx);
-	if (!session || !Number.isSafeInteger(targetId) || String(targetId) !== String(requestedId)) {
-		throw new APIError('FORBIDDEN');
-	}
+		// The body isn't validated yet: only an id that the endpoint will read the same way passes
+		const requestedId: unknown = ctx.body?.userId;
+		const targetId = Number(requestedId);
+		const session = await getSessionFromCtx(ctx);
+		if (!session || !Number.isSafeInteger(targetId) || String(targetId) !== String(requestedId)) {
+			throw new APIError('FORBIDDEN');
+		}
 
-	const users = await systemDb
-		.select({ organizationId: schema.user.organizationId })
-		.from(schema.user)
-		.where(inArray(schema.user.id, [Number(session.user.id), targetId]));
-	if (users.length !== 2 || users[0].organizationId !== users[1].organizationId) {
-		throw new APIError('FORBIDDEN');
-	}
-});
+		const users = await systemDb
+			.select({ organizationId: schema.user.organizationId })
+			.from(schema.user)
+			.where(inArray(schema.user.id, [Number(session.user.id), targetId]));
+		if (users.length !== 2 || users[0].organizationId !== users[1].organizationId) {
+			throw new APIError('FORBIDDEN');
+		}
+	});
 
-function createAuth() {
+/** How long a sign-in link from the login page works */
+const MAGIC_LINK_MINUTES = 5;
+
+/**
+ * better-auth for one request (or other unit of work), on that request's database connection;
+ * see `connect`. Creating it takes a fraction of a millisecond.
+ */
+export function createAuth(systemDb: SystemDb) {
 	return betterAuth({
 		// Signing in looks users up across organizations, so better-auth uses the owner connection
 		database: drizzleAdapter(systemDb, {
@@ -58,14 +67,25 @@ function createAuth() {
 			}
 		},
 		hooks: {
-			before: limitAdminEndpoints
+			before: limitAdminEndpoints(systemDb)
 		},
 		plugins: [
 			magicLink({
 				// Nobody signs themselves up: a magic link only signs in an existing account
 				disableSignUp: true,
+				expiresIn: MAGIC_LINK_MINUTES * 60,
 				sendMagicLink: async ({ email, url }: { email: string; url: string }): Promise<void> => {
-					await sendEmailToUser(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`);
+					await sendEmailToUser(systemDb, email, (organization) =>
+						messageEmail({
+							organization,
+							subject: `Sign in to ${organization.name}`,
+							title: `Sign in to ${organization.name}`,
+							message: `Use the button below to sign in to Keydesk. The link works once, for ${MAGIC_LINK_MINUTES} minutes.`,
+							action: { label: 'Sign in', url },
+							footer:
+								"You're receiving this email because someone asked to sign in with this address. If that wasn't you, you can ignore it."
+						})
+					);
 				}
 			}),
 			admin({
@@ -88,7 +108,17 @@ function createAuth() {
 				user: BetterAuthUser;
 				url: string;
 			}): Promise<void> => {
-				await sendEmailToUser(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
+				await sendEmailToUser(systemDb, user.email, (organization) =>
+					messageEmail({
+						organization,
+						subject: 'Confirm your email address',
+						title: 'Confirm your email address',
+						message: `Confirm that this is your email address for ${organization.name} on Keydesk.`,
+						action: { label: 'Confirm email address', url },
+						footer:
+							"You're receiving this email because this address was used for a Keydesk account."
+					})
+				);
 			}
 		},
 		user: {
@@ -103,15 +133,16 @@ function createAuth() {
 	});
 }
 
-let instance: ReturnType<typeof createAuth> | undefined;
+export type Auth = ReturnType<typeof createAuth>;
 
 /**
- * Creates the auth instance on first use instead of at import: better-auth requires
- * BETTER_AUTH_SECRET when it is created, and the build has no secrets.
+ * better-auth signs sessions with BETTER_AUTH_SECRET. The server checks it at startup, so a
+ * missing secret stops it there instead of failing the first request.
  */
-export function getAuth() {
-	instance ??= createAuth();
-	return instance;
+export function assertAuthSecret(): void {
+	if (!process.env.BETTER_AUTH_SECRET) {
+		throw new Error('BETTER_AUTH_SECRET is not set.');
+	}
 }
 
 /**

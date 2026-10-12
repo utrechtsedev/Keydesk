@@ -12,7 +12,7 @@ import { logger } from '#lib/server/logger.js';
 import type { TenantDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq, inArray } from 'drizzle-orm';
-import { generateEmailTemplate, sendEmail } from '#lib/server/email/index.js';
+import { notificationEmail, sendEmail } from '#lib/server/email/index.js';
 
 /** Notifications for one organization, written through its tenant transaction */
 export class NotificationService {
@@ -387,19 +387,10 @@ export class NotificationService {
 
 							if (channel === 'email') {
 								try {
-									const emailHtml = generateEmailTemplate({
-										options,
-										organization,
-										recipientEmail: user.email,
-										actionUrl
-									});
-
 									await sendEmail(
 										this.db,
-										this.organizationId,
 										user.email,
-										options.title,
-										emailHtml
+										notificationEmail(options, organization, actionUrl)
 									);
 									logger.info(`Email sent successfully to ${user.email}`);
 								} catch (emailError) {
@@ -469,19 +460,10 @@ export class NotificationService {
 		}
 
 		try {
-			const emailHtml = generateEmailTemplate({
-				options,
-				organization,
-				recipientEmail: options.recipient.email,
-				actionUrl
-			});
-
 			await sendEmail(
 				this.db,
-				this.organizationId,
 				options.recipient.email,
-				options.title,
-				emailHtml
+				notificationEmail(options, organization, actionUrl)
 			);
 			logger.info(`External email sent successfully to ${options.recipient.email}`);
 		} catch (emailError) {

@@ -55,11 +55,19 @@ export default defineConfig(
 					paths: [
 						{
 							name: '#lib/server/db/database.js',
-							importNames: ['systemDb', 'withTenant'],
+							importNames: ['connect', 'withTenant'],
 							message:
 								"Use the db from requireAuth(locals), which only sees the user's organization."
 						}
 					]
+				}
+			],
+			'no-restricted-syntax': [
+				'error',
+				{
+					selector: "MemberExpression[property.name='systemDb']",
+					message:
+						"Use the db from requireAuth(locals), which only sees the user's organization. The owner connection is for work outside any organization; say why where it is used."
 				}
 			]
 		}

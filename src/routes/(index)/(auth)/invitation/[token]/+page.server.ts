@@ -1,16 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { isAPIError } from 'better-auth/api';
 import type { Actions, PageServerLoad } from './$types';
-import { getAuth } from '#lib/server/auth.js';
 import { passwordSchema } from '#lib/server/db/schema/index.js';
 import { acceptInvitation, findInvitation } from '#lib/server/services/invitation.service.js';
 
-export const load: PageServerLoad = async ({ params }) => {
-	return { invitation: await findInvitation(params.token) };
+// Whoever opens an invitation isn't signed in yet, so there is no organization: the token is
+// looked up as the owner
+export const load: PageServerLoad = async ({ params, locals }) => {
+	// eslint-disable-next-line no-restricted-syntax
+	return { invitation: await findInvitation(locals.systemDb, params.token) };
 };
 
 export const actions: Actions = {
-	default: async ({ params, request }) => {
+	default: async ({ params, request, locals }) => {
 		const form = await request.formData();
 		const password = passwordSchema.safeParse(form.get('password'));
 		if (!password.success) {
@@ -20,14 +22,15 @@ export const actions: Actions = {
 			return fail(400, { message: "The passwords don't match." });
 		}
 
-		const email = await acceptInvitation(params.token, password.data);
+		// eslint-disable-next-line no-restricted-syntax
+		const email = await acceptInvitation(locals.systemDb, params.token, password.data);
 		if (!email) {
 			return fail(410, { message: 'This invitation has expired or has already been used.' });
 		}
 
 		// Signs the new user in; better-auth's SvelteKit plugin sets the session cookie
 		try {
-			await getAuth().api.signInEmail({
+			await locals.auth.api.signInEmail({
 				body: { email, password: password.data },
 				headers: request.headers
 			});

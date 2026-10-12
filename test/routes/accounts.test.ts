@@ -1,8 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq, like } from 'drizzle-orm';
-import { systemDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
-import { Browser } from '../app.js';
+import { Browser, systemDb } from '../app.js';
 
 afterAll(async () => {
 	await systemDb.$client.end();

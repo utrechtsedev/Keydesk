@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { systemDb, type TenantDb } from '#lib/server/db/database.js';
+import type { SystemDb, TenantDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import type { NotificationPreferences } from '#lib/types/index.js';
 
@@ -14,7 +14,11 @@ export const defaultNotificationPreferences = {
  * the tenant role's reach, so they are deleted as the owner, after the tenant transaction has
  * shown that the user belongs to its organization.
  */
-export async function revokeSessions(db: TenantDb, userId: number): Promise<void> {
+export async function revokeSessions(
+	db: TenantDb,
+	systemDb: SystemDb,
+	userId: number
+): Promise<void> {
 	const [user] = await db
 		.select({ id: schema.user.id })
 		.from(schema.user)

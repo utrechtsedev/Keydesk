@@ -47,7 +47,9 @@ export const PATCH: RequestHandler = async ({ request, params, locals }): Promis
 	}
 
 	if (changes.banned) {
-		await revokeSessions(db, id);
+		// Sessions are better-auth's, outside the organization's tables
+		// eslint-disable-next-line no-restricted-syntax
+		await revokeSessions(db, locals.systemDb, id);
 	}
 
 	return Response.json({
