@@ -1,0 +1,33 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "keydesk-mail",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": { "enabled": true },
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			// The same Hyperdrive configuration as the app; see the README before deploying
+			"id": "00000000000000000000000000000000",
+			"localConnectionString": "postgres://keydesk:keydesk@localhost:5433/keydesk"
+		}
+	],
+	"queues": {
+		"consumers": [
+			{
+				"queue": "keydesk-jobs",
+				"max_batch_size": 10,
+				"max_retries": 3,
+				"dead_letter_queue": "keydesk-jobs-failed"
+			}
+		]
+	},
+	"vars": {
+		// Links in emails point here
+		"APP_URL": "http://localhost:5173"
+	},
+	"secrets": {
+		"required": ["ENCRYPTION_KEY"]
+	}
+}

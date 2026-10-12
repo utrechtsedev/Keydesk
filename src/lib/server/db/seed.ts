@@ -832,7 +832,7 @@ class DatabaseSeeder {
 				messageId: messageId,
 				fileName: `${hashedName}.${fileType.ext}`,
 				originalFileName: `${fileName}.${fileType.ext}`,
-				filePath: `/uploads/tickets/${ticketId}/${hashedName}.${fileType.ext}`,
+				storageKey: `organizations/${this.organizationId}/attachments/${hashedName}.${fileType.ext}`,
 				fileSize: fileSize,
 				mimeType: fileType.mime,
 				uploadedByType: uploaderType,

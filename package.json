@@ -5,9 +5,11 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"dev:mail": "vite dev workers/mail",
 		"build": "vite build",
+		"build:mail": "vite build workers/mail",
 		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
+		"prepare": "svelte-kit sync && bun run cf-typegen || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
@@ -17,12 +19,15 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:seed": "bun src/lib/server/db/seed.ts",
-		"org:create": "bun src/lib/server/db/create-organization.ts"
+		"org:create": "bun src/lib/server/db/create-organization.ts",
+		"cf-typegen": "wrangler types --include-env=false && wrangler types -c workers/mail/wrangler.jsonc --strict-vars=false workers/mail/worker-configuration.d.ts",
+		"check:mail": "svelte-check --tsconfig ./workers/mail/tsconfig.json"
 	},
 	"devDependencies": {
+		"@cloudflare/vite-plugin": "^1.63.1",
 		"@eslint/js": "^10.0.1",
 		"@internationalized/date": "^3.12.4",
-		"@sveltejs/adapter-auto": "^8.0.0",
+		"@sveltejs/adapter-cloudflare": "^8.0.0",
 		"@sveltejs/kit": "^3.0.1",
 		"@sveltejs/load-config": "^0.2.2",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
@@ -53,7 +58,8 @@
 		"typescript": "~6.0.3",
 		"typescript-eslint": "^8.71.1",
 		"vite": "^8.3.4",
-		"vitest": "^5.0.3"
+		"vitest": "^5.0.3",
+		"wrangler": "^4.149.0"
 	},
 	"dependencies": {
 		"@dnd-kit-svelte/sortable": "^0.0.11",
@@ -73,7 +79,6 @@
 		"mode-watcher": "^1.1.0",
 		"nodemailer": "^10.1.0",
 		"pg": "^8.23.1",
-		"pg-boss": "^12.37.1",
 		"sanitize-html": "^2.18.0",
 		"svelte-sonner": "^1.2.1",
 		"zod": "^4.6.5"

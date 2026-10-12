@@ -1,0 +1,31 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "keydesk",
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".svelte-kit/cloudflare"
+	},
+	"observability": { "enabled": true },
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			// Created with `wrangler hyperdrive create`, with caching disabled; see the README
+			"id": "00000000000000000000000000000000",
+			"localConnectionString": "postgres://keydesk:keydesk@localhost:5433/keydesk"
+		}
+	],
+	"r2_buckets": [{ "binding": "ATTACHMENTS", "bucket_name": "keydesk-attachments" }],
+	"queues": {
+		"producers": [{ "binding": "JOBS", "queue": "keydesk-jobs" }]
+	},
+	"vars": {
+		// Sign-in and invitation links point here
+		"APP_URL": "http://localhost:5173"
+	},
+	"secrets": {
+		"required": ["BETTER_AUTH_SECRET", "ENCRYPTION_KEY"]
+	}
+}

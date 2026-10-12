@@ -39,18 +39,21 @@ function invite(values: Record<string, string> = {}) {
 	});
 }
 
+/** What the invite endpoint answers */
+interface Invited {
+	data: { id: number; email: string };
+	emailSent: boolean;
+	invitationUrl: string;
+}
+
 const tokenOf = (invitationUrl: string) => new URL(invitationUrl).pathname.split('/').at(-1)!;
 
 /** Invites a user; the tests have no mail settings, so the response carries the link */
 async function invitedUser() {
 	const response = await invite();
 	expect(response.status).toBe(201);
-	const body = await response.json();
-	return {
-		id: body.data.id as number,
-		email: body.data.email as string,
-		token: tokenOf(body.invitationUrl)
-	};
+	const body = (await response.json()) as Invited;
+	return { id: body.data.id, email: body.data.email, token: tokenOf(body.invitationUrl) };
 }
 
 /** Submits the invitation page's form the way a browser does */
@@ -87,7 +90,7 @@ describe('inviting a user', () => {
 		});
 
 		expect(response.status).toBe(201);
-		const body = await response.json();
+		const body = (await response.json()) as Invited;
 		expect(body.emailSent).toBe(false);
 		expect(body.invitationUrl).toMatch(/\/invitation\/[\w-]{43}$/);
 		expect(await findUser(body.data.id)).toMatchObject({
@@ -187,7 +190,7 @@ describe('resending an invitation', () => {
 		const response = await admin.fetch(`/api/settings/users/${id}/invitation`, { method: 'POST' });
 
 		expect(response.status).toBe(200);
-		const { invitationUrl } = await response.json();
+		const { invitationUrl } = (await response.json()) as Invited;
 		expect((await setPassword(token, password)).status).toBe(410);
 		expect((await setPassword(tokenOf(invitationUrl), password)).status).toBe(303);
 	});

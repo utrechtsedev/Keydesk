@@ -7,6 +7,9 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+/workers/mail/dist
+# Generated from the Wrangler configuration by `bun run cf-typegen`, which `bun install` runs
+worker-configuration.d.ts
 
 # OS
 .DS_Store

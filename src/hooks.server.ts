@@ -1,32 +1,31 @@
-import 'dotenv/config';
-import { assertAuthSecret, createAuth } from '#lib/server/auth.js';
+import { env, waitUntil } from 'cloudflare:workers';
+import { assertAuthSettings, createAuth } from '#lib/server/auth.js';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building, dev } from '$app/env';
 import { logger } from '#lib/server/logger.js';
 import { AppError } from '#lib/server/errors.js';
-import { initQueue, registerWorkers } from '#lib/server/queue.js';
+import { sendQueuedJobs } from '#lib/server/queue.js';
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
-import { connect, databaseUrl, disconnect, withTenant } from '#lib/server/db/database.js';
+import { connect, disconnect, withTenant } from '#lib/server/db/database.js';
 import { refuseAccess } from '#lib/server/access.js';
 
 export const init: ServerInit = async () => {
-	// Only prerendering runs this during a build; there is nothing to queue then
+	// Only prerendering runs this during a build, without secrets
 	if (building) return;
 
-	// Checked here so missing settings stop the server at startup, not on the first request
-	databaseUrl();
-	assertAuthSecret();
-	await initQueue();
-	await registerWorkers();
+	// Checked here so a missing setting stops the app at startup, not on the first request
+	assertAuthSettings();
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
-	const systemDb = connect(databaseUrl());
+	// Hyperdrive keeps the connections to Postgres; this request's own pool lasts as long as it does
+	const systemDb = connect(env.HYPERDRIVE.connectionString);
 	try {
 		const auth = createAuth(systemDb);
 		event.locals.systemDb = systemDb;
 		event.locals.auth = auth;
 		event.locals.db = null;
+		event.locals.jobs = [];
 
 		const session = await auth.api.getSession({
 			headers: event.request.headers
@@ -44,15 +43,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const refusal = refuseAccess(event);
 		if (refusal) return refusal;
 
-		if (!signedIn) return await svelteKitHandler({ event, resolve, auth, building });
-
-		// One tenant transaction per request: its loads and endpoints only see the user's organization
-		return await withTenant(systemDb, signedIn.user.organizationId, (db) => {
-			event.locals.db = db;
-			return svelteKitHandler({ event, resolve, auth, building });
-		});
+		// One tenant transaction per signed-in request: its loads and endpoints only see the user's
+		// organization
+		const response = signedIn
+			? await withTenant(systemDb, signedIn.user.organizationId, (db) => {
+					event.locals.db = db;
+					return svelteKitHandler({ event, resolve, auth, building });
+				})
+			: await svelteKitHandler({ event, resolve, auth, building });
+		// The transaction has committed: what the request queued can go out now
+		await sendQueuedJobs(event.locals.jobs);
+		return response;
 	} finally {
-		await disconnect(systemDb);
+		waitUntil(disconnect(systemDb));
 	}
 };
 

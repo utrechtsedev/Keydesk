@@ -1,7 +1,7 @@
 import { requireAuth } from '#lib/server/auth.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { NotFoundError, ValidationError } from '#lib/server/errors.js';
-import { uploadFile } from '#lib/server/file-upload.js';
+import { storeAttachment } from '#lib/server/attachments.js';
 import type { Attachment, Ticket } from '#lib/types/index.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
@@ -142,16 +142,16 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 		}
 
 		for (const file of validatedData.files) {
-			const fileUpload = await uploadFile(file, attachmentConfig);
+			const stored = await storeAttachment(user.organizationId, file, attachmentConfig);
 
 			await tx.insert(schema.ticketAttachment).values({
 				ticketId: newTicket.id,
 				messageId: ticketMessage.id,
-				fileName: fileUpload.storedFilename,
-				originalFileName: fileUpload.originalFilename,
-				filePath: fileUpload.filePath,
-				fileSize: fileUpload.size,
-				mimeType: fileUpload.mimeType,
+				fileName: stored.fileName,
+				originalFileName: stored.originalFileName,
+				storageKey: stored.storageKey,
+				fileSize: stored.size,
+				mimeType: stored.mimeType,
 				uploadedByType: 'user',
 				uploadedById: user.id,
 				uploadedByName: user.name,
@@ -180,7 +180,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 			}
 		});
 
-		await sendNotification(user.organizationId, {
+		sendNotification(locals, user.organizationId, {
 			title: 'Ticket assigned to you',
 			message: `New ticket assigned by ${user.name}: ${validatedData.subject}`,
 			recipient: { userId: result.assigneeId },
