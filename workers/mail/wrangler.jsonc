@@ -13,6 +13,13 @@
 			"localConnectionString": "postgres://keydesk:keydesk@localhost:5433/keydesk"
 		}
 	],
+	"r2_buckets": [{ "binding": "ATTACHMENTS", "bucket_name": "keydesk-attachments" }],
+	"durable_objects": {
+		"bindings": [{ "name": "MAILBOX_SYNC", "class_name": "MailboxSync" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["MailboxSync"] }],
+	// A safety net for mailbox syncs that fell behind; see `scheduled` in src/index.ts
+	"triggers": { "crons": ["*/10 * * * *"] },
 	"queues": {
 		"consumers": [
 			{

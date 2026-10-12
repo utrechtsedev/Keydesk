@@ -19,7 +19,8 @@ import {
 	userNotification,
 	config,
 	image,
-	email
+	email,
+	mailbox
 } from './tables';
 
 // ============================================================================
@@ -81,3 +82,6 @@ export type NewImage = typeof image.$inferInsert;
 
 export type Email = typeof email.$inferSelect;
 export type NewEmail = typeof email.$inferInsert;
+
+export type Mailbox = typeof mailbox.$inferSelect;
+export type NewMailbox = typeof mailbox.$inferInsert;

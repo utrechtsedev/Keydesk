@@ -108,7 +108,7 @@ describe('bulk delete', () => {
 			.insert(schema.email)
 			.values({
 				organizationId: organization.id,
-				uid: Math.floor(Math.random() * 1_000_000_000),
+				providerMessageId: crypto.randomUUID(),
 				fromAddress: 'customer@example.com',
 				subject: ticket.subject,
 				ticketId: ticket.id

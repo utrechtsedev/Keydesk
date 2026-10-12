@@ -39,8 +39,8 @@
 			icon: InboxArrowUp
 		},
 		{
-			path: '/dashboard/settings/incoming-email',
-			name: 'Incoming Email',
+			path: '/dashboard/settings/mailboxes',
+			name: 'Mailboxes',
 			icon: Email
 		},
 		{

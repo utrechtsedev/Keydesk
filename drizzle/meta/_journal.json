@@ -36,6 +36,13 @@
       "when": 1791830339331,
       "tag": "20261012183859_attachments_in_r2",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791831326756,
+      "tag": "20261012185526_mailboxes",
+      "breakpoints": true
     }
   ]
 }

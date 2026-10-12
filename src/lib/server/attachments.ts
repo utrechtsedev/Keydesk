@@ -13,30 +13,32 @@ export interface StoredAttachment {
 }
 
 /**
- * Checks a file against the organization's attachment settings. Throws with a message for the
- * person who uploaded it.
+ * Why a file may not be attached under the organization's attachment settings, as a message for
+ * the person who sent it, or null when it may
  */
-function checkAttachment(file: File, settings: Attachment): void {
+export function attachmentProblem(
+	file: { name: string; size: number; type: string },
+	settings: Attachment
+): string | null {
 	const { maxFileSizeMB = 10, allowedMimeTypes = [], enabled = true } = settings;
 
 	if (!enabled) {
-		throw new Error('File uploads are currently disabled');
+		return 'File uploads are currently disabled';
 	}
 	if (!file.name || file.name.trim() === '') {
-		throw new Error('File must have a valid name');
+		return 'File must have a valid name';
 	}
 	if (file.size === 0) {
-		throw new Error(`File "${file.name}" is empty`);
+		return `File "${file.name}" is empty`;
 	}
 	if (file.size > maxFileSizeMB * 1024 * 1024) {
-		throw new Error(
-			`File "${file.name}" exceeds maximum size of ${maxFileSizeMB}MB (${(file.size / 1024 / 1024).toFixed(2)}MB provided)`
-		);
+		return `File "${file.name}" exceeds maximum size of ${maxFileSizeMB}MB (${(file.size / 1024 / 1024).toFixed(2)}MB provided)`;
 	}
 	const mimeType = file.type || 'application/octet-stream';
 	if (allowedMimeTypes.length > 0 && !allowedMimeTypes.includes(mimeType)) {
-		throw new Error(`File "${file.name}" has unsupported type "${mimeType}"`);
+		return `File "${file.name}" has unsupported type "${mimeType}"`;
 	}
+	return null;
 }
 
 /**
@@ -48,7 +50,10 @@ export async function storeAttachment(
 	file: File,
 	settings: Attachment
 ): Promise<StoredAttachment> {
-	checkAttachment(file, settings);
+	const problem = attachmentProblem(file, settings);
+	if (problem) {
+		throw new Error(problem);
+	}
 
 	const extension = getFileExtension(file.name);
 	const fileName = extension ? `${crypto.randomUUID()}.${extension}` : crypto.randomUUID();
@@ -72,4 +77,15 @@ export async function storeAttachment(
 /** The stored file, or null when the bucket doesn't have it */
 export function readAttachment(storageKey: string) {
 	return env.ATTACHMENTS.get(storageKey);
+}
+
+/** Keeps the source of an incoming email next to its archive row, for looking into problems later */
+export async function storeEmailSource(
+	organizationId: number,
+	emailId: number,
+	source: Uint8Array
+): Promise<void> {
+	await env.ATTACHMENTS.put(`organizations/${organizationId}/emails/${emailId}.eml`, source, {
+		httpMetadata: { contentType: 'message/rfc822' }
+	});
 }

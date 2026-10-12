@@ -6,6 +6,7 @@ import { eq, sql } from 'drizzle-orm';
 import { requireAuth } from '#lib/server/auth.js';
 import { textToHtml } from '#lib/server/html.js';
 import { NotFoundError } from '#lib/server/errors.js';
+import { queueJob } from '#lib/server/queue.js';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
 	const { user, db } = requireAuth(locals);
@@ -73,6 +74,15 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 
 		return ticketMessage;
 	});
+
+	if (!result.isPrivate) {
+		// The mail Worker emails it to the requester, from the ticket's mailbox
+		queueJob(locals, {
+			type: 'send-reply',
+			organizationId: user.organizationId,
+			ticketMessageId: result.id
+		});
+	}
 
 	return Response.json(
 		{
