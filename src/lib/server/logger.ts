@@ -1,25 +1,27 @@
 import pino from 'pino';
 
-// Readable output while developing; plain JSON in production and in tests, where Vitest runs the app
-// and pino cannot load the pino-pretty transport
+// Readable output while developing; plain JSON in production and in tests
 const isDev = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test';
 
-const pinoLogger = pino({
-  level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
-  serializers: {
-    error: pino.stdSerializers.err
-  },
-  transport: isDev
-    ? {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss',
-        ignore: 'pid,hostname'
-      }
+// pino-pretty runs in-process: pino's usual transport worker can't find it when Vite runs the app.
+// It is a development dependency, so it is only imported while developing.
+const prettyStream = isDev
+  ? (await import('pino-pretty')).default({
+      colorize: true,
+      translateTime: 'HH:MM:ss',
+      ignore: 'pid,hostname'
+    })
+  : undefined;
+
+const pinoLogger = pino(
+  {
+    level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
+    serializers: {
+      error: pino.stdSerializers.err
     }
-    : undefined,
-});
+  },
+  prettyStream ?? pino.destination(1)
+);
 
 export const logger = {
   info: (objOrMsg: object | string, msg?: string) => {
