@@ -5,6 +5,7 @@ import type { Attachment } from '#lib/types/index.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { requireAuth } from '#lib/server/auth.js';
+import { textToHtml } from '#lib/server/html.js';
 import { NotFoundError } from '#lib/server/errors.js';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
@@ -44,7 +45,8 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 				senderName: user.name,
 				senderEmail: user.email,
 				userId: user.id,
-				message: validatedData.message,
+				// Typed in a plain text field, stored and shown as HTML
+				message: textToHtml(validatedData.message),
 				isPrivate: validatedData.isPrivate,
 				channel: 'dashboard',
 				isFirstResponse: ticketMessages === 0,

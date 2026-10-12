@@ -7,6 +7,7 @@ import type { Attachment, Ticket } from '#lib/types/index.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
 import { sendNotification } from '#lib/server/queue.js';
+import { textToHtml } from '#lib/server/html.js';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
@@ -105,7 +106,8 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 				senderName: user.name,
 				senderEmail: user.email,
 				userId: user.id,
-				message: validatedData.message,
+				// Typed in a plain text field, stored and shown as HTML
+				message: textToHtml(validatedData.message),
 				isPrivate: validatedData.isPrivate,
 				channel: 'dashboard',
 				isFirstResponse: false,
