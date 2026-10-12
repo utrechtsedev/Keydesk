@@ -12,7 +12,9 @@ export type Access = 'public' | 'user' | 'admin';
  * closed until it is opened here on purpose.
  */
 export function requiredAccess(routeId: string, method: string): Access {
-	if (routeId === '/(index)/(auth)/login') return 'public';
+	if (routeId === '/(index)/(auth)/login' || routeId === '/(index)/(auth)/invitation/[token]') {
+		return 'public';
+	}
 	if (routeId === '/(index)/logo') return method === 'GET' ? 'user' : 'admin';
 	if (
 		routeId.startsWith('/(index)/api/settings/') ||

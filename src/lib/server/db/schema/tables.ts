@@ -238,6 +238,33 @@ export const verification = pgTable(
 	(table) => [index('verification_identifier_idx').on(table.identifier)]
 );
 
+/**
+ * An invited user who hasn't set a password yet. The invitation email links to the token; only
+ * its SHA-256 hash is stored. Setting the password deletes the row.
+ */
+export const invitation = pgTable(
+	'invitation',
+	{
+		id: serial('id').primaryKey(),
+		organizationId: organizationId(),
+		userId: integer('user_id')
+			.notNull()
+			.unique()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		tokenHash: varchar('token_hash', { length: 64 }).notNull().unique(),
+		expiresAt: timestamp('expires_at').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => [
+		tenantIsolation(table.organizationId),
+		sameOrganization(
+			'invitation_user_same_org_fk',
+			[table.organizationId, table.userId],
+			[user.organizationId, user.id]
+		)
+	]
+);
+
 // ============================================================================
 // APPLICATION TABLES
 // ============================================================================

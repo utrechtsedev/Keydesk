@@ -2,13 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import * as UnderlineTabs from '#lib/components/ui/underline-tabs/index.js';
-	import type { PageData } from '#lib/types/index.js';
 	import type { Snippet } from 'svelte';
 
-	const { data, children }: { data: PageData; children: Snippet } = $props();
+	const { children }: { children: Snippet } = $props();
 
-	const userId = data.user.id;
-	const basePath = `/dashboard/settings/users/${userId}`;
+	// The user being managed, not the signed-in admin
+	const basePath = $derived(`/dashboard/settings/users/${page.params.id}`);
 
 	// Determine current tab from URL
 	const currentTab = $derived(() => {

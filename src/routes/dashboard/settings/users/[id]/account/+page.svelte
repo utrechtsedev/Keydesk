@@ -15,12 +15,21 @@
 
 	// svelte-ignore state_referenced_locally
 	let targetUser = $state(data.targetUser);
+	// An admin can't change their own role or disable themselves
+	const isSelf = $derived(targetUser.id === data.user.id);
 
-	async function handleSave() {
-		await api.patch(`/api/settings/users/${data.user.id}`, { user: targetUser });
-		invalidate('app:user');
+	async function handleSave(event: MouseEvent) {
+		event.preventDefault();
+		const { name, email, role, banned, notificationPreferences } = targetUser;
+		await api.patch(`/api/settings/users/${targetUser.id}`, {
+			name,
+			email,
+			notificationPreferences,
+			...(isSelf ? {} : { role, banned })
+		});
+		await invalidate('app:user');
 
-		toast.success(`Succesfully updated ${data.user.name}`);
+		toast.success(`Saved ${targetUser.name}.`);
 	}
 </script>
 
@@ -43,7 +52,7 @@
 								id="first-name"
 								name="first-name"
 								placeholder="Emma"
-								value={targetUser.name}
+								bind:value={targetUser.name}
 							/>
 						</Field.Set>
 					</div>
@@ -56,7 +65,7 @@
 								id="email"
 								name="email"
 								placeholder="emma@company.com"
-								value={targetUser.email}
+								bind:value={targetUser.email}
 							/>
 						</Field.Set>
 					</div>
@@ -65,7 +74,7 @@
 						<Field.Set class="gap-2">
 							<Field.Label>Role</Field.Label>
 							{#if targetUser.role}
-								<Select.Root type="single" bind:value={targetUser.role}>
+								<Select.Root type="single" bind:value={targetUser.role} disabled={isSelf}>
 									<Select.Trigger class="w-[50%]">
 										{targetUser.role.charAt(0).toUpperCase() + targetUser.role.slice(1)}
 									</Select.Trigger>
@@ -82,7 +91,7 @@
 						<div class="col-span-full sm:col-span-3">
 							<Field.Set class="gap-2">
 								<Field.Label>Disabled</Field.Label>
-								<Switch bind:checked={targetUser.banned} />
+								<Switch bind:checked={targetUser.banned} disabled={isSelf} />
 							</Field.Set>
 						</div>
 					{/if}

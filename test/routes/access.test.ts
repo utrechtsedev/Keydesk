@@ -74,9 +74,12 @@ describe('route discovery', () => {
 		expect(routes.filter((route) => route.kind === 'page').length).toBeGreaterThan(20);
 	});
 
-	it('leaves only the login page open to everyone', () => {
+	it('leaves only the login and invitation pages open to everyone', () => {
 		const open = routes.filter((route) => route.access === 'public').map((route) => route.id);
-		expect([...new Set(open)]).toEqual(['/(index)/(auth)/login']);
+		expect([...new Set(open)].sort()).toEqual([
+			'/(index)/(auth)/invitation/[token]',
+			'/(index)/(auth)/login'
+		]);
 	});
 });
 

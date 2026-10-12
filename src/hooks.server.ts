@@ -24,25 +24,24 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const session = await auth.api.getSession({
 		headers: event.request.headers
 	});
-	event.locals.session = session?.session ?? null;
+	const user = session
+		? await systemDb.query.user.findFirst({
+				where: (user, { eq }) => eq(user.id, Number(session.user.id))
+			})
+		: undefined;
+	// Disabling a user also revokes their sessions; checking here keeps them out regardless
+	const signedIn = session && user && !user.banned ? { session: session.session, user } : null;
+	event.locals.user = signedIn?.user ?? null;
+	event.locals.session = signedIn?.session ?? null;
 	event.locals.db = null;
-	if (session?.user) {
-		const user = await systemDb.query.user.findFirst({
-			where: (user, { eq }) => eq(user.id, Number(session.user.id))
-		});
-		event.locals.user = user ?? null;
-	} else {
-		event.locals.user = null;
-	}
 
 	const refusal = refuseAccess(event);
 	if (refusal) return refusal;
 
-	const { user } = event.locals;
-	if (!user) return svelteKitHandler({ event, resolve, auth, building });
+	if (!signedIn) return svelteKitHandler({ event, resolve, auth, building });
 
 	// One tenant transaction per request: its loads and endpoints only see the user's organization
-	return withTenant(user.organizationId, (db) => {
+	return withTenant(signedIn.user.organizationId, (db) => {
 		event.locals.db = db;
 		return svelteKitHandler({ event, resolve, auth, building });
 	});

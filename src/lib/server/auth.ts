@@ -1,5 +1,7 @@
 import { betterAuth, type Session, type User as BetterAuthUser } from 'better-auth';
+import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
 import { admin, magicLink } from 'better-auth/plugins';
+import { inArray } from 'drizzle-orm';
 import { sendEmailToUser } from './email/email';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
@@ -8,6 +10,35 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import * as schema from './db/schema/index.js';
 import { redirect } from '@sveltejs/kit';
 import type { User } from '#lib/types/index.js';
+import { defaultNotificationPreferences } from './services/user.service.js';
+
+/**
+ * The admin plugin's endpoints act on users of every organization. Keydesk manages users through
+ * its own endpoints, in the admin's tenant transaction, and uses the plugin only to impersonate a
+ * user of the admin's own organization (and to stop again).
+ */
+const limitAdminEndpoints = createAuthMiddleware(async (ctx) => {
+	if (!ctx.path.startsWith('/admin/') || ctx.path === '/admin/stop-impersonating') return;
+	if (ctx.path !== '/admin/impersonate-user') {
+		throw new APIError('FORBIDDEN', { message: 'Users are managed under Settings > Users.' });
+	}
+
+	// The body isn't validated yet: only an id that the endpoint will read the same way passes
+	const requestedId: unknown = ctx.body?.userId;
+	const targetId = Number(requestedId);
+	const session = await getSessionFromCtx(ctx);
+	if (!session || !Number.isSafeInteger(targetId) || String(targetId) !== String(requestedId)) {
+		throw new APIError('FORBIDDEN');
+	}
+
+	const users = await systemDb
+		.select({ organizationId: schema.user.organizationId })
+		.from(schema.user)
+		.where(inArray(schema.user.id, [Number(session.user.id), targetId]));
+	if (users.length !== 2 || users[0].organizationId !== users[1].organizationId) {
+		throw new APIError('FORBIDDEN');
+	}
+});
 
 function createAuth() {
 	return betterAuth({
@@ -25,6 +56,9 @@ function createAuth() {
 			database: {
 				generateId: 'serial'
 			}
+		},
+		hooks: {
+			before: limitAdminEndpoints
 		},
 		plugins: [
 			magicLink({
@@ -62,20 +96,7 @@ function createAuth() {
 				notificationPreferences: {
 					type: 'json',
 					required: false,
-					defaultValue: {
-						dashboard: {
-							ticketCreated: true,
-							itemAssigned: true,
-							itemUpdated: true,
-							itemClosed: true
-						},
-						email: {
-							ticketCreated: true,
-							itemAssigned: true,
-							itemUpdated: true,
-							itemClosed: true
-						}
-					}
+					defaultValue: defaultNotificationPreferences
 				}
 			}
 		}

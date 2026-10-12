@@ -41,9 +41,20 @@ const notificationPreferencesSchema = z.object({
 		itemClosed: z.boolean()
 	})
 });
+/** better-auth looks users up by their lower-cased email address, so it is stored that way */
+const userEmailSchema = z.email('Invalid email address').max(255).toLowerCase();
+
+export const userRoleSchema = z.enum(['admin', 'user']);
+
+/** better-auth's default password limits, which signing in enforces */
+export const passwordSchema = z
+	.string()
+	.min(8, 'Use at least 8 characters')
+	.max(128, 'Use at most 128 characters');
+
 export const insertUserSchema = createInsertSchema(user, {
 	name: z.string().min(1, 'Name is required').max(255),
-	email: z.email('Invalid email address').max(255),
+	email: userEmailSchema,
 	emailVerified: z.boolean().default(false),
 	image: z.url('Invalid image URL').max(500).nullable().optional(),
 	role: z.string().max(50).nullable().optional(),
@@ -62,6 +73,27 @@ export const updateUserSchema = insertUserSchema
 	.refine((data) => Object.keys(data).length > 0, {
 		message: 'At least one field must be provided for update'
 	});
+/** An admin inviting someone to their organization */
+export const inviteUserSchema = z.object({
+	name: z.string().trim().min(1, 'Name is required').max(255),
+	email: userEmailSchema,
+	role: userRoleSchema
+});
+
+/** What an admin may change about a user of their organization */
+export const adminUpdateUserSchema = z
+	.object({
+		name: z.string().trim().min(1, 'Name is required').max(255),
+		email: userEmailSchema,
+		role: userRoleSchema,
+		banned: z.boolean(),
+		notificationPreferences: notificationPreferencesSchema
+	})
+	.partial()
+	.refine((data) => Object.keys(data).length > 0, {
+		message: 'At least one field must be provided for update'
+	});
+
 export const publicUserSchema = createSelectSchema(user).pick({
 	id: true,
 	name: true,
@@ -815,6 +847,8 @@ export function parseSearchParams(searchParams: URLSearchParams): Record<string,
 // Export inferred types for use in your application
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type InviteUser = z.infer<typeof inviteUserSchema>;
+export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
 export type PublicUser = z.infer<typeof publicUserSchema>;
 
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
