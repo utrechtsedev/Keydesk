@@ -1,8 +1,11 @@
-import { startEmailMonitoring } from './monitor';
 import { logger } from '#lib/server/logger.js';
 import { initQueue, registerWorkers } from '#lib/server/queue.js';
+import { assertDatabaseUrl } from '#lib/server/db/database.js';
 
 async function main() {
+	assertDatabaseUrl();
+	// monitor.ts reads the IMAP settings from the database while loading, so it loads after the check
+	const { startEmailMonitoring } = await import('./monitor');
 	await Promise.all([startEmailMonitoring(), initQueue(), registerWorkers()]);
 }
 
