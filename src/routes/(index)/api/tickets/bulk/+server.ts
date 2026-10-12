@@ -91,7 +91,7 @@ export const PATCH: RequestHandler = async ({ request }) => {
 };
 
 export const DELETE: RequestHandler = async ({ request }) => {
-	const { ids } = await schema.validate(schema.idsBulkSchema)(request);
+	const { ids } = await schema.validate(schema.idsBodySchema)(request);
 
 	const deleted = await db.delete(schema.ticket).where(inArray(schema.ticket.id, ids)).returning();
 

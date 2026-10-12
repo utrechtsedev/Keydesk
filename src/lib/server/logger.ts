@@ -1,6 +1,8 @@
 import pino from 'pino';
 
-const isDev = process.env.NODE_ENV !== 'production';
+// Readable output while developing; plain JSON in production and in tests, where Vitest runs the app
+// and pino cannot load the pino-pretty transport
+const isDev = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test';
 
 const pinoLogger = pino({
   level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),

@@ -390,6 +390,9 @@ export const idsBulkSchema = z
 	.array(z.number().int().positive())
 	.min(1, 'At least one ID required');
 
+/** A request body of the form `{ ids: [...] }` */
+export const idsBodySchema = z.object({ ids: idsBulkSchema });
+
 export const ticketExportQuerySchema = z
 	.object({
 		search: z.string().optional(),
@@ -432,6 +435,9 @@ export const ticketExportQuerySchema = z
 export const setTagsSchema = z.object({
 	tags: z.array(z.string().trim().min(1, 'Tag name cannot be empty')).default([])
 });
+
+/** `{ ids, tags }`: the tags to add to each of the selected tickets or tasks */
+export const bulkTagsSchema = idsBodySchema.extend(setTagsSchema.shape);
 
 export const setTagSchema = z.object({
 	tag: z.string().trim().min(1, 'Tag name cannot be empty')
@@ -761,7 +767,7 @@ export const smtpSettingsSchema = z.object({
 	senderName: z.string(),
 	senderEmail: z.email(),
 	host: z.union([z.hostname(), z.ipv4(), z.ipv6()]),
-	port: z.number().max(4),
+	port: z.number().int().min(1).max(65535),
 	SSL: z.boolean(),
 	enableAuthentication: z.boolean(),
 	username: z.string().optional(),

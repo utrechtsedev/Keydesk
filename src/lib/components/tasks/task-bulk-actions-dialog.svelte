@@ -37,7 +37,7 @@
 
 			await api.post('/api/tasks/tags', {
 				ids,
-				tag: selected.name ? [selected.name] : []
+				tags: selected.name ? [selected.name] : []
 			});
 		} else {
 			await api.patch('/api/tasks/bulk', {

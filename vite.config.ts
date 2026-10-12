@@ -23,15 +23,21 @@ export default defineConfig({
 		})
 	],
 	test: {
-		include: ['src/**/*.test.ts'],
+		include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
 		environment: 'node',
 		globalSetup: ['test/global-setup.ts'],
 		env: {
 			DATABASE_URL: testEnv.TEST_DATABASE_URL,
-			ENCRYPTION_KEY: testEnv.TEST_ENCRYPTION_KEY
+			ENCRYPTION_KEY: testEnv.TEST_ENCRYPTION_KEY,
+			BETTER_AUTH_SECRET: testEnv.TEST_BETTER_AUTH_SECRET,
+			LOG_LEVEL: 'warn'
 		},
 		// Test files share one database, so they run one after another
 		fileParallelism: false,
+		// A route test's first request makes the dev server compile that page, which can take
+		// several seconds on a cold CI runner
+		testTimeout: 30_000,
+		hookTimeout: 30_000,
 		expect: { requireAssertions: true }
 	}
 });

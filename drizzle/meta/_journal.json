@@ -8,6 +8,13 @@
       "when": 1791758285243,
       "tag": "20261011223805_initial_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791810858390,
+      "tag": "20261012131418_delete_tasks_with_ticket",
+      "breakpoints": true
     }
   ]
 }

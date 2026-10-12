@@ -25,6 +25,13 @@ export async function initQueue() {
 	return boss;
 }
 
+/** Stops the workers, letting running jobs finish, and closes the queue's connections */
+export async function stopQueue() {
+	if (!boss) return;
+	await boss.stop({ graceful: true });
+	boss = null;
+}
+
 export async function registerWorkers() {
 	if (!boss) {
 		throw new Error('Queue not initialized');
@@ -75,5 +82,5 @@ export async function sendNotification(options: NotificationOptions) {
 	if (!boss) {
 		throw new Error('Queue not initialized');
 	}
-	await boss.send('handle-task-update', { options });
+	await boss.send('handle-standalone-notification', options);
 }

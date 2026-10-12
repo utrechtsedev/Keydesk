@@ -10,7 +10,8 @@ import {
 	integer,
 	pgEnum,
 	primaryKey,
-	customType
+	customType,
+	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { NotificationPreferences } from '#lib/types/index.js';
@@ -312,8 +313,11 @@ export const task = pgTable('task', {
 	id: serial('id').primaryKey(),
 	title: varchar('title', { length: 255 }).notNull(),
 	description: text('description'),
-	ticketId: integer('ticket_id').references(() => ticket.id),
-	parentTaskId: integer('parent_task_id').references((): any => task.id),
+	// A ticket's tasks, and a task's subtasks, are deleted along with it
+	ticketId: integer('ticket_id').references(() => ticket.id, { onDelete: 'cascade' }),
+	parentTaskId: integer('parent_task_id').references((): AnyPgColumn => task.id, {
+		onDelete: 'cascade'
+	}),
 	createdById: integer('created_by_id').references(() => user.id, { onDelete: 'set null' }),
 	assigneeId: integer('assignee_id').references(() => user.id, { onDelete: 'set null' }),
 	statusId: integer('status_id')
@@ -387,9 +391,12 @@ export const email = pgTable(
 		processed: boolean('processed').default(false),
 		processedAt: timestamp('processed_at'),
 		processingError: text('processing_error'),
-		ticketId: integer('ticket_id').references(() => ticket.id),
+		// The archived email outlives the ticket it created, so deleting the ticket only unlinks it
+		ticketId: integer('ticket_id').references(() => ticket.id, { onDelete: 'set null' }),
 		requesterId: integer('requester_id').references(() => requester.id),
-		ticketMessageId: integer('ticket_message_id').references(() => ticketMessage.id),
+		ticketMessageId: integer('ticket_message_id').references(() => ticketMessage.id, {
+			onDelete: 'set null'
+		}),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => ({
