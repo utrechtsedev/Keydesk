@@ -6,6 +6,7 @@ import { AppError } from '#lib/server/errors.js';
 import { initQueue, registerWorkers } from '#lib/server/queue.js';
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
 import { assertDatabaseUrl, db } from '#lib/server/db/database.js';
+import { refuseAccess } from '#lib/server/access.js';
 
 export const init: ServerInit = async () => {
 	// Only prerendering runs this during a build; there is nothing to queue then
@@ -32,6 +33,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	} else {
 		event.locals.user = null;
 	}
+
+	const refusal = await refuseAccess(event);
+	if (refusal) return refusal;
 
 	return svelteKitHandler({ event, resolve, auth, building });
 };

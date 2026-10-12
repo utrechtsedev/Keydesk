@@ -27,8 +27,10 @@ function createAuth() {
 		},
 		plugins: [
 			magicLink({
+				// Nobody signs themselves up: a magic link only signs in an existing account
+				disableSignUp: true,
 				sendMagicLink: async ({ email, url }: { email: string; url: string }): Promise<void> => {
-					sendEmail(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`);
+					await sendEmail(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`);
 				}
 			}),
 			admin({
@@ -38,6 +40,7 @@ function createAuth() {
 		],
 		emailAndPassword: {
 			enabled: true,
+			disableSignUp: true,
 			requireEmailVerification: true,
 			autoSignIn: false
 		},
@@ -50,7 +53,7 @@ function createAuth() {
 				user: BetterAuthUser;
 				url: string;
 			}): Promise<void> => {
-				sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
+				await sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
 			}
 		},
 		user: {
