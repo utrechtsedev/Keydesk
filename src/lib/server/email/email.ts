@@ -7,19 +7,36 @@ import type { SMTP } from '#lib/types/index.js';
 import type { Email, EmailOrganization } from './compose.js';
 import { logger } from '#lib/server/logger.js';
 
+/** How to reach an SMTP server; without a user name, Keydesk doesn't sign in */
+export interface SmtpServer {
+	host: string;
+	port: number;
+	secure: boolean;
+	username?: string;
+	password?: string;
+}
+
 /**
- * A connection to an SMTP server for one email. It signs in only when the settings ask for it:
- * a server that offers authentication refuses a client that tries it without credentials.
+ * A connection to an SMTP server for one email. It signs in only with a user name: a server that
+ * offers authentication refuses a client that tries it without credentials.
  */
-export function createSmtpTransport(smtp: SMTP) {
+export function createSmtpTransport(server: SmtpServer) {
 	return nodemailer.createTransport({
+		host: server.host,
+		port: server.port,
+		secure: server.secure,
+		auth: server.username ? { user: server.username, pass: server.password ?? '' } : undefined
+	});
+}
+
+/** The organization's outgoing email settings as a server to connect to */
+export function organizationSmtpServer(smtp: SMTP, password: string): SmtpServer {
+	return {
 		host: smtp.host,
 		port: smtp.port,
 		secure: smtp.SSL,
-		auth: smtp.enableAuthentication
-			? { user: smtp.username ?? '', pass: smtp.password ?? '' }
-			: undefined
-	});
+		...(smtp.enableAuthentication ? { username: smtp.username, password } : {})
+	};
 }
 
 /**
@@ -34,10 +51,9 @@ export async function sendEmail(db: TenantDb, to: string, email: Email): Promise
 	}
 
 	const smtp = row.value as SMTP;
-	const transporter = createSmtpTransport({
-		...smtp,
-		password: smtp.password ? decrypt(smtp.password) : ''
-	});
+	const transporter = createSmtpTransport(
+		organizationSmtpServer(smtp, smtp.password ? decrypt(smtp.password) : '')
+	);
 
 	try {
 		await transporter.sendMail({

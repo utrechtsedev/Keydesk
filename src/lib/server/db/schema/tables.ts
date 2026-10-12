@@ -15,6 +15,7 @@ import {
 	foreignKey,
 	pgPolicy,
 	pgRole,
+	check,
 	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -61,6 +62,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
 	'system'
 ]);
 export const notificationChannelEnum = pgEnum('notification_channel', ['dashboard', 'email']);
+export const mailboxProviderEnum = pgEnum('mailbox_provider', ['imap', 'microsoft', 'google']);
 export const relatedEntityTypeEnum = pgEnum('related_entity_type', [
 	'ticket',
 	'task',
@@ -413,6 +415,45 @@ export const tag = pgTable(
 	]
 );
 
+/**
+ * An address of the organization where tickets come in and replies go out from. The mail Worker
+ * syncs each enabled mailbox every poll interval; see src/lib/server/mail.
+ */
+export const mailbox = pgTable(
+	'mailbox',
+	{
+		id: serial('id').primaryKey(),
+		organizationId: organizationId(),
+		name: varchar('name', { length: 255 }).notNull(),
+		address: varchar('address', { length: 255 }).notNull(),
+		provider: mailboxProviderEnum('provider').notNull(),
+		/** Encrypted JSON: the IMAP and SMTP settings, or the connection to Microsoft or Google */
+		credentials: text('credentials').notNull(),
+		/** How far the mailbox has been read: for IMAP its UIDVALIDITY and the last UID */
+		cursor: jsonb('cursor'),
+		pollIntervalSeconds: integer('poll_interval_seconds').notNull().default(120),
+		enabled: boolean('enabled').notNull().default(true),
+		lastSyncedAt: timestamp('last_synced_at'),
+		nextSyncAt: timestamp('next_sync_at'),
+		errorCount: integer('error_count').notNull().default(0),
+		lastError: text('last_error'),
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		updatedAt: timestamp('updated_at')
+			.notNull()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.defaultNow()
+	},
+	(table) => [
+		tenantIsolation(table.organizationId),
+		unique('mailbox_organization_id_id_unique').on(table.organizationId, table.id),
+		unique('mailbox_organization_id_address_unique').on(table.organizationId, table.address),
+		check(
+			'mailbox_poll_interval_seconds_range',
+			sql`${table.pollIntervalSeconds} between 60 and 300`
+		)
+	]
+);
+
 export const ticket = pgTable(
 	'ticket',
 	{
@@ -433,6 +474,8 @@ export const ticket = pgTable(
 			.notNull()
 			.references(() => priority.id),
 		categoryId: integer('category_id').references(() => category.id),
+		/** The mailbox replies go out from: the one the ticket came in on */
+		mailboxId: integer('mailbox_id').references(() => mailbox.id, { onDelete: 'set null' }),
 		firstResponseAt: timestamp('first_response_at'),
 		resolvedAt: timestamp('resolved_at'),
 		closedAt: timestamp('closed_at'),
@@ -458,6 +501,11 @@ export const ticket = pgTable(
 			'ticket_requester_same_org_fk',
 			[table.organizationId, table.requesterId],
 			[requester.organizationId, requester.id]
+		),
+		sameOrganization(
+			'ticket_mailbox_same_org_fk',
+			[table.organizationId, table.mailboxId],
+			[mailbox.organizationId, mailbox.id]
 		),
 		sameOrganization(
 			'ticket_assignee_same_org_fk',
@@ -500,6 +548,11 @@ export const ticketMessage = pgTable(
 		channel: messageChannelEnum('channel').notNull(),
 		isFirstResponse: boolean('is_first_response').notNull().default(false),
 		hasAttachments: boolean('has_attachments').notNull().default(false),
+		/**
+		 * The Message-ID of the email the message came in as or went out as, so a reply that names it
+		 * in In-Reply-To or References finds its ticket
+		 */
+		emailMessageId: text('email_message_id'),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		updatedAt: timestamp('updated_at')
 			.notNull()
@@ -509,6 +562,7 @@ export const ticketMessage = pgTable(
 	(table) => [
 		tenantIsolation(table.organizationId),
 		unique('ticket_message_organization_id_id_unique').on(table.organizationId, table.id),
+		index('ticket_message_email_message_id_idx').on(table.organizationId, table.emailMessageId),
 		sameOrganization(
 			'ticket_message_ticket_same_org_fk',
 			[table.organizationId, table.ticketId],
@@ -705,7 +759,12 @@ export const email = pgTable(
 	{
 		id: serial('id').primaryKey(),
 		organizationId: organizationId(),
-		uid: integer('uid').notNull(),
+		/** The mailbox it came in on; the archive stays when a mailbox is removed */
+		mailboxId: integer('mailbox_id').references(() => mailbox.id, { onDelete: 'set null' }),
+		/** The provider's id for the message, unique per mailbox: for IMAP `<uidvalidity>:<uid>` */
+		providerMessageId: varchar('provider_message_id', { length: 255 }).notNull(),
+		/** The Message-ID header */
+		messageId: text('message_id'),
 		fromAddress: varchar('from_address', { length: 255 }).notNull(),
 		fromName: varchar('from_name', { length: 255 }),
 		subject: varchar('subject', { length: 500 }).notNull(),
@@ -728,7 +787,15 @@ export const email = pgTable(
 	},
 	(table) => [
 		tenantIsolation(table.organizationId),
-		unique('email_organization_id_uid_unique').on(table.organizationId, table.uid),
+		unique('email_mailbox_id_provider_message_id_unique').on(
+			table.mailboxId,
+			table.providerMessageId
+		),
+		sameOrganization(
+			'email_mailbox_same_org_fk',
+			[table.organizationId, table.mailboxId],
+			[mailbox.organizationId, mailbox.id]
+		),
 		index('email_rate_limit_idx').on(table.fromAddress, table.createdAt.desc()),
 		index('email_unprocessed_idx')
 			.on(table.receivedAt.desc())

@@ -13,14 +13,6 @@ export interface SMTP {
 	password?: string;
 }
 
-export interface IMAP {
-	host: string;
-	port: number;
-	SSL: boolean;
-	username: string;
-	password: string;
-}
-
 export interface Attachment {
 	enabled: boolean;
 	maxFileSizeMB?: number;

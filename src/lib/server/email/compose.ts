@@ -2,7 +2,9 @@ import { render } from 'svelte/server';
 import type { Component } from 'svelte';
 import type { NotificationOptions } from '#lib/types/index.js';
 import { escapeHtml } from '#lib/server/html.js';
+import { convert } from 'html-to-text';
 import Message from './templates/Message.svelte';
+import Reply from './templates/Reply.svelte';
 import TaskNotification from './templates/TaskNotification.svelte';
 import TicketNotification from './templates/TicketNotification.svelte';
 
@@ -46,7 +48,8 @@ function renderDocument<Props extends Record<string, unknown>>(
 ): string {
 	const { body } = render(template, { props });
 	// Svelte marks blocks with comments for hydration, which mean nothing in an email. The body
-	// holds no other comments: everything the templates show is escaped text.
+	// holds no other comments: the templates show escaped text, or a ticket message's HTML, which
+	// was escaped or sanitized (without comments) when it was saved.
 	const content = body.replace(/<!--[\s\S]*?-->/g, '');
 
 	return `<!DOCTYPE html>
@@ -172,4 +175,25 @@ export function notificationEmail(
 		action: { label: 'View Details', url: actionUrl },
 		footer: "You're receiving this notification from us."
 	});
+}
+
+/** A reply on a ticket, to the requester; `html` is the message as stored */
+export function replyEmail(content: {
+	organization: EmailOrganization;
+	subject: string;
+	html: string;
+	ticketReference: string;
+}): Email {
+	const { organization, subject, html, ticketReference } = content;
+	const text = convert(html, { wordwrap: false });
+	return {
+		subject,
+		html: renderDocument(subject, Reply, {
+			organization,
+			preview: text.slice(0, 120),
+			html,
+			ticketReference
+		}),
+		text: plainText(text, `Reply to this email to answer; keep ${ticketReference} in the subject.`)
+	};
 }

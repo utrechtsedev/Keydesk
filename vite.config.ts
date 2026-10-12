@@ -50,6 +50,9 @@ export default defineConfig(({ mode }) => {
 				DATABASE_URL: testEnv.TEST_DATABASE_URL,
 				ENCRYPTION_KEY: testEnv.TEST_ENCRYPTION_KEY,
 				BETTER_AUTH_SECRET: testEnv.TEST_BETTER_AUTH_SECRET,
+				MAIL_HOST: testEnv.TEST_MAIL_HOST,
+				SMTP_PORT: testEnv.TEST_SMTP_PORT,
+				IMAP_PORT: testEnv.TEST_IMAP_PORT,
 				LOG_LEVEL: 'warn'
 			},
 			// Test files share one database, so they run one after another

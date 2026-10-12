@@ -586,7 +586,7 @@ export const updateUserNotificationSchema = insertUserNotificationSchema.pick({
 // ============================================================================
 
 export const insertEmailSchema = createInsertSchema(email, {
-	uid: z.number().int().positive(),
+	providerMessageId: z.string().min(1).max(255),
 	fromAddress: z.email('Invalid email address').max(255),
 	fromName: z.string().max(255).nullable().optional(),
 	subject: z.string().min(1, 'Subject is required').max(500),
@@ -780,12 +780,24 @@ export const ticketConfigSchema = z.object({
 	ticketPrefix: z.string()
 });
 
-export const imapSettingsSchema = z.object({
-	host: z.string(),
-	port: z.number(),
-	SSL: z.boolean(),
-	username: z.string(),
-	password: z.string()
+/** How to reach a mail server. An empty password on an existing mailbox keeps the stored one. */
+export const mailServerSchema = z.object({
+	host: z.union([z.hostname('Enter a host name'), z.ipv4(), z.ipv6()]),
+	port: z.number().int().min(1).max(65535),
+	secure: z.boolean(),
+	username: z.string().trim().min(1, 'Enter the user name').max(255),
+	password: z.string().max(1024)
+});
+
+/** What an admin enters for a mailbox read over IMAP, with its replies sent over SMTP */
+export const imapMailboxSchema = z.object({
+	name: z.string().trim().min(1, 'Name is required').max(255),
+	address: z.email('Invalid email address').max(255).toLowerCase(),
+	provider: z.literal('imap'),
+	imap: mailServerSchema,
+	smtp: mailServerSchema,
+	pollIntervalSeconds: z.number().int().min(60).max(300).default(120),
+	enabled: z.boolean().default(true)
 });
 
 export const portalSettingsSchema = z.object({
@@ -848,6 +860,8 @@ export function parseSearchParams(searchParams: URLSearchParams): Record<string,
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type InviteUser = z.infer<typeof inviteUserSchema>;
+export type ImapMailboxInput = z.infer<typeof imapMailboxSchema>;
+export type MailServer = z.infer<typeof mailServerSchema>;
 export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
 export type PublicUser = z.infer<typeof publicUserSchema>;
 
