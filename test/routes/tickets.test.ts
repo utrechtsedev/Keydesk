@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { db } from '#lib/server/db/database.js';
+import { systemDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import {
 	Browser,
@@ -9,26 +9,28 @@ import {
 	createTicket,
 	createUser,
 	defaults,
-	ensureOrganization,
-	signIn
+	createOrganization,
+	signIn,
+	type TestOrganization
 } from '../app.js';
 
+let organization: TestOrganization;
 let browser: Browser;
 
 beforeAll(async () => {
-	await ensureOrganization();
-	({ browser } = await signIn('admin'));
+	organization = await createOrganization();
+	({ browser } = await signIn(organization, 'admin'));
 });
 
 afterAll(async () => {
-	await db.$client.end();
+	await systemDb.$client.end();
 });
 
 const unique = (text: string) => `${text} ${crypto.randomUUID()}`;
 
 describe('ticket search', () => {
 	it('finds a ticket by subject', async () => {
-		const ticket = await createTicket({ subject: unique('Printer kapot') });
+		const ticket = await createTicket(organization, { subject: unique('Printer kapot') });
 
 		const response = await browser.fetch(
 			`/dashboard/tickets?search=${encodeURIComponent(ticket.subject)}`
@@ -39,7 +41,7 @@ describe('ticket search', () => {
 	});
 
 	it('finds a ticket by its number', async () => {
-		const ticket = await createTicket({ subject: unique('Scanner kapot') });
+		const ticket = await createTicket(organization, { subject: unique('Scanner kapot') });
 
 		const response = await browser.fetch(`/dashboard/tickets?search=${ticket.ticketNumber}`);
 
@@ -50,7 +52,7 @@ describe('ticket search', () => {
 
 describe('ticket export', () => {
 	it('exports the tickets that match the search as CSV', async () => {
-		const ticket = await createTicket({ subject: unique('Export me') });
+		const ticket = await createTicket(organization, { subject: unique('Export me') });
 
 		const response = await browser.fetch(
 			`/api/tickets/export?search=${encodeURIComponent(ticket.subject)}`
@@ -67,27 +69,33 @@ describe('ticket export', () => {
 describe('bulk delete', () => {
 	it('deletes the selected tickets', async () => {
 		const ids = [
-			(await createTicket({ subject: unique('Delete me') })).id,
-			(await createTicket({ subject: unique('Delete me too') })).id
+			(await createTicket(organization, { subject: unique('Delete me') })).id,
+			(await createTicket(organization, { subject: unique('Delete me too') })).id
 		];
 
 		const response = await browser.sendJson('DELETE', '/api/tickets/bulk', { ids });
 
 		expect(response.status).toBe(200);
 		expect(await response.json()).toMatchObject({ deleted: 2 });
-		const remaining = await db.select().from(schema.ticket).where(inArray(schema.ticket.id, ids));
+		const remaining = await systemDb
+			.select()
+			.from(schema.ticket)
+			.where(inArray(schema.ticket.id, ids));
 		expect(remaining).toHaveLength(0);
 	});
 
 	it('deletes the tasks and subtasks of a deleted ticket', async () => {
-		const ticket = await createTicket({ subject: unique('With tasks') });
-		const task = await createTask({ title: unique('Task'), ticketId: ticket.id });
-		const subtask = await createTask({ title: unique('Subtask'), parentTaskId: task.id });
+		const ticket = await createTicket(organization, { subject: unique('With tasks') });
+		const task = await createTask(organization, { title: unique('Task'), ticketId: ticket.id });
+		const subtask = await createTask(organization, {
+			title: unique('Subtask'),
+			parentTaskId: task.id
+		});
 
 		const response = await browser.sendJson('DELETE', '/api/tickets/bulk', { ids: [ticket.id] });
 
 		expect(response.status).toBe(200);
-		const remaining = await db
+		const remaining = await systemDb
 			.select()
 			.from(schema.task)
 			.where(inArray(schema.task.id, [task.id, subtask.id]));
@@ -95,10 +103,11 @@ describe('bulk delete', () => {
 	});
 
 	it('keeps the archived email of a deleted ticket', async () => {
-		const ticket = await createTicket({ subject: unique('From email') });
-		const [archived] = await db
+		const ticket = await createTicket(organization, { subject: unique('From email') });
+		const [archived] = await systemDb
 			.insert(schema.email)
 			.values({
+				organizationId: organization.id,
 				uid: Math.floor(Math.random() * 1_000_000_000),
 				fromAddress: 'customer@example.com',
 				subject: ticket.subject,
@@ -109,18 +118,24 @@ describe('bulk delete', () => {
 		const response = await browser.sendJson('DELETE', '/api/tickets/bulk', { ids: [ticket.id] });
 
 		expect(response.status).toBe(200);
-		const [kept] = await db.select().from(schema.email).where(eq(schema.email.id, archived.id));
+		const [kept] = await systemDb
+			.select()
+			.from(schema.email)
+			.where(eq(schema.email.id, archived.id));
 		expect(kept.ticketId).toBeNull();
 	});
 
 	it('deletes the selected tasks with their subtasks', async () => {
-		const task = await createTask({ title: unique('Delete me') });
-		const subtask = await createTask({ title: unique('Subtask'), parentTaskId: task.id });
+		const task = await createTask(organization, { title: unique('Delete me') });
+		const subtask = await createTask(organization, {
+			title: unique('Subtask'),
+			parentTaskId: task.id
+		});
 
 		const response = await browser.sendJson('DELETE', '/api/tasks/bulk', { ids: [task.id] });
 
 		expect(response.status).toBe(200);
-		const remaining = await db
+		const remaining = await systemDb
 			.select()
 			.from(schema.task)
 			.where(inArray(schema.task.id, [task.id, subtask.id]));
@@ -130,7 +145,7 @@ describe('bulk delete', () => {
 
 describe('bulk tags', () => {
 	it('tags the selected tickets', async () => {
-		const ticket = await createTicket({ subject: unique('Tag me') });
+		const ticket = await createTicket(organization, { subject: unique('Tag me') });
 		const tagName = unique('urgent');
 
 		const response = await browser.sendJson('POST', '/api/tickets/tags', {
@@ -139,7 +154,7 @@ describe('bulk tags', () => {
 		});
 
 		expect(response.status).toBe(200);
-		const tags = await db
+		const tags = await systemDb
 			.select({ name: schema.tag.name })
 			.from(schema.ticketTag)
 			.innerJoin(schema.tag, eq(schema.ticketTag.tagId, schema.tag.id))
@@ -148,7 +163,7 @@ describe('bulk tags', () => {
 	});
 
 	it('tags the selected tasks', async () => {
-		const task = await createTask({ title: unique('Tag me') });
+		const task = await createTask(organization, { title: unique('Tag me') });
 		const tagName = unique('urgent');
 
 		const response = await browser.sendJson('POST', '/api/tasks/tags', {
@@ -157,7 +172,7 @@ describe('bulk tags', () => {
 		});
 
 		expect(response.status).toBe(200);
-		const tags = await db
+		const tags = await systemDb
 			.select({ name: schema.tag.name })
 			.from(schema.taskTag)
 			.innerJoin(schema.tag, eq(schema.taskTag.tagId, schema.tag.id))
@@ -168,9 +183,9 @@ describe('bulk tags', () => {
 
 describe('notifications', () => {
 	it('notifies the assignee of a new ticket on the dashboard', async () => {
-		const assignee = await createUser('user');
-		const requester = await createRequester();
-		const { status, priority } = await defaults();
+		const assignee = await createUser(organization, 'user');
+		const requester = await createRequester(organization);
+		const { status, priority } = await defaults(organization);
 
 		const form = new FormData();
 		form.set('subject', unique('New ticket'));
@@ -190,7 +205,7 @@ describe('notifications', () => {
 		await expect
 			.poll(
 				async () => {
-					const rows = await db
+					const rows = await systemDb
 						.select({ title: schema.notification.title })
 						.from(schema.userNotification)
 						.innerJoin(

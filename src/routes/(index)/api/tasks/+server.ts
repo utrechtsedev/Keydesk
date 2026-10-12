@@ -1,6 +1,5 @@
 import type { RequestHandler } from './$types';
 import type { Task, Task as TaskType } from '#lib/types/index.js';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq, inArray } from 'drizzle-orm';
 import { requireAuth } from '#lib/server/auth.js';
@@ -9,7 +8,7 @@ import { sendNotification } from '#lib/server/queue.js';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
-	const { user } = requireAuth(locals);
+	const { user, db } = requireAuth(locals);
 	const task = await schema.validate(schema.createTaskSchema)(request);
 
 	if (task.assigneeId) {
@@ -111,7 +110,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 			}
 		});
 
-		await sendNotification({
+		await sendNotification(user.organizationId, {
 			title: 'Task assigned to you',
 			message: `New task assigned by ${user.name}: ${task.title}`,
 			recipient: { userId: result.assigneeId },
@@ -133,7 +132,8 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 	);
 };
 
-export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
+export const PATCH: RequestHandler = async ({ request, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const updateBulkTaskSchema = z.object({
 		task: schema.updateTaskSchema,
 		ids: schema.idsBulkSchema

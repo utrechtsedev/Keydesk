@@ -1,4 +1,3 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from '@sveltejs/kit';
@@ -6,7 +5,7 @@ import { requireAuth } from '#lib/server/auth.js';
 import { NotFoundError, UnauthorizedError } from '#lib/server/errors.js';
 
 export const PATCH: RequestHandler = async ({ request, locals, params }): Promise<Response> => {
-	const { user } = requireAuth(locals);
+	const { user, db } = requireAuth(locals);
 
 	const id = schema.idParamSchema.parse(params.id);
 	const userData = await schema.validate(schema.updateUserSchema)(request);

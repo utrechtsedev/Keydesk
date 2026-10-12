@@ -108,6 +108,7 @@
 
 				editableTask = {
 					id: 0,
+					organizationId: 0,
 					title: '',
 					description: null,
 					ticketId: ticketId ?? null,

@@ -1,21 +1,11 @@
 import type { PageServerLoad } from './$types';
-import { db } from '#lib/server/db/database.js';
-import * as schema from '#lib/server/db/schema/index.js';
-import { eq } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
+import { getTicketSettings } from '#lib/server/services/ticket.service.js';
 
-export const load: PageServerLoad = async () => {
-  const [config] = await db
-    .select()
-    .from(schema.config)
-    .where(eq(schema.config.key, 'tickets'));
-
-  if (!config) {
-    return {
-      tickets: null,
-    };
-  }
+export const load: PageServerLoad = async ({ locals }) => {
+  const { user, db } = requireAuth(locals);
 
   return {
-    tickets: config.value
+    tickets: await getTicketSettings(db, user.organizationId)
   };
 };

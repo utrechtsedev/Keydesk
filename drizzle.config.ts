@@ -24,12 +24,9 @@ export default defineConfig({
     schema: 'public',
   },
 
+  // Lets drizzle-kit create the keydesk_app role the row level security policies are for
   entities: {
-    roles: {
-      provider: '',
-      exclude: [],
-      include: []
-    }
+    roles: true
   },
 
   breakpoints: true,

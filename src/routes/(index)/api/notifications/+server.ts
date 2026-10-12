@@ -1,5 +1,4 @@
 import { requireAuth } from '#lib/server/auth.js';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { NotFoundError, ValidationError } from '#lib/server/errors.js';
 import type { RequestHandler } from '@sveltejs/kit';
@@ -7,7 +6,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import z from 'zod';
 
 export const PATCH: RequestHandler = async ({ request, locals }) => {
-	const { user } = requireAuth(locals);
+	const { user, db } = requireAuth(locals);
 
 	const updateBulkNotificationSchema = z.object({
 		ids: schema.idsBulkSchema,
@@ -45,7 +44,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 };
 
 export const DELETE: RequestHandler = async ({ request, locals }) => {
-	const { user } = requireAuth(locals);
+	const { user, db } = requireAuth(locals);
 
 	const ids = await schema.validate(schema.idsBulkSchema)(request);
 

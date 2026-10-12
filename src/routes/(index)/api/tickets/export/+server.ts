@@ -1,11 +1,12 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { stringify } from 'csv-stringify/sync';
 import { and, gte, lte, isNull, eq, desc, SQL } from 'drizzle-orm';
 import { ticketSearchCondition } from '#lib/server/services/ticket.service.js';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
+	const { db } = requireAuth(locals);
 	const params = schema.ticketExportQuerySchema.parse(schema.parseSearchParams(url.searchParams));
 
 	const conditions: (SQL | undefined)[] = [];

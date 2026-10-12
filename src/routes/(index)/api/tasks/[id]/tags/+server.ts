@@ -1,16 +1,17 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { NotFoundError } from '#lib/server/errors.js';
 import type { Tag } from '#lib/types/index.js';
+import { requireAuth } from '#lib/server/auth.js';
 
 /**
  * POST /api/tasks/{id}/tags
  * Add a single tag to a task (without removing existing tags)
  * Body: { tag: "bug" }
  */
-export const POST: RequestHandler = async ({ params, request }) => {
+export const POST: RequestHandler = async ({ params, request, locals }) => {
+	const { db } = requireAuth(locals);
 	const taskId = schema.idParamSchema.parse(params.id);
 
 	const [task] = await db.select().from(schema.task).where(eq(schema.task.id, taskId));
@@ -54,7 +55,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
  * Set/replace all tags for a task
  * Body: { tags: ["bug", "urgent", "frontend"] }
  */
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
+	const { db } = requireAuth(locals);
 	const taskId = schema.idParamSchema.parse(params.id);
 
 	const [task] = await db.select().from(schema.task).where(eq(schema.task.id, taskId));
@@ -107,7 +109,8 @@ export const PUT: RequestHandler = async ({ params, request }) => {
  * GET /api/tasks/{id}/tags
  * Get all tags for a task
  */
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
+	const { db } = requireAuth(locals);
 	const taskId = schema.idParamSchema.parse(params.id);
 
 	const [task] = await db.select().from(schema.task).where(eq(schema.task.id, taskId));
@@ -135,7 +138,8 @@ export const GET: RequestHandler = async ({ params }) => {
  * DELETE /api/tasks/{id}/tags
  * Remove all tags from a task
  */
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, locals }) => {
+	const { db } = requireAuth(locals);
 	const taskId = schema.idParamSchema.parse(params.id);
 
 	const [task] = await db.select().from(schema.task).where(eq(schema.task.id, taskId));

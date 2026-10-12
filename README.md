@@ -19,12 +19,23 @@ Requirements: [Bun](https://bun.sh), Node.js 22 or later, and Docker.
    ```sh
    bun install
    bun run db:migrate
-   bun run db:init
    ```
 
-   `bun run db:seed` adds sample tickets, tasks and users.
+4. Create an organization with its first admin. The admin's password is printed once:
 
-4. Start the app with `bun run dev`.
+   ```sh
+   bun run org:create --name "Klant BV" --admin-email jan@klant.nl --admin-name "Jan Jansen"
+   ```
+
+   Or run `bun run db:seed` for two demo organizations full of sample data; it prints an admin to sign in as for each.
+
+5. Start the app with `bun run dev`.
+
+## Organizations
+
+Every row of customer data belongs to an organization. The app reads and writes it through a tenant transaction (`withTenant` in `src/lib/server/db/database.ts`): it runs as the `keydesk_app` role, which row level security limits to that organization's rows, and new rows get the organization by default. Routes get theirs from `requireAuth(locals)`; only better-auth, the command line tools and `withTenant` use the owner connection, `systemDb`.
+
+The email worker in `worker/` still reads a single IMAP inbox, for the organization in `ORGANIZATION_ID`.
 
 ## Tests
 

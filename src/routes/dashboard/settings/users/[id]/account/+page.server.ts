@@ -1,7 +1,8 @@
 import type { PageServerLoad } from './$types';
-import { db } from '#lib/server/db/database.js';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const load: PageServerLoad = async ({ depends, params }) => {
+export const load: PageServerLoad = async ({ depends, params, locals }) => {
+	const { db } = requireAuth(locals);
 	const id = Number(params.id);
 	depends('app:user');
 

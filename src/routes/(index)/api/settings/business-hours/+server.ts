@@ -1,9 +1,10 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const POST: RequestHandler = async ({ request }): Promise<Response> => {
+export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const businessHours = await schema.validate(schema.businessHoursSettingsSchema)(request);
 
 	const [config] = await db
@@ -13,7 +14,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 			value: businessHours
 		})
 		.onConflictDoUpdate({
-			target: schema.config.key,
+			target: [schema.config.organizationId, schema.config.key],
 			set: {
 				value: businessHours,
 				updatedAt: new Date()
@@ -33,7 +34,8 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 	);
 };
 
-export const GET: RequestHandler = async (): Promise<Response> => {
+export const GET: RequestHandler = async ({ locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const [config] = await db
 		.select()
 		.from(schema.config)

@@ -32,6 +32,7 @@
 
 		requester: {
 			id: number;
+			organizationId: number;
 			name: string;
 			email: string;
 			phone: string;
@@ -56,6 +57,7 @@
 
 		requester: {
 			id: -1,
+			organizationId: 0,
 			name: '',
 			email: '',
 			phone: '',

@@ -1,11 +1,12 @@
 import type { RequestHandler } from './$types';
 import type { Ticket } from '#lib/types/index.js';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { NotFoundError } from '#lib/server/errors.js';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
+export const PATCH: RequestHandler = async ({ request, params, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const ticketId = schema.idParamSchema.parse(params.id);
 
 	const [findTicket] = await db

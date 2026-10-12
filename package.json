@@ -16,8 +16,8 @@
 		"test:watch": "vitest",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
-		"db:init": "bun src/lib/server/db/initialize.ts",
-		"db:seed": "bun src/lib/server/db/seed.ts"
+		"db:seed": "bun src/lib/server/db/seed.ts",
+		"org:create": "bun src/lib/server/db/create-organization.ts"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

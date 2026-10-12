@@ -1,22 +1,25 @@
-import { assertDatabaseUrl, db } from './database.js';
+import type { TenantDb } from './database.js';
 import { sql } from 'drizzle-orm';
 import * as schema from './schema/index.js';
 
 /**
- * Initialize Database with Default Configuration
- * 
- * This script sets up:
- * - Config settings (attachments, business hours, notifications)
- * - Priorities
- * - Statuses  
- * - Categories
- * 
- * Run this FIRST before any other seeding scripts.
- * 
- * Usage: tsx init-database.ts
+ * Gives a new organization its default configuration (attachments, business hours,
+ * notifications, tickets), priorities, statuses and categories. Runs in the organization's tenant
+ * transaction, so everything it creates belongs to that organization.
  */
+export async function createOrganizationDefaults(
+  db: TenantDb,
+  log: (message: string) => void = console.log
+): Promise<void> {
+  await new DatabaseInitializer(db, log).initialize();
+}
 
 class DatabaseInitializer {
+  constructor(
+    private readonly db: TenantDb,
+    private readonly write: (message: string) => void
+  ) {}
+
   private log(message: string, type: 'info' | 'success' | 'warn' | 'error' = 'info'): void {
     const icons = {
       info: '[info]',
@@ -24,12 +27,10 @@ class DatabaseInitializer {
       warn: '[warning]',
       error: '[error]'
     };
-    console.log(`${icons[type]} ${message}`);
+    this.write(`${icons[type]} ${message}`);
   }
 
   async initialize(): Promise<void> {
-    console.log('Initializing database with default configuration...\n');
-
     try {
       await this.setupAttachmentsConfig();
       await this.setupBusinessHoursConfig();
@@ -38,15 +39,8 @@ class DatabaseInitializer {
       await this.setupStatuses();
       await this.setupCategories();
       await this.setupTicketConfig();
-
-      console.log('\nDatabase initialization completed successfully');
-      console.log('\nNext steps:');
-      console.log('  1. Run: tsx seed-database.ts --clean');
-      console.log('  2. Or use the complete seeder if you created it');
-
     } catch (error) {
-      console.error('\nError during initialization:');
-      console.error(error);
+      this.log('Initialization failed', 'error');
       throw error;
     }
   }
@@ -55,13 +49,13 @@ class DatabaseInitializer {
     this.log('Setting up attachments configuration...', 'info');
 
     try {
-      const [existing] = await db
+      const [existing] = await this.db
         .select()
         .from(schema.config)
         .where(sql`${schema.config.key} = 'attachments'`);
 
       if (!existing) {
-        await db.insert(schema.config).values({
+        await this.db.insert(schema.config).values({
           key: 'attachments',
           value: {
             enabled: true,
@@ -95,13 +89,13 @@ class DatabaseInitializer {
     this.log('Setting up business hours...', 'info');
 
     try {
-      const [existing] = await db
+      const [existing] = await this.db
         .select()
         .from(schema.config)
         .where(sql`${schema.config.key} = 'business-hours'`);
 
       if (!existing) {
-        await db.insert(schema.config).values({
+        await this.db.insert(schema.config).values({
           key: 'business-hours',
           value: {
             schedule: {
@@ -129,13 +123,13 @@ class DatabaseInitializer {
     this.log('Setting up notifications...', 'info');
 
     try {
-      const [existing] = await db
+      const [existing] = await this.db
         .select()
         .from(schema.config)
         .where(sql`${schema.config.key} = 'notifications'`);
 
       if (!existing) {
-        await db.insert(schema.config).values({
+        await this.db.insert(schema.config).values({
           key: 'notifications',
           value: {
             dashboard: {
@@ -195,7 +189,7 @@ class DatabaseInitializer {
     this.log('Setting up priorities...', 'info');
 
     try {
-      const existing = await db.select().from(schema.priority);
+      const existing = await this.db.select().from(schema.priority);
 
       if (existing.length === 0) {
         const priorities = [
@@ -206,7 +200,7 @@ class DatabaseInitializer {
         ];
 
         for (const priority of priorities) {
-          await db.insert(schema.priority).values(priority);
+          await this.db.insert(schema.priority).values(priority);
         }
 
         this.log(`Priorities created (${priorities.length} total)`, 'success');
@@ -223,7 +217,7 @@ class DatabaseInitializer {
     this.log('Setting up statuses...', 'info');
 
     try {
-      const existing = await db.select().from(schema.status);
+      const existing = await this.db.select().from(schema.status);
 
       if (existing.length === 0) {
         const statuses = [
@@ -236,7 +230,7 @@ class DatabaseInitializer {
         ];
 
         for (const status of statuses) {
-          await db.insert(schema.status).values(status);
+          await this.db.insert(schema.status).values(status);
         }
 
         this.log(`Statuses created (${statuses.length} total)`, 'success');
@@ -253,7 +247,7 @@ class DatabaseInitializer {
     this.log('Seeding categories...', 'info');
 
     try {
-      const existing = await db.select().from(schema.category);
+      const existing = await this.db.select().from(schema.category);
 
       if (existing.length === 0) {
         const categories = [
@@ -280,7 +274,7 @@ class DatabaseInitializer {
         ];
 
         for (const category of categories) {
-          await db.insert(schema.category).values(category);
+          await this.db.insert(schema.category).values(category);
         }
 
         this.log(`Categories created (${categories.length} total)`, 'success');
@@ -297,17 +291,17 @@ class DatabaseInitializer {
     this.log('Seeding ticket config...', 'info');
 
     try {
-      const [existing] = await db
+      const [existing] = await this.db
         .select()
         .from(schema.config)
         .where(sql`${schema.config.key} = 'tickets'`);
       ;
 
       if (!existing) {
-        await db.insert(schema.config).values({
+        await this.db.insert(schema.config).values({
           key: 'tickets', 
+          // The next ticket number lives on the organization
           value: { 
-            nextTicketNumber: 1,
             autoCreateRequesters: true,
             ticketPrefix: 'TKT-', }
         });
@@ -322,17 +316,3 @@ class DatabaseInitializer {
     }
   }
 }
-
-// Run the initializer
-assertDatabaseUrl();
-const initializer = new DatabaseInitializer();
-
-initializer.initialize()
-  .then(() => {
-    console.log('\nInitialization complete. Exiting...');
-    process.exit(0);
-  })
-  .catch((error: Error) => {
-    console.error('\nFatal error:', error);
-    process.exit(1);
-  });

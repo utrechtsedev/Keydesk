@@ -1,10 +1,11 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { ValidationError } from '#lib/server/errors.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const POST: RequestHandler = async ({ request }): Promise<Response> => {
+export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const notifications = await schema.validate(schema.notificationSettingsSchema)(request);
 
 	if (!notifications) throw new ValidationError('Notification settings are required');
@@ -16,7 +17,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 			value: notifications
 		})
 		.onConflictDoUpdate({
-			target: schema.config.key,
+			target: [schema.config.organizationId, schema.config.key],
 			set: {
 				value: notifications,
 				updatedAt: new Date()
@@ -36,7 +37,8 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 	);
 };
 
-export const GET: RequestHandler = async (): Promise<Response> => {
+export const GET: RequestHandler = async ({ locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const [config] = await db
 		.select()
 		.from(schema.config)

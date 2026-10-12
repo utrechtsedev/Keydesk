@@ -15,6 +15,13 @@
       "when": 1791810858390,
       "tag": "20261012131418_delete_tasks_with_ticket",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791812740952,
+      "tag": "20261012134540_organizations",
+      "breakpoints": true
     }
   ]
 }

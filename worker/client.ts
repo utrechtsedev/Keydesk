@@ -1,5 +1,5 @@
 import { ImapFlow } from 'imapflow';
-import { db } from '#lib/server/db/database.js';
+import { inOrganization } from './tenant';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { type IMAP } from '#lib/types/index.js';
@@ -12,10 +12,10 @@ export async function getClient(): Promise<ImapFlow> {
     return client;
   }
 
-  const [imap] = await db
+  const [imap] = await inOrganization((db) => db
     .select()
     .from(schema.config)
-    .where(eq(schema.config.key, 'imap'));
+    .where(eq(schema.config.key, 'imap')));
 
   if (!imap) {
     throw new Error('IMAP configuration not found in database');

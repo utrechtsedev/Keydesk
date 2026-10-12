@@ -1,6 +1,9 @@
-import { assertDatabaseUrl, db } from './database.js';
-import { sql } from 'drizzle-orm';
+import { assertDatabaseUrl, systemDb, withTenant, type TenantDb } from './database.js';
+import { inArray, sql } from 'drizzle-orm';
 import * as schema from './schema/index.js';
+import { createOrganizationDefaults } from './initialize.js';
+import { allocateTicketNumber } from '../services/ticket.service.js';
+import { hashPassword } from '../../utils/password.js';
 import type {
 	User,
 	Requester,
@@ -14,14 +17,14 @@ import type {
 } from './schema/index.js';
 
 /**
- * Advanced Database Seeder for Ticket System with Drizzle ORM
+ * Creates demo organizations full of sample data, each with an admin you can sign in as.
  *
  * Usage:
- * - Default: tsx seed-database.ts
- * - Custom: tsx seed-database.ts --tickets=50 --users=10 --clean
+ * - Default: bun run db:seed
+ * - Custom: bun run db:seed --tickets=50 --users=10 --clean
  *
  * Options:
- * --clean: Drop all existing data before seeding
+ * --clean: Delete the demo organizations from an earlier run first
  * --tickets=N: Number of tickets to create (default: 20)
  * --users=N: Number of users to create (default: 5)
  * --requesters=N: Number of requesters to create (default: 15)
@@ -56,7 +59,7 @@ interface ProcessedOptions {
 }
 
 class DatabaseSeeder {
-	private options: ProcessedOptions;
+	private readonly options: ProcessedOptions;
 	private createdUsers: User[] = [];
 	private createdRequesters: Requester[] = [];
 	private existingStatuses: Status[] = [];
@@ -67,7 +70,12 @@ class DatabaseSeeder {
 	private createdNotifications: Notification[] = [];
 	private createdTasks: Task[] = [];
 
-	constructor(options: SeederOptions = {}) {
+	constructor(
+		private readonly db: TenantDb,
+		private readonly organizationId: number,
+		private readonly emailDomain: string,
+		options: SeederOptions = {}
+	) {
 		this.options = {
 			clean: options.clean || false,
 			ticketCount: options.tickets || 20,
@@ -338,36 +346,13 @@ class DatabaseSeeder {
 		return { firstNames, lastNames };
 	}
 
-	private async cleanDatabase(): Promise<void> {
-		this.log('Cleaning user data from database...');
-
-		try {
-			await db.delete(schema.userNotification);
-			await db.delete(schema.notification);
-			await db.delete(schema.ticketAttachment);
-			await db.delete(schema.ticketMessage);
-			await db.delete(schema.taskTag);
-			await db.delete(schema.ticketTag);
-			await db.delete(schema.task);
-			await db.delete(schema.ticket);
-			await db.delete(schema.tag);
-			await db.delete(schema.requester);
-			await db.delete(schema.user);
-
-			this.log('✓ User data cleaned successfully');
-		} catch (error) {
-			this.log('Error cleaning database:', (error as Error).message);
-			throw error;
-		}
-	}
-
 	private async fetchExistingData(): Promise<void> {
 		this.log('Fetching existing statuses, priorities, and categories...');
 
 		try {
-			this.existingStatuses = await db.select().from(schema.status);
-			this.existingPriorities = await db.select().from(schema.priority);
-			this.existingCategories = await db.select().from(schema.category);
+			this.existingStatuses = await this.db.select().from(schema.status);
+			this.existingPriorities = await this.db.select().from(schema.priority);
+			this.existingCategories = await this.db.select().from(schema.category);
 
 			if (this.existingStatuses.length === 0) {
 				throw new Error(
@@ -417,7 +402,7 @@ class DatabaseSeeder {
 		];
 
 		for (const tagName of tags) {
-			const [created] = await db
+			const [created] = await this.db
 				.insert(schema.tag)
 				.values({
 					name: tagName
@@ -439,9 +424,9 @@ class DatabaseSeeder {
 			const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
 			const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
 			const name = `${firstName} ${lastName}`;
-			const email = `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/\s/g, '')}@company.nl`;
+			const email = `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/\s/g, '')}.${i + 1}@${this.emailDomain}`;
 
-			const [user] = await db
+			const [user] = await this.db
 				.insert(schema.user)
 				.values({
 					name,
@@ -486,10 +471,10 @@ class DatabaseSeeder {
 			const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
 			const name = `${firstName} ${lastName}`;
 			const company = companies[Math.floor(Math.random() * companies.length)];
-			const email = `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/\s/g, '')}@${company}`;
+			const email = `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/\s/g, '')}.${i + 1}@${company}`;
 			const hasPhone = Math.random() > 0.3;
 
-			const [requester] = await db
+			const [requester] = await this.db
 				.insert(schema.requester)
 				.values({
 					name,
@@ -578,9 +563,10 @@ class DatabaseSeeder {
 							: 48;
 			targetDate.setHours(targetDate.getHours() + hoursToAdd);
 
-			const [ticket] = await db
+			const [ticket] = await this.db
 				.insert(schema.ticket)
 				.values({
+					ticketNumber: await allocateTicketNumber(this.db, this.organizationId),
 					requesterId: requester.id,
 					assigneeId: assignee?.id || null,
 					subject,
@@ -598,7 +584,7 @@ class DatabaseSeeder {
 			this.createdTickets.push(ticket);
 
 			let messageCount = 0;
-			const [firstMessage] = await db
+			const [firstMessage] = await this.db
 				.insert(schema.ticketMessage)
 				.values({
 					ticketId: ticket.id,
@@ -639,7 +625,7 @@ class DatabaseSeeder {
 				const numTags = Math.floor(Math.random() * 3) + 1;
 				const tags = this.shuffleArray([...this.createdTags]).slice(0, numTags);
 
-				await db.insert(schema.ticketTag).values(
+				await this.db.insert(schema.ticketTag).values(
 					tags.map((tag) => ({
 						ticketId: ticket.id,
 						tagId: tag.id
@@ -657,7 +643,7 @@ class DatabaseSeeder {
 					currentDate = new Date(currentDate.getTime() + (Math.random() * 4 + 1) * 60 * 60 * 1000);
 
 					if (isUser && assignee) {
-						const [userMessage] = await db
+						const [userMessage] = await this.db
 							.insert(schema.ticketMessage)
 							.values({
 								ticketId: ticket.id,
@@ -678,13 +664,13 @@ class DatabaseSeeder {
 
 						if (isFirstResponse) {
 							isFirstResponse = false;
-							await db
+							await this.db
 								.update(schema.ticket)
 								.set({ firstResponseAt: currentDate })
 								.where(sql`${schema.ticket.id} = ${ticket.id}`);
 						}
 
-						await db
+						await this.db
 							.update(schema.ticket)
 							.set({ lastUserResponseAt: currentDate })
 							.where(sql`${schema.ticket.id} = ${ticket.id}`);
@@ -700,7 +686,7 @@ class DatabaseSeeder {
 							);
 						}
 					} else {
-						await db
+						await this.db
 							.insert(schema.ticketMessage)
 							.values({
 								ticketId: ticket.id,
@@ -719,7 +705,7 @@ class DatabaseSeeder {
 							})
 							.returning();
 
-						await db
+						await this.db
 							.update(schema.ticket)
 							.set({ lastRequesterResponseAt: currentDate })
 							.where(sql`${schema.ticket.id} = ${ticket.id}`);
@@ -739,7 +725,7 @@ class DatabaseSeeder {
 					}
 				}
 
-				await db
+				await this.db
 					.update(schema.ticket)
 					.set({
 						responseCount: messageCount,
@@ -748,7 +734,7 @@ class DatabaseSeeder {
 					.where(sql`${schema.ticket.id} = ${ticket.id}`);
 
 				if (['Resolved', 'Closed'].includes(status.name)) {
-					await db
+					await this.db
 						.update(schema.ticket)
 						.set({
 							resolvedAt: currentDate,
@@ -834,7 +820,7 @@ class DatabaseSeeder {
 			const fileSize =
 				Math.floor(Math.random() * (fileType.maxSize - fileType.minSize)) + fileType.minSize;
 
-			await db.insert(schema.ticketAttachment).values({
+			await this.db.insert(schema.ticketAttachment).values({
 				ticketId: ticketId,
 				messageId: messageId,
 				fileName: `${hashedName}.${fileType.ext}`,
@@ -861,7 +847,7 @@ class DatabaseSeeder {
 		recipients: User[],
 		createdAt: Date
 	): Promise<void> {
-		const [notification] = await db
+		const [notification] = await this.db
 			.insert(schema.notification)
 			.values({
 				title,
@@ -883,7 +869,7 @@ class DatabaseSeeder {
 			const shouldSendEmail = channel === 'email';
 			const emailSent = shouldSendEmail && Math.random() > 0.1;
 
-			await db.insert(schema.userNotification).values({
+			await this.db.insert(schema.userNotification).values({
 				notificationId: notification.id,
 				userId: user.id,
 				isRead: Math.random() > 0.6,
@@ -928,7 +914,7 @@ class DatabaseSeeder {
 			);
 			message = message.replace('{count}', String(Math.floor(Math.random() * 20) + 5));
 
-			const [notification] = await db
+			const [notification] = await this.db
 				.insert(schema.notification)
 				.values({
 					title: template.title,
@@ -955,7 +941,7 @@ class DatabaseSeeder {
 				const shouldSendEmail = template.channel === 'email';
 				const emailSent = shouldSendEmail && Math.random() > 0.05;
 
-				await db.insert(schema.userNotification).values({
+				await this.db.insert(schema.userNotification).values({
 					notificationId: notification.id,
 					userId: user.id,
 					isRead: Math.random() > 0.5,
@@ -1037,7 +1023,7 @@ class DatabaseSeeder {
 			// Assign a single user (mandatory)
 			const assignee = this.getRandomElement(this.createdUsers);
 
-			const [task] = await db
+			const [task] = await this.db
 				.insert(schema.task)
 				.values({
 					title,
@@ -1064,7 +1050,7 @@ class DatabaseSeeder {
 				const numTags = Math.floor(Math.random() * 3) + 1;
 				const tags = this.shuffleArray([...this.createdTags]).slice(0, numTags);
 
-				await db.insert(schema.taskTag).values(
+				await this.db.insert(schema.taskTag).values(
 					tags.map((tag) => ({
 						taskId: task.id,
 						tagId: tag.id
@@ -1115,7 +1101,7 @@ class DatabaseSeeder {
 					completedAt.setDate(completedAt.getDate() + Math.floor(Math.random() * 5) + 1);
 				}
 
-				const [subtask] = await db
+				const [subtask] = await this.db
 					.insert(schema.task)
 					.values({
 						title: subtaskTitle,
@@ -1151,16 +1137,12 @@ class DatabaseSeeder {
 		return shuffled;
 	}
 
-	async seed(): Promise<void> {
+	/** Seeds the organization and returns its admin, the first user it creates */
+	async seed(): Promise<User> {
 		console.log('Starting database seeding...\n');
 		console.log({ Options: this.options }, 'Options');
 
 		try {
-			if (this.options.clean) {
-				await this.cleanDatabase();
-				console.log('');
-			}
-
 			await this.fetchExistingData();
 
 			await this.createTags();
@@ -1185,6 +1167,10 @@ class DatabaseSeeder {
 			console.log(`  - ${this.createdTickets.length} tickets`);
 			console.log(`  - ${this.createdTasks.length} tasks (including subtasks)`);
 			console.log(`  - ${this.createdNotifications.length} notifications`);
+
+			const [admin] = this.createdUsers;
+			if (!admin) throw new Error('Seed at least one user: the first one becomes the admin');
+			return admin;
 		} catch (error) {
 			console.error({ error }, 'Error during database seeding');
 			throw error;
@@ -1212,12 +1198,47 @@ function parseArgs(): SeederOptions {
 	return options;
 }
 
-assertDatabaseUrl();
-const options = parseArgs();
-const seeder = new DatabaseSeeder(options);
+const DEMO_ORGANIZATIONS = [
+	{ name: 'Demo Acme', domain: 'acme.test' },
+	{ name: 'Demo Globex', domain: 'globex.test' }
+];
+const DEMO_PASSWORD = 'keydesk-demo';
 
-seeder
-	.seed()
+async function main(): Promise<void> {
+	assertDatabaseUrl();
+	const options = parseArgs();
+
+	if (options.clean) {
+		// Deleting an organization deletes everything that belongs to it
+		await systemDb.delete(schema.organization).where(
+			inArray(
+				schema.organization.name,
+				DEMO_ORGANIZATIONS.map((demo) => demo.name)
+			)
+		);
+	}
+
+	for (const demo of DEMO_ORGANIZATIONS) {
+		const [organization] = await systemDb.insert(schema.organization).values(demo).returning();
+		console.log(`\nSeeding ${organization.name}...`);
+
+		const admin = await withTenant(organization.id, async (db) => {
+			await createOrganizationDefaults(db, () => {});
+			return new DatabaseSeeder(db, organization.id, demo.domain, options).seed();
+		});
+
+		// better-auth's tables are outside the tenant role's reach, so the password is set here
+		await systemDb.insert(schema.account).values({
+			accountId: String(admin.id),
+			providerId: 'credential',
+			userId: admin.id,
+			password: await hashPassword(DEMO_PASSWORD)
+		});
+		console.log(`Sign in as ${admin.email} with password ${DEMO_PASSWORD}`);
+	}
+}
+
+main()
 	.then(() => {
 		console.log('Seeding complete. Exiting...');
 		process.exit(0);
