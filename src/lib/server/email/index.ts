@@ -1,2 +1,2 @@
-export * from './template-parser';
-export * from './email';
+export * from './compose.js';
+export * from './email.js';

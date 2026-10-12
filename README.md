@@ -33,7 +33,9 @@ Requirements: [Bun](https://bun.sh), Node.js 22 or later, and Docker.
 
 ## Organizations
 
-Every row of customer data belongs to an organization. The app reads and writes it through a tenant transaction (`withTenant` in `src/lib/server/db/database.ts`): it runs as the `keydesk_app` role, which row level security limits to that organization's rows, and new rows get the organization by default. Routes get theirs from `requireAuth(locals)`; only better-auth, the command line tools and `withTenant` use the owner connection, `systemDb`.
+Every row of customer data belongs to an organization. The app reads and writes it through a tenant transaction (`withTenant` in `src/lib/server/db/database.ts`): it runs as the `keydesk_app` role, which row level security limits to that organization's rows, and new rows get the organization by default. Routes get theirs from `requireAuth(locals)`; only better-auth, invitations, the command line tools and `withTenant` use the owner connection, `systemDb`.
+
+Each request, job and command line run opens its own connection (`connect`) and closes it when done, as Cloudflare Workers can't share a connection between requests.
 
 Admins add people under Settings > Users: an invited user gets an email with a link to set their password, sent through the organization's outgoing email settings. When that email can't be sent, the admin gets the link to pass on. Users are managed only through these screens and their endpoints, which work in the tenant transaction; of better-auth's admin endpoints only impersonation is open, and only for users of the admin's own organization.
 

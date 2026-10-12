@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { systemDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import {
 	Browser,
@@ -9,6 +8,7 @@ import {
 	createTicket,
 	createUser,
 	signIn,
+	systemDb,
 	type TestOrganization
 } from '../app.js';
 

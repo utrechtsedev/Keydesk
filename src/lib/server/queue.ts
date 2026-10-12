@@ -1,7 +1,13 @@
 import { PgBoss } from 'pg-boss';
 import { logger } from '#lib/server/logger.js';
 import type { NotificationOptions, Task, Ticket, User } from '#lib/types/index.js';
-import { withTenant } from '#lib/server/db/database.js';
+import {
+	connect,
+	databaseUrl,
+	disconnect,
+	withTenant,
+	type TenantDb
+} from '#lib/server/db/database.js';
 
 /** Every job belongs to an organization; its handler runs in that organization's tenant transaction */
 interface OrganizationJob {
@@ -14,7 +20,7 @@ export async function initQueue() {
 	if (boss) return boss;
 
 	boss = new PgBoss({
-		connectionString: process.env.DATABASE_URL,
+		connectionString: databaseUrl(),
 		schema: 'pgboss'
 	});
 
@@ -45,11 +51,21 @@ export async function registerWorkers() {
 
 	const { NotificationService } = await import('#lib/server/services/notification.service.js');
 
+	/** Runs a job in its organization's tenant transaction, on a connection of its own */
+	async function inOrganization(organizationId: number, work: (db: TenantDb) => Promise<void>) {
+		const systemDb = connect(databaseUrl());
+		try {
+			await withTenant(systemDb, organizationId, work);
+		} finally {
+			await disconnect(systemDb);
+		}
+	}
+
 	await boss.work<OrganizationJob & { oldTask: Task; newTask: Task; user: User }>(
 		'handle-task-update',
 		async ([job]) => {
 			const { organizationId, oldTask, newTask, user } = job.data;
-			await withTenant(organizationId, (db) =>
+			await inOrganization(organizationId, (db) =>
 				new NotificationService(db, organizationId).handleTaskUpdate(oldTask, newTask, user)
 			);
 		}
@@ -59,7 +75,7 @@ export async function registerWorkers() {
 		'handle-ticket-update',
 		async ([job]) => {
 			const { organizationId, oldTicket, newTicket, user } = job.data;
-			await withTenant(organizationId, (db) =>
+			await inOrganization(organizationId, (db) =>
 				new NotificationService(db, organizationId).handleTicketUpdate(oldTicket, newTicket, user)
 			);
 		}
@@ -69,7 +85,7 @@ export async function registerWorkers() {
 		'handle-standalone-notification',
 		async ([job]) => {
 			const { organizationId, options } = job.data;
-			await withTenant(organizationId, (db) =>
+			await inOrganization(organizationId, (db) =>
 				new NotificationService(db, organizationId).sendNotification(options)
 			);
 		}

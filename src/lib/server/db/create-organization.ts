@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { eq } from 'drizzle-orm';
-import { assertDatabaseUrl, systemDb, withTenant } from './database.js';
+import { connect, databaseUrl, disconnect, withTenant, type SystemDb } from './database.js';
 import * as schema from './schema/index.js';
 import { createOrganizationDefaults } from './initialize.js';
 import { hashPassword } from '../../utils/password.js';
@@ -14,7 +14,15 @@ import { defaultNotificationPreferences } from '../services/user.service.js';
  * Usage: bun run org:create --name "Klant BV" --admin-email jan@klant.nl --admin-name "Jan Jansen"
  */
 async function main(): Promise<void> {
-	assertDatabaseUrl();
+	const systemDb = connect(databaseUrl());
+	try {
+		await createOrganization(systemDb);
+	} finally {
+		await disconnect(systemDb);
+	}
+}
+
+async function createOrganization(systemDb: SystemDb): Promise<void> {
 	const { values } = parseArgs({
 		options: {
 			name: { type: 'string' },
@@ -38,7 +46,7 @@ async function main(): Promise<void> {
 	const [organization] = await systemDb.insert(schema.organization).values({ name }).returning();
 	let admin: schema.User;
 	try {
-		admin = await withTenant(organization.id, async (db) => {
+		admin = await withTenant(systemDb, organization.id, async (db) => {
 			await createOrganizationDefaults(db, () => {});
 			const [admin] = await db
 				.insert(schema.user)

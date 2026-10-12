@@ -1,14 +1,15 @@
+import 'dotenv/config';
 import { logger } from '#lib/server/logger.js';
-import { initQueue, registerWorkers } from '#lib/server/queue.js';
-import { assertDatabaseUrl } from '#lib/server/db/database.js';
+import { databaseUrl } from '#lib/server/db/database.js';
 import { workerOrganizationId } from './tenant';
 
 async function main() {
-	assertDatabaseUrl();
+	databaseUrl();
 	workerOrganizationId();
-	// monitor.ts reads the IMAP settings from the database while loading, so it loads after the check
+	// monitor.ts reads the IMAP settings from the database while loading, so it loads after the check.
+	// Notifications are the app's queue work; this worker only reads the inbox.
 	const { startEmailMonitoring } = await import('./monitor');
-	await Promise.all([startEmailMonitoring(), initQueue(), registerWorkers()]);
+	await startEmailMonitoring();
 }
 
 async function run() {

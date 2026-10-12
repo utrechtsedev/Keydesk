@@ -1,4 +1,11 @@
-import { assertDatabaseUrl, systemDb, withTenant, type TenantDb } from './database.js';
+import {
+	connect,
+	databaseUrl,
+	disconnect,
+	withTenant,
+	type SystemDb,
+	type TenantDb
+} from './database.js';
 import { inArray, sql } from 'drizzle-orm';
 import * as schema from './schema/index.js';
 import { createOrganizationDefaults } from './initialize.js';
@@ -1205,7 +1212,15 @@ const DEMO_ORGANIZATIONS = [
 const DEMO_PASSWORD = 'keydesk-demo';
 
 async function main(): Promise<void> {
-	assertDatabaseUrl();
+	const systemDb = connect(databaseUrl());
+	try {
+		await seed(systemDb);
+	} finally {
+		await disconnect(systemDb);
+	}
+}
+
+async function seed(systemDb: SystemDb): Promise<void> {
 	const options = parseArgs();
 
 	if (options.clean) {
@@ -1222,7 +1237,7 @@ async function main(): Promise<void> {
 		const [organization] = await systemDb.insert(schema.organization).values(demo).returning();
 		console.log(`\nSeeding ${organization.name}...`);
 
-		const admin = await withTenant(organization.id, async (db) => {
+		const admin = await withTenant(systemDb, organization.id, async (db) => {
 			await createOrganizationDefaults(db, () => {});
 			return new DatabaseSeeder(db, organization.id, demo.domain, options).seed();
 		});

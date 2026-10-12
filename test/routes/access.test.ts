@@ -1,9 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, sep } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { systemDb } from '#lib/server/db/database.js';
 import { requiredAccess, type Access } from '#lib/server/access.js';
-import { Browser, createOrganization, signIn } from '../app.js';
+import { Browser, createOrganization, signIn, systemDb } from '../app.js';
 
 interface Route {
 	id: string;

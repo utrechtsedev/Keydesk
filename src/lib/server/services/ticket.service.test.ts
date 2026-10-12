@@ -1,8 +1,12 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { systemDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
-import { createOrganization, createTicket, inOrganization } from '../../../../test/app.js';
+import {
+	createOrganization,
+	createTicket,
+	inOrganization,
+	systemDb
+} from '../../../../test/app.js';
 import { getTicketPrefix } from './ticket.service.js';
 
 afterAll(async () => {

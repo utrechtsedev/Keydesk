@@ -1,9 +1,8 @@
 import { and, eq, gt } from 'drizzle-orm';
-import { systemDb, type TenantDb } from '#lib/server/db/database.js';
+import type { SystemDb, TenantDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import type { InviteUser } from '#lib/server/db/schema/index.js';
-import { sendEmail } from '#lib/server/email/email.js';
-import { escapeHtml } from '#lib/server/html.js';
+import { messageEmail, sendEmail } from '#lib/server/email/index.js';
 import { logger } from '#lib/server/logger.js';
 import { hashPassword } from '#lib/utils/password.js';
 import { defaultNotificationPreferences } from './user.service.js';
@@ -83,31 +82,24 @@ export async function sendInvitation(
 	invitation: { name: string; email: string; invitedBy: string; url: string }
 ): Promise<boolean> {
 	const [organization] = await db
-		.select({ name: schema.organization.name })
+		.select()
 		.from(schema.organization)
 		.where(eq(schema.organization.id, organizationId));
 	if (!organization) {
 		throw new Error(`Organization ${organizationId} not found`);
 	}
 
-	const subject = `You're invited to ${organization.name} on Keydesk`;
-	const text = [
-		`Hi ${invitation.name},`,
-		'',
-		`${invitation.invitedBy} invited you to ${organization.name} on Keydesk.`,
-		`Set your password to sign in: ${invitation.url}`,
-		'',
-		`The link works for ${INVITATION_LIFETIME_DAYS} days.`
-	].join('\n');
-	const html = [
-		`<p>Hi ${escapeHtml(invitation.name)},</p>`,
-		`<p>${escapeHtml(invitation.invitedBy)} invited you to ${escapeHtml(organization.name)} on Keydesk.</p>`,
-		`<p><a href="${escapeHtml(invitation.url)}">Set your password</a> to sign in.</p>`,
-		`<p>The link works for ${INVITATION_LIFETIME_DAYS} days.</p>`
-	].join('\n');
+	const email = messageEmail({
+		organization,
+		subject: `You're invited to ${organization.name} on Keydesk`,
+		title: `Join ${organization.name} on Keydesk`,
+		message: `Hi ${invitation.name}, ${invitation.invitedBy} invited you to ${organization.name} on Keydesk. Set your password to sign in; the link works for ${INVITATION_LIFETIME_DAYS} days.`,
+		action: { label: 'Set your password', url: invitation.url },
+		footer: `You're receiving this email because ${invitation.invitedBy} invited this address.`
+	});
 
 	try {
-		await sendEmail(db, organizationId, invitation.email, subject, html, text);
+		await sendEmail(db, invitation.email, email);
 		return true;
 	} catch (error) {
 		logger.warn(
@@ -123,6 +115,7 @@ export async function sendInvitation(
  * isn't signed in, so this looks the token up as the owner.
  */
 export async function findInvitation(
+	systemDb: SystemDb,
 	token: string
 ): Promise<{ name: string; email: string; organizationName: string } | null> {
 	const [invitation] = await systemDb
@@ -148,7 +141,11 @@ export async function findInvitation(
  * their email address counts as verified. Returns the address to sign in with, or null when the
  * token isn't valid (any more).
  */
-export async function acceptInvitation(token: string, password: string): Promise<string | null> {
+export async function acceptInvitation(
+	systemDb: SystemDb,
+	token: string,
+	password: string
+): Promise<string | null> {
 	const tokenHash = await hashToken(token);
 	const passwordHash = await hashPassword(password);
 

@@ -1,6 +1,6 @@
 import { inject } from 'vitest';
 import { desc, eq } from 'drizzle-orm';
-import { systemDb, withTenant, type TenantDb } from '#lib/server/db/database.js';
+import { connect, databaseUrl, withTenant, type TenantDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { createOrganizationDefaults } from '#lib/server/db/initialize.js';
 import { allocateTicketNumber } from '#lib/server/services/ticket.service.js';
@@ -8,6 +8,12 @@ import { defaultNotificationPreferences } from '#lib/server/services/user.servic
 import { hashPassword } from '#lib/utils/password.js';
 
 export const appUrl = inject('appUrl');
+
+/**
+ * The test files' own owner connection, for setup and for checking what the app wrote. Each file
+ * closes it in afterAll.
+ */
+export const systemDb = connect(databaseUrl());
 
 /**
  * A browser talking to the app: it keeps the session cookie and sends the Origin header that
@@ -37,7 +43,7 @@ export type TestOrganization = typeof schema.organization.$inferSelect;
 /** A new organization with its default settings, like `bun run org:create` makes */
 export async function createOrganization(name = `Test ${crypto.randomUUID()}`) {
 	const [organization] = await systemDb.insert(schema.organization).values({ name }).returning();
-	await withTenant(organization.id, (db) => createOrganizationDefaults(db, () => {}));
+	await withTenant(systemDb, organization.id, (db) => createOrganizationDefaults(db, () => {}));
 	return organization;
 }
 
@@ -46,7 +52,7 @@ export function inOrganization<T>(
 	organization: TestOrganization,
 	work: (db: TenantDb) => Promise<T>
 ): Promise<T> {
-	return withTenant(organization.id, work);
+	return withTenant(systemDb, organization.id, work);
 }
 
 export async function createUser(
