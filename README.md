@@ -46,7 +46,7 @@ Admins add people under Settings > Users: an invited user gets an email with a l
 
 ## Mailboxes
 
-Admins add mailboxes under Settings > Mailboxes: an address with its IMAP and SMTP settings (encrypted in the database, never sent back to the browser). The mail Worker reads each enabled mailbox every 1 to 5 minutes, through a Durable Object per mailbox whose alarm schedules the next read; a cron every 10 minutes schedules any mailbox that fell behind.
+Admins add mailboxes under Settings > Mailboxes: an address with its IMAP and SMTP settings, or one connected at Microsoft 365 or Gmail (credentials encrypted in the database, never sent back to the browser). The mail Worker reads each enabled mailbox every 1 to 5 minutes, through a Durable Object per mailbox whose alarm schedules the next read; a cron every 10 minutes schedules any mailbox that fell behind.
 
 - A new mailbox starts at its newest message: older mail stays out.
 - Every email is archived (its source in R2). A reply to a ticket's email (In-Reply-To or References) or one with the ticket number in its subject goes on that ticket; anything else starts a new one. Automatic replies and senders writing more than 2 times in 10 minutes are archived but left out of tickets.
@@ -71,6 +71,17 @@ It needs one app registration for all of Keydesk, in Microsoft Entra:
 Application permissions reach every mailbox of the customer's organization. Its Exchange admin can limit Keydesk to the support mailboxes with [RBAC for Applications](https://learn.microsoft.com/en-us/exchange/permissions-exo/application-rbac).
 
 Locally, set the two settings in `.env` to try a real app registration with a redirect URI on `http://localhost:5173`. The tests use a stand-in for Microsoft (`test/fakes/microsoft.ts`).
+
+### Gmail
+
+A Gmail or Google Workspace mailbox is read and sent through the Gmail API, with a refresh token its account gives Keydesk when connecting: the admin signs in at Google as that address (Keydesk checks the address in the ID token Google issues) and allows Keydesk to read the mail and send as it. When Google forgets the inbox's history (after about a week without a sync), Keydesk reads the inbox's mail since its last sync instead. When the access is withdrawn, the mailbox shows it and needs connecting again.
+
+It needs one OAuth client for all of Keydesk, in Google Cloud:
+
+- The Gmail API enabled, and an OAuth consent screen with the scopes `gmail.readonly` and `gmail.send`. `gmail.readonly` is a restricted scope (and `gmail.send` a sensitive one): for accounts outside your own Google Workspace, Google has to verify the app, including a yearly security assessment, before anyone but its test users can connect.
+- An OAuth client ID of type Web application, with the redirect URI `<APP_URL>/dashboard/settings/mailboxes/google/callback`. Its ID and secret go in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+
+The tests use a stand-in for Google (`test/fakes/google.ts`), which, like Gmail, gives sent messages a Message-ID of its own: Keydesk reads that back after sending, so answers find their ticket.
 
 ## Tests
 
@@ -108,7 +119,7 @@ The Deploy workflow (`.github/workflows/deploy.yml`) deploys both Workers after 
 
 3. `APP_URL` in the `vars` of both `wrangler.jsonc` files, set to the address the app runs at.
 
-4. In the GitHub repository: the secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DATABASE_URL` (a direct connection, for the migrations), `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY`, and for Microsoft 365 mailboxes `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET` (see below). Then the variable `CLOUDFLARE_DEPLOY` set to `true`.
+4. In the GitHub repository: the secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DATABASE_URL` (a direct connection, for the migrations), `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY`, and for Microsoft 365 and Gmail mailboxes `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (see Mailboxes). Then the variable `CLOUDFLARE_DEPLOY` set to `true`.
 
 Each deploy applies the migrations first, then deploys the mail Worker, then the app, each with the secrets from the repository. A secret removed from the repository stays on the Workers until it is removed there with `wrangler secret delete`.
 

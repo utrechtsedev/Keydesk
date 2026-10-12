@@ -16,13 +16,16 @@
 	let {
 		open = $bindable(),
 		mailbox,
-		microsoftAvailable
+		microsoftAvailable,
+		googleAvailable
 	}: {
 		open: boolean;
 		/** The mailbox to edit, or none to add one */
 		mailbox: MailboxView | null;
 		/** Whether this Keydesk can connect Microsoft 365 mailboxes */
 		microsoftAvailable: boolean;
+		/** Whether this Keydesk can connect Gmail mailboxes */
+		googleAvailable: boolean;
 	} = $props();
 
 	const intervals = [
@@ -32,10 +35,16 @@
 		{ seconds: 300, label: 'Every 5 minutes' }
 	];
 
-	const providers: { value: Provider; label: string }[] = [
-		{ value: 'imap', label: 'IMAP and SMTP' },
-		{ value: 'microsoft', label: 'Microsoft 365' }
-	];
+	const providers = $derived(
+		[
+			{ value: 'imap' as const, label: 'IMAP and SMTP', available: true },
+			{ value: 'microsoft' as const, label: 'Microsoft 365', available: microsoftAvailable },
+			{ value: 'google' as const, label: 'Gmail', available: googleAvailable }
+		].filter((option) => option.available)
+	);
+
+	/** The providers an admin connects a mailbox at, instead of entering servers */
+	const connectedAt = { microsoft: 'Microsoft', google: 'Google' } as const;
 
 	const emptyServer = (port: number): ServerFields => ({
 		host: '',
@@ -86,15 +95,16 @@
 		};
 	}
 
-	/** Microsoft takes over from here: the admin signs in there and grants access */
-	function connectMicrosoft() {
+	/** The provider takes over from here: the admin signs in there and grants access */
+	function connect() {
+		if (provider === 'imap') return;
 		const params = new URLSearchParams({
 			name,
 			address,
 			pollIntervalSeconds: pollInterval,
 			...(mailbox ? { mailboxId: String(mailbox.id) } : {})
 		});
-		window.location.href = `/dashboard/settings/mailboxes/microsoft?${params}`;
+		window.location.href = `/dashboard/settings/mailboxes/${provider}?${params}`;
 	}
 
 	async function test() {
@@ -114,8 +124,8 @@
 
 	async function save(event: SubmitEvent) {
 		event.preventDefault();
-		if (provider === 'microsoft' && !mailbox) {
-			connectMicrosoft();
+		if (provider !== 'imap' && !mailbox) {
+			connect();
 			return;
 		}
 
@@ -154,7 +164,7 @@
 			</Dialog.Description>
 		</Dialog.Header>
 		<form class="grid gap-6" onsubmit={save}>
-			{#if !mailbox && microsoftAvailable}
+			{#if !mailbox && providers.length > 1}
 				<div class="grid gap-2">
 					<Field.Label>Provider</Field.Label>
 					<Select.Root type="single" bind:value={provider}>
@@ -201,10 +211,15 @@
 					bind:server={smtp}
 					hasPassword={mailbox?.provider === 'imap' && mailbox.smtp.hasPassword}
 				/>
-			{:else if !mailbox}
+			{:else if !mailbox && provider === 'microsoft'}
 				<p class="text-sm text-muted-foreground">
 					You sign in with Microsoft next, as an admin of the Microsoft 365 organization the address
 					belongs to, and allow Keydesk to read and send its email.
+				</p>
+			{:else if !mailbox}
+				<p class="text-sm text-muted-foreground">
+					You sign in to Google next, with this address, and allow Keydesk to read and send its
+					email.
 				</p>
 			{/if}
 
@@ -245,17 +260,17 @@
 					<Button type="button" variant="outline" onclick={test} disabled={testing}>
 						Test connection
 					</Button>
-				{:else if mailbox && microsoftAvailable}
-					<Button type="button" variant="outline" onclick={connectMicrosoft}>Connect again</Button>
+				{:else if mailbox && (provider === 'microsoft' ? microsoftAvailable : googleAvailable)}
+					<Button type="button" variant="outline" onclick={connect}>Connect again</Button>
 				{/if}
 				<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
 				<Button type="submit" disabled={saving}>
 					{#if mailbox}
 						Save
-					{:else if provider === 'microsoft'}
-						Connect with Microsoft
-					{:else}
+					{:else if provider === 'imap'}
 						Add mailbox
+					{:else}
+						Connect with {connectedAt[provider]}
 					{/if}
 				</Button>
 			</Dialog.Footer>

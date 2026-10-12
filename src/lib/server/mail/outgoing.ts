@@ -8,6 +8,7 @@ import { getTicketPrefix } from '#lib/server/services/ticket.service.js';
 import nodemailer, { type SendMailOptions } from 'nodemailer';
 import { openCredentials } from './credentials.js';
 import { sendGraphMail } from './microsoft.js';
+import { sendGmail } from './google.js';
 
 /** How many earlier messages a reply names in References; enough for any mail program's threading */
 const MAX_REFERENCES = 10;
@@ -100,7 +101,7 @@ export async function sendReply(db: TenantDb, ticketMessageId: number): Promise<
 	const domain = mailbox.address.split('@')[1];
 	const messageId = `<${crypto.randomUUID()}@${domain}>`;
 
-	await sendFromMailbox(mailbox, {
+	const sentMessageId = await sendFromMailbox(mailbox, {
 		from: { name: mailbox.name, address: mailbox.address },
 		to: requester.email,
 		subject: email.subject,
@@ -113,7 +114,7 @@ export async function sendReply(db: TenantDb, ticketMessageId: number): Promise<
 
 	await db
 		.update(schema.ticketMessage)
-		.set({ emailMessageId: messageId })
+		.set({ emailMessageId: sentMessageId ?? messageId })
 		.where(eq(schema.ticketMessage.id, message.id));
 	if (ticket.mailboxId === null) {
 		await db
@@ -123,8 +124,14 @@ export async function sendReply(db: TenantDb, ticketMessageId: number): Promise<
 	}
 }
 
-/** Sends an email from a mailbox, the way its provider sends: over SMTP or through Graph */
-async function sendFromMailbox(mailbox: schema.Mailbox, mail: SendMailOptions): Promise<void> {
+/**
+ * Sends an email from a mailbox, the way its provider sends: over SMTP, or as MIME through Graph or
+ * the Gmail API. Returns the Message-ID it went out with when the provider tells it.
+ */
+async function sendFromMailbox(
+	mailbox: schema.Mailbox,
+	mail: SendMailOptions
+): Promise<string | null> {
 	const credentials = openCredentials(mailbox.credentials);
 	if (credentials.provider === 'imap') {
 		const transporter = createSmtpTransport(credentials.smtp);
@@ -133,15 +140,19 @@ async function sendFromMailbox(mailbox: schema.Mailbox, mail: SendMailOptions): 
 		} finally {
 			transporter.close();
 		}
-		return;
+		return null;
 	}
 
-	// Graph takes the whole message as MIME, which keeps the Message-ID and the thread headers
+	// The whole message as MIME, which keeps the Message-ID and the thread headers
 	const composer = nodemailer.createTransport({
 		streamTransport: true,
 		buffer: true,
 		newline: 'windows'
 	});
-	const { message } = await composer.sendMail(mail);
-	await sendGraphMail(credentials.tenantId, mailbox.address, new Uint8Array(message as Buffer));
+	const mime = new Uint8Array((await composer.sendMail(mail)).message as Buffer);
+	if (credentials.provider === 'microsoft') {
+		await sendGraphMail(credentials.tenantId, mailbox.address, mime);
+		return null;
+	}
+	return sendGmail(credentials.refreshToken, mime);
 }

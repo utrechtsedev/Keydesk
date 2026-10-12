@@ -8,7 +8,7 @@ import {
 	failedConnection,
 	type ConnectState
 } from '#lib/server/mail/connect.js';
-import { saveMicrosoftMailbox } from '#lib/server/mail/mailboxes.js';
+import { saveConnectedMailbox } from '#lib/server/mail/mailboxes.js';
 import {
 	adminConsentUrl,
 	checkGraphMailbox,
@@ -70,7 +70,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		);
 	}
 
-	const saved = await saveMicrosoftMailbox(db, mailbox, { provider: 'microsoft', tenantId });
+	const saved = await saveConnectedMailbox(db, mailbox, { provider: 'microsoft', tenantId });
 	if (!saved.ok) {
 		redirect(303, failedConnection(saved.message));
 	}

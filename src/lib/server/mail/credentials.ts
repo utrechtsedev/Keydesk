@@ -17,7 +17,16 @@ export interface MicrosoftCredentials {
 	tenantId: string;
 }
 
-export type MailboxCredentials = ImapCredentials | MicrosoftCredentials;
+/**
+ * A Gmail or Google Workspace mailbox, read and sent through the Gmail API with the refresh token
+ * the account's owner gave Keydesk when connecting it
+ */
+export interface GoogleCredentials {
+	provider: 'google';
+	refreshToken: string;
+}
+
+export type MailboxCredentials = ImapCredentials | MicrosoftCredentials | GoogleCredentials;
 
 /** Encrypts a mailbox's credentials for the `credentials` column */
 export function sealCredentials(credentials: MailboxCredentials): string {
