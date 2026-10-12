@@ -1,7 +1,8 @@
 type Required = 'APP_URL' | 'BETTER_AUTH_SECRET' | 'DATABASE_URL' | 'ENCRYPTION_KEY';
 
-/** Settings for connecting mailboxes of Microsoft 365; without them, that option is off */
-type Optional = 'MICROSOFT_CLIENT_ID' | 'MICROSOFT_CLIENT_SECRET';
+/** Settings for connecting Microsoft 365 and Gmail mailboxes; without them, that option is off */
+type Optional =
+	'MICROSOFT_CLIENT_ID' | 'MICROSOFT_CLIENT_SECRET' | 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET';
 
 /**
  * A setting from the environment: on Workers the vars and secrets (which `nodejs_compat` puts in

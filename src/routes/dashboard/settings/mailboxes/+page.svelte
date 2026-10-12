@@ -16,7 +16,7 @@
 
 	let { data }: PageProps = $props();
 
-	const providerNames = { imap: 'IMAP', microsoft: 'Microsoft 365' };
+	const providerNames = { imap: 'IMAP', microsoft: 'Microsoft 365', google: 'Gmail' };
 
 	// Coming back from connecting a mailbox at a provider
 	$effect(() => {
@@ -150,5 +150,10 @@
 	</div>
 </div>
 
-<MailboxForm bind:open={formOpen} mailbox={editing} microsoftAvailable={data.microsoftAvailable} />
+<MailboxForm
+	bind:open={formOpen}
+	mailbox={editing}
+	microsoftAvailable={data.microsoftAvailable}
+	googleAvailable={data.googleAvailable}
+/>
 <ConfirmDialog />

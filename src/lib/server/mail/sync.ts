@@ -7,8 +7,9 @@ import { openCredentials } from './credentials.js';
 import { readImapInbox, type ImapCursor } from './imap.js';
 import { describeOutcome, processIncomingEmail, type IncomingEmail } from './incoming.js';
 import { readGraphInbox, type GraphCursor } from './microsoft.js';
+import { readGmailInbox, type GmailCursor } from './google.js';
 
-type Cursor = ImapCursor | GraphCursor;
+type Cursor = ImapCursor | GraphCursor | GmailCursor;
 
 /** Messages per sync; with more waiting, the next sync follows right away */
 const BATCH_SIZE = 20;
@@ -54,22 +55,35 @@ export async function syncMailbox(
 
 	let read: { cursor: Cursor; more: boolean };
 	try {
-		read =
-			credentials.provider === 'imap'
-				? await readImapInbox(
-						credentials.imap,
-						mailbox.cursor as ImapCursor | null,
-						mailbox.lastSyncedAt,
-						BATCH_SIZE,
-						handle
-					)
-				: await readGraphInbox(
-						credentials.tenantId,
-						mailbox.address,
-						mailbox.cursor as GraphCursor | null,
-						BATCH_SIZE,
-						handle
-					);
+		switch (credentials.provider) {
+			case 'imap':
+				read = await readImapInbox(
+					credentials.imap,
+					mailbox.cursor as ImapCursor | null,
+					mailbox.lastSyncedAt,
+					BATCH_SIZE,
+					handle
+				);
+				break;
+			case 'microsoft':
+				read = await readGraphInbox(
+					credentials.tenantId,
+					mailbox.address,
+					mailbox.cursor as GraphCursor | null,
+					BATCH_SIZE,
+					handle
+				);
+				break;
+			case 'google':
+				read = await readGmailInbox(
+					credentials.refreshToken,
+					mailbox.cursor as GmailCursor | null,
+					mailbox.lastSyncedAt,
+					BATCH_SIZE,
+					handle
+				);
+				break;
+		}
 	} catch (error) {
 		return recordFailure(systemDb, organizationId, mailbox, error);
 	}

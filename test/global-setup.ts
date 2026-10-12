@@ -10,6 +10,7 @@ import { createServer } from 'vite';
 import type { TestProject } from 'vitest/node';
 import { testRegistryPath } from '../vite.config.js';
 import { CLIENT_ID, CLIENT_SECRET, startFakeMicrosoft } from './fakes/microsoft.js';
+import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, startFakeGoogle } from './fakes/google.js';
 
 declare module 'vitest' {
 	export interface ProvidedContext {
@@ -17,6 +18,8 @@ declare module 'vitest' {
 		appUrl: string;
 		/** Base URL of the stand-in for Microsoft; see test/fakes/microsoft.ts */
 		microsoftUrl: string;
+		/** Base URL of the stand-in for Google; see test/fakes/google.ts */
+		googleUrl: string;
 	}
 }
 
@@ -50,6 +53,17 @@ export default async function setup(project: TestProject) {
 	});
 	project.provide('microsoftUrl', microsoft.url);
 
+	// So do Gmail mailboxes, to a stand-in for Google
+	const google = await startFakeGoogle();
+	Object.assign(process.env, {
+		GOOGLE_CLIENT_ID,
+		GOOGLE_CLIENT_SECRET,
+		GOOGLE_AUTH_URL: `${google.url}/auth`,
+		GOOGLE_TOKEN_URL: `${google.url}/token`,
+		GOOGLE_GMAIL_URL: `${google.url}/gmail/users/me`
+	});
+	project.provide('googleUrl', google.url);
+
 	// The mail Worker runs in workerd, as on Cloudflare; it handles the jobs the app queues
 	const mailWorker = await createServer({
 		root: 'workers/mail',
@@ -66,6 +80,7 @@ export default async function setup(project: TestProject) {
 		await app.close();
 		await mailWorker.close();
 		await microsoft.close();
+		await google.close();
 		await rm(testRegistryPath, { recursive: true, force: true });
 	};
 }

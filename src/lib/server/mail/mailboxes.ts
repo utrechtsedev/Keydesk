@@ -6,7 +6,9 @@ import { isUniqueViolation } from '#lib/server/services/user.service.js';
 import {
 	openCredentials,
 	sealCredentials,
+	type GoogleCredentials,
 	type ImapCredentials,
+	type MailboxCredentials,
 	type MicrosoftCredentials
 } from './credentials.js';
 
@@ -28,7 +30,7 @@ interface MailboxViewBase {
 /** A mailbox as the settings screen shows it; credentials never leave the server */
 export type MailboxView =
 	| (MailboxViewBase & { provider: 'imap'; imap: MailServerView; smtp: MailServerView })
-	| (MailboxViewBase & { provider: 'microsoft' });
+	| (MailboxViewBase & { provider: 'microsoft' | 'google' });
 
 function serverView({ password, ...server }: MailServer): MailServerView {
 	return { ...server, hasPassword: password.length > 0 };
@@ -95,7 +97,7 @@ const notFound: SaveResult = { ok: false, status: 404, message: 'Mailbox not fou
 async function insertMailbox(
 	db: TenantDb,
 	values: { name: string; address: string; pollIntervalSeconds: number; enabled: boolean },
-	credentials: ImapCredentials | MicrosoftCredentials
+	credentials: MailboxCredentials
 ): Promise<SaveResult> {
 	const [mailbox] = await db
 		.insert(schema.mailbox)
@@ -180,15 +182,30 @@ export function updateMailboxSettings(
 	return saveMailbox(db, id, settings);
 }
 
+/** The same account at the provider: then the sync can go on where it was */
+function sameAccount(
+	stored: MailboxCredentials,
+	connected: MicrosoftCredentials | GoogleCredentials
+) {
+	if (stored.provider !== connected.provider) return false;
+	// A Gmail mailbox's account is its address, which connecting checks
+	return (
+		stored.provider === 'google' ||
+		(stored.provider === 'microsoft' &&
+			connected.provider === 'microsoft' &&
+			stored.tenantId === connected.tenantId)
+	);
+}
+
 /**
- * Saves a mailbox an admin connected at Microsoft: a new one, or for `mailboxId` an existing one
- * connected again, for instance after its permissions were withdrawn. Connected to another tenant,
- * the sync starts over from the newest message.
+ * Saves a mailbox an admin connected at Microsoft or Google: a new one, or for `mailboxId` an
+ * existing one connected again, for instance after its access was withdrawn. Connected to another
+ * account, the sync starts over from the newest message.
  */
-export async function saveMicrosoftMailbox(
+export async function saveConnectedMailbox(
 	db: TenantDb,
 	mailbox: { mailboxId?: number; name: string; address: string; pollIntervalSeconds: number },
-	credentials: MicrosoftCredentials
+	credentials: MicrosoftCredentials | GoogleCredentials
 ): Promise<SaveResult> {
 	const { mailboxId, ...values } = mailbox;
 	if (mailboxId === undefined) {
@@ -197,13 +214,18 @@ export async function saveMicrosoftMailbox(
 
 	const existing = await findMailbox(db, mailboxId);
 	if (!existing) return notFound;
-	const stored = openCredentials(existing.credentials);
-	const sameTenant = stored.provider === 'microsoft' && stored.tenantId === credentials.tenantId;
+	if (existing.address !== mailbox.address) {
+		return {
+			ok: false,
+			status: 409,
+			message: `This connects ${mailbox.address}, not ${existing.address}.`
+		};
+	}
 	return saveMailbox(db, mailboxId, {
-		provider: 'microsoft',
+		provider: credentials.provider,
 		credentials: sealCredentials(credentials),
 		errorCount: 0,
 		lastError: null,
-		...(sameTenant ? {} : { cursor: null })
+		...(sameAccount(openCredentials(existing.credentials), credentials) ? {} : { cursor: null })
 	});
 }

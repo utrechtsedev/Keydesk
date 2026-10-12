@@ -14,7 +14,7 @@ export interface ConnectState {
 const MAILBOXES = '/dashboard/settings/mailboxes';
 
 /** Where a provider sends the admin back to; it must be registered with the provider */
-export function callbackUrl(provider: 'microsoft'): string {
+export function callbackUrl(provider: 'microsoft' | 'google'): string {
 	return `${setting('APP_URL')}${MAILBOXES}/${provider}/callback`;
 }
 
