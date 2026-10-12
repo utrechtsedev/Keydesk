@@ -203,5 +203,5 @@ describe('notifications', () => {
 				{ timeout: 15_000, interval: 250 }
 			)
 			.toContain('Ticket assigned to you');
-	}, 20_000);
+	});
 });

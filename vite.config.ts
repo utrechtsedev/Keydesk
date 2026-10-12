@@ -34,6 +34,10 @@ export default defineConfig({
 		},
 		// Test files share one database, so they run one after another
 		fileParallelism: false,
+		// A route test's first request makes the dev server compile that page, which can take
+		// several seconds on a cold CI runner
+		testTimeout: 30_000,
+		hookTimeout: 30_000,
 		expect: { requireAssertions: true }
 	}
 });
