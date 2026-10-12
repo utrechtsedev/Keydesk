@@ -13,11 +13,14 @@ const testEnv = loadEnv('test', process.cwd(), 'TEST_');
 /**
  * Set before any server starts: the SvelteKit adapter starts one local Cloudflare environment per
  * process (the first Vite server's, here Vitest's own) and the route tests' app uses that one.
- * Both Workers then reach the test database through their Hyperdrive binding, and find each other
- * through a registry of the run's own instead of one a development session uses.
+ * Both Workers then reach the test database through their Hyperdrive binding, take their secrets
+ * from this process's environment, and find each other through a registry of the run's own instead
+ * of one a development session uses.
  */
 function useTestEnvironment() {
 	process.env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE = testEnv.TEST_DATABASE_URL;
+	// The Workers get their secrets from this process's environment, as `bun run dev:mail` does
+	process.env.CLOUDFLARE_INCLUDE_PROCESS_ENV = 'true';
 	process.env.MINIFLARE_REGISTRY_PATH = testRegistryPath;
 	process.env.WRANGLER_REGISTRY_PATH = testRegistryPath;
 }

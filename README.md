@@ -57,6 +57,21 @@ Locally, a mailbox on the compose GreenMail server works end to end: host `127.0
 
 The organization's Outgoing Email settings still send sign-in links, invitations and notifications to agents.
 
+### Microsoft 365
+
+A Microsoft 365 mailbox is read and sent through Microsoft Graph, with application permissions an admin of the customer's Microsoft 365 organization grants to Keydesk. Connecting takes two steps at Microsoft: the admin signs in, which tells Keydesk their organization (from the ID token Microsoft issues, never from the address Microsoft redirects back to), and then grants the permissions. Keydesk then checks it can read the address in that organization before saving the mailbox.
+
+It needs one app registration for all of Keydesk, in Microsoft Entra:
+
+- Supported account types: accounts in any organizational directory (multitenant).
+- Redirect URI (Web): `<APP_URL>/dashboard/settings/mailboxes/microsoft/callback`.
+- API permissions, Microsoft Graph, application: `Mail.Read` and `Mail.Send`.
+- A client secret; its value and the application (client) ID go in `MICROSOFT_CLIENT_SECRET` and `MICROSOFT_CLIENT_ID`. Without them, the option to add a Microsoft 365 mailbox doesn't show.
+
+Application permissions reach every mailbox of the customer's organization. Its Exchange admin can limit Keydesk to the support mailboxes with [RBAC for Applications](https://learn.microsoft.com/en-us/exchange/permissions-exo/application-rbac).
+
+Locally, set the two settings in `.env` to try a real app registration with a redirect URI on `http://localhost:5173`. The tests use a stand-in for Microsoft (`test/fakes/microsoft.ts`).
+
 ## Tests
 
 ```sh
@@ -91,16 +106,10 @@ The Deploy workflow (`.github/workflows/deploy.yml`) deploys both Workers after 
    bunx wrangler queues create keydesk-jobs-failed
    ```
 
-3. The secrets, and `APP_URL` (in both `vars`) set to the address the app runs at:
+3. `APP_URL` in the `vars` of both `wrangler.jsonc` files, set to the address the app runs at.
 
-   ```sh
-   bunx wrangler secret put BETTER_AUTH_SECRET
-   bunx wrangler secret put ENCRYPTION_KEY
-   bunx wrangler secret put ENCRYPTION_KEY -c workers/mail/wrangler.jsonc
-   ```
+4. In the GitHub repository: the secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DATABASE_URL` (a direct connection, for the migrations), `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY`, and for Microsoft 365 mailboxes `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET` (see below). Then the variable `CLOUDFLARE_DEPLOY` set to `true`.
 
-4. In the GitHub repository: the secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `DATABASE_URL` (a direct connection, for the migrations), then the variable `CLOUDFLARE_DEPLOY` set to `true`.
-
-Each deploy applies the migrations first, then deploys the mail Worker, then the app.
+Each deploy applies the migrations first, then deploys the mail Worker, then the app, each with the secrets from the repository. A secret removed from the repository stays on the Workers until it is removed there with `wrangler secret delete`.
 
 The Workers' runtime types (`worker-configuration.d.ts`) are generated when installing; after changing the mail Worker's bindings, run `bun run cf-typegen`. The app's bindings are typed by hand in `src/app.d.ts`, next to its other app-wide types.

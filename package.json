@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"dev:mail": "vite dev workers/mail",
+		"dev:mail": "CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev workers/mail",
 		"build": "vite build",
 		"build:mail": "vite build workers/mail",
 		"preview": "vite preview",

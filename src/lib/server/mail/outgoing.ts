@@ -5,7 +5,9 @@ import { createSmtpTransport } from '#lib/server/email/email.js';
 import { replyEmail } from '#lib/server/email/compose.js';
 import { logger } from '#lib/server/logger.js';
 import { getTicketPrefix } from '#lib/server/services/ticket.service.js';
+import nodemailer, { type SendMailOptions } from 'nodemailer';
 import { openCredentials } from './credentials.js';
+import { sendGraphMail } from './microsoft.js';
 
 /** How many earlier messages a reply names in References; enough for any mail program's threading */
 const MAX_REFERENCES = 10;
@@ -98,22 +100,16 @@ export async function sendReply(db: TenantDb, ticketMessageId: number): Promise<
 	const domain = mailbox.address.split('@')[1];
 	const messageId = `<${crypto.randomUUID()}@${domain}>`;
 
-	const { smtp } = openCredentials(mailbox.credentials);
-	const transporter = createSmtpTransport(smtp);
-	try {
-		await transporter.sendMail({
-			from: { name: mailbox.name, address: mailbox.address },
-			to: requester.email,
-			subject: email.subject,
-			html: email.html,
-			text: email.text,
-			messageId,
-			...(inReplyTo ? { inReplyTo } : {}),
-			...(references.length > 0 ? { references } : {})
-		});
-	} finally {
-		transporter.close();
-	}
+	await sendFromMailbox(mailbox, {
+		from: { name: mailbox.name, address: mailbox.address },
+		to: requester.email,
+		subject: email.subject,
+		html: email.html,
+		text: email.text,
+		messageId,
+		...(inReplyTo ? { inReplyTo } : {}),
+		...(references.length > 0 ? { references } : {})
+	});
 
 	await db
 		.update(schema.ticketMessage)
@@ -125,4 +121,27 @@ export async function sendReply(db: TenantDb, ticketMessageId: number): Promise<
 			.set({ mailboxId: mailbox.id })
 			.where(eq(schema.ticket.id, ticket.id));
 	}
+}
+
+/** Sends an email from a mailbox, the way its provider sends: over SMTP or through Graph */
+async function sendFromMailbox(mailbox: schema.Mailbox, mail: SendMailOptions): Promise<void> {
+	const credentials = openCredentials(mailbox.credentials);
+	if (credentials.provider === 'imap') {
+		const transporter = createSmtpTransport(credentials.smtp);
+		try {
+			await transporter.sendMail(mail);
+		} finally {
+			transporter.close();
+		}
+		return;
+	}
+
+	// Graph takes the whole message as MIME, which keeps the Message-ID and the thread headers
+	const composer = nodemailer.createTransport({
+		streamTransport: true,
+		buffer: true,
+		newline: 'windows'
+	});
+	const { message } = await composer.sendMail(mail);
+	await sendGraphMail(credentials.tenantId, mailbox.address, new Uint8Array(message as Buffer));
 }

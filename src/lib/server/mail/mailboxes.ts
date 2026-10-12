@@ -1,21 +1,22 @@
 import { asc, eq } from 'drizzle-orm';
 import type { TenantDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
-import type { ImapMailboxInput, MailServer } from '#lib/server/db/schema/index.js';
+import type { ImapMailboxInput, MailboxSettings, MailServer } from '#lib/server/db/schema/index.js';
 import { isUniqueViolation } from '#lib/server/services/user.service.js';
-import { openCredentials, sealCredentials, type MailboxCredentials } from './credentials.js';
+import {
+	openCredentials,
+	sealCredentials,
+	type ImapCredentials,
+	type MicrosoftCredentials
+} from './credentials.js';
 
 /** A mail server as the settings screen shows it: without its password */
 export type MailServerView = Omit<MailServer, 'password'> & { hasPassword: boolean };
 
-/** A mailbox as the settings screen shows it; credentials never leave the server */
-export interface MailboxView {
+interface MailboxViewBase {
 	id: number;
 	name: string;
 	address: string;
-	provider: 'imap' | 'microsoft' | 'google';
-	imap: MailServerView;
-	smtp: MailServerView;
 	pollIntervalSeconds: number;
 	enabled: boolean;
 	lastSyncedAt: Date | null;
@@ -24,19 +25,20 @@ export interface MailboxView {
 	lastError: string | null;
 }
 
+/** A mailbox as the settings screen shows it; credentials never leave the server */
+export type MailboxView =
+	| (MailboxViewBase & { provider: 'imap'; imap: MailServerView; smtp: MailServerView })
+	| (MailboxViewBase & { provider: 'microsoft' });
+
 function serverView({ password, ...server }: MailServer): MailServerView {
 	return { ...server, hasPassword: password.length > 0 };
 }
 
 export function mailboxView(mailbox: schema.Mailbox): MailboxView {
-	const credentials = openCredentials(mailbox.credentials);
-	return {
+	const base: MailboxViewBase = {
 		id: mailbox.id,
 		name: mailbox.name,
 		address: mailbox.address,
-		provider: mailbox.provider,
-		imap: serverView(credentials.imap),
-		smtp: serverView(credentials.smtp),
 		pollIntervalSeconds: mailbox.pollIntervalSeconds,
 		enabled: mailbox.enabled,
 		lastSyncedAt: mailbox.lastSyncedAt,
@@ -44,6 +46,15 @@ export function mailboxView(mailbox: schema.Mailbox): MailboxView {
 		errorCount: mailbox.errorCount,
 		lastError: mailbox.lastError
 	};
+	const credentials = openCredentials(mailbox.credentials);
+	return credentials.provider === 'imap'
+		? {
+				...base,
+				provider: 'imap',
+				imap: serverView(credentials.imap),
+				smtp: serverView(credentials.smtp)
+			}
+		: { ...base, provider: credentials.provider };
 }
 
 export async function listMailboxes(db: TenantDb): Promise<MailboxView[]> {
@@ -62,10 +73,7 @@ function keepPassword(entered: MailServer, stored: MailServer | undefined): Mail
 }
 
 /** The credentials to use for what an admin entered, filling in passwords left empty */
-export function credentialsFor(
-	input: ImapMailboxInput,
-	stored?: MailboxCredentials
-): MailboxCredentials {
+export function credentialsFor(input: ImapMailboxInput, stored?: ImapCredentials): ImapCredentials {
 	return {
 		provider: 'imap',
 		imap: keepPassword(input.imap, stored?.imap),
@@ -81,66 +89,121 @@ const addressTaken: SaveResult = {
 	status: 409,
 	message: 'The organization already has a mailbox with this address.'
 };
+const notFound: SaveResult = { ok: false, status: 404, message: 'Mailbox not found.' };
 
 /** Adds a mailbox. Its first sync starts reading from the newest message: older mail stays out. */
-export async function createMailbox(db: TenantDb, input: ImapMailboxInput): Promise<SaveResult> {
+async function insertMailbox(
+	db: TenantDb,
+	values: { name: string; address: string; pollIntervalSeconds: number; enabled: boolean },
+	credentials: ImapCredentials | MicrosoftCredentials
+): Promise<SaveResult> {
 	const [mailbox] = await db
 		.insert(schema.mailbox)
 		.values({
-			name: input.name,
-			address: input.address,
-			provider: input.provider,
-			credentials: sealCredentials(credentialsFor(input)),
-			pollIntervalSeconds: input.pollIntervalSeconds,
-			enabled: input.enabled
+			...values,
+			provider: credentials.provider,
+			credentials: sealCredentials(credentials)
 		})
 		.onConflictDoNothing({ target: [schema.mailbox.organizationId, schema.mailbox.address] })
 		.returning();
 	return mailbox ? { ok: true, mailbox } : addressTaken;
 }
 
+/** Changes a mailbox in a savepoint, so a refused address leaves the request's transaction usable */
+async function saveMailbox(
+	db: TenantDb,
+	id: number,
+	values: Partial<schema.NewMailbox>
+): Promise<SaveResult> {
+	try {
+		const mailbox = await db.transaction(async (savepoint) => {
+			const [mailbox] = await savepoint
+				.update(schema.mailbox)
+				.set(values)
+				.where(eq(schema.mailbox.id, id))
+				.returning();
+			return mailbox;
+		});
+		return mailbox ? { ok: true, mailbox } : notFound;
+	} catch (error) {
+		if (isUniqueViolation(error, 'mailbox_organization_id_address_unique')) return addressTaken;
+		throw error;
+	}
+}
+
+export function createImapMailbox(db: TenantDb, input: ImapMailboxInput): Promise<SaveResult> {
+	const { name, address, pollIntervalSeconds, enabled } = input;
+	return insertMailbox(db, { name, address, pollIntervalSeconds, enabled }, credentialsFor(input));
+}
+
 /**
- * Changes a mailbox. Another server or account means other messages, so the sync then starts over
- * from the newest message, as for a new mailbox.
+ * Changes an IMAP mailbox. Another server or account means other messages, so the sync then
+ * starts over from the newest message, as for a new mailbox.
  */
-export async function updateMailbox(
+export async function updateImapMailbox(
 	db: TenantDb,
 	id: number,
 	input: ImapMailboxInput
 ): Promise<SaveResult> {
 	const existing = await findMailbox(db, id);
-	if (!existing) return { ok: false, status: 404, message: 'Mailbox not found.' };
-
+	if (!existing) return notFound;
 	const stored = openCredentials(existing.credentials);
+	if (stored.provider !== 'imap') {
+		return { ok: false, status: 409, message: 'This mailbox is connected through its provider.' };
+	}
+
 	const credentials = credentialsFor(input, stored);
 	const sameInbox =
 		stored.imap.host === credentials.imap.host &&
 		stored.imap.port === credentials.imap.port &&
 		stored.imap.username === credentials.imap.username;
 
-	try {
-		// A savepoint, so a refused address leaves the request's transaction usable
-		const mailbox = await db.transaction(async (savepoint) => {
-			const [mailbox] = await savepoint
-				.update(schema.mailbox)
-				.set({
-					name: input.name,
-					address: input.address,
-					credentials: sealCredentials(credentials),
-					pollIntervalSeconds: input.pollIntervalSeconds,
-					enabled: input.enabled,
-					// Errors were about the old settings
-					errorCount: 0,
-					lastError: null,
-					...(sameInbox ? {} : { cursor: null })
-				})
-				.where(eq(schema.mailbox.id, id))
-				.returning();
-			return mailbox;
-		});
-		return { ok: true, mailbox };
-	} catch (error) {
-		if (isUniqueViolation(error, 'mailbox_organization_id_address_unique')) return addressTaken;
-		throw error;
+	return saveMailbox(db, id, {
+		name: input.name,
+		address: input.address,
+		credentials: sealCredentials(credentials),
+		pollIntervalSeconds: input.pollIntervalSeconds,
+		enabled: input.enabled,
+		// Errors were about the old settings
+		errorCount: 0,
+		lastError: null,
+		...(sameInbox ? {} : { cursor: null })
+	});
+}
+
+/** Changes what every mailbox has, whatever its provider: its name, poll interval and switch */
+export function updateMailboxSettings(
+	db: TenantDb,
+	id: number,
+	settings: MailboxSettings
+): Promise<SaveResult> {
+	return saveMailbox(db, id, settings);
+}
+
+/**
+ * Saves a mailbox an admin connected at Microsoft: a new one, or for `mailboxId` an existing one
+ * connected again, for instance after its permissions were withdrawn. Connected to another tenant,
+ * the sync starts over from the newest message.
+ */
+export async function saveMicrosoftMailbox(
+	db: TenantDb,
+	mailbox: { mailboxId?: number; name: string; address: string; pollIntervalSeconds: number },
+	credentials: MicrosoftCredentials
+): Promise<SaveResult> {
+	const { mailboxId, ...values } = mailbox;
+	if (mailboxId === undefined) {
+		return insertMailbox(db, { ...values, enabled: true }, credentials);
 	}
+
+	const existing = await findMailbox(db, mailboxId);
+	if (!existing) return notFound;
+	const stored = openCredentials(existing.credentials);
+	const sameTenant = stored.provider === 'microsoft' && stored.tenantId === credentials.tenantId;
+	return saveMailbox(db, mailboxId, {
+		provider: 'microsoft',
+		credentials: sealCredentials(credentials),
+		errorCount: 0,
+		lastError: null,
+		...(sameTenant ? {} : { cursor: null })
+	});
 }

@@ -2,18 +2,39 @@ import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 import { requireAuth } from '#lib/server/auth.js';
-import { mailboxView, updateMailbox } from '#lib/server/mail/mailboxes.js';
+import {
+	findMailbox,
+	mailboxView,
+	updateImapMailbox,
+	updateMailboxSettings,
+	type SaveResult
+} from '#lib/server/mail/mailboxes.js';
+import type { ZodError } from 'zod';
+
+const invalid = (error: ZodError) =>
+	Response.json({ message: error.issues[0].message }, { status: 400 });
 import { queueJob } from '#lib/server/queue.js';
 
 export const PATCH: RequestHandler = async ({ request, params, locals }): Promise<Response> => {
 	const { user, db } = requireAuth(locals);
 	const id = schema.idParamSchema.parse(params.id);
-	const parsed = schema.imapMailboxSchema.safeParse(await request.json());
-	if (!parsed.success) {
-		return Response.json({ message: parsed.error.issues[0].message }, { status: 400 });
+	const existing = await findMailbox(db, id);
+	if (!existing) {
+		return Response.json({ message: 'Mailbox not found.' }, { status: 404 });
 	}
 
-	const saved = await updateMailbox(db, id, parsed.data);
+	// An IMAP mailbox's servers are edited here; other providers are connected at the provider
+	const body = await request.json();
+	let saved: SaveResult;
+	if (existing.provider === 'imap') {
+		const parsed = schema.imapMailboxSchema.safeParse(body);
+		if (!parsed.success) return invalid(parsed.error);
+		saved = await updateImapMailbox(db, id, parsed.data);
+	} else {
+		const parsed = schema.mailboxSettingsSchema.safeParse(body);
+		if (!parsed.success) return invalid(parsed.error);
+		saved = await updateMailboxSettings(db, id, parsed.data);
+	}
 	if (!saved.ok) {
 		return Response.json({ message: saved.message }, { status: saved.status });
 	}

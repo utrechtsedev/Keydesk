@@ -11,13 +11,18 @@
 	import type { MailboxView } from '#lib/server/mail/mailboxes.js';
 	import MailboxServerFields, { type ServerFields } from './mailbox-server-fields.svelte';
 
+	type Provider = MailboxView['provider'];
+
 	let {
 		open = $bindable(),
-		mailbox
+		mailbox,
+		microsoftAvailable
 	}: {
 		open: boolean;
 		/** The mailbox to edit, or none to add one */
 		mailbox: MailboxView | null;
+		/** Whether this Keydesk can connect Microsoft 365 mailboxes */
+		microsoftAvailable: boolean;
 	} = $props();
 
 	const intervals = [
@@ -25,6 +30,11 @@
 		{ seconds: 120, label: 'Every 2 minutes' },
 		{ seconds: 180, label: 'Every 3 minutes' },
 		{ seconds: 300, label: 'Every 5 minutes' }
+	];
+
+	const providers: { value: Provider; label: string }[] = [
+		{ value: 'imap', label: 'IMAP and SMTP' },
+		{ value: 'microsoft', label: 'Microsoft 365' }
 	];
 
 	const emptyServer = (port: number): ServerFields => ({
@@ -35,6 +45,7 @@
 		password: ''
 	});
 
+	let provider = $state<Provider>('imap');
 	let name = $state('');
 	let address = $state('');
 	let imap = $state(emptyServer(993));
@@ -53,16 +64,17 @@
 	// Fills the form each time it opens
 	$effect(() => {
 		if (!open) return;
+		provider = mailbox?.provider ?? 'imap';
 		name = mailbox?.name ?? '';
 		address = mailbox?.address ?? '';
-		imap = mailbox ? { ...mailbox.imap, password: '' } : emptyServer(993);
-		smtp = mailbox ? { ...mailbox.smtp, password: '' } : emptyServer(465);
+		imap = mailbox?.provider === 'imap' ? { ...mailbox.imap, password: '' } : emptyServer(993);
+		smtp = mailbox?.provider === 'imap' ? { ...mailbox.smtp, password: '' } : emptyServer(465);
 		pollInterval = String(mailbox?.pollIntervalSeconds ?? 120);
 		enabled = mailbox?.enabled ?? true;
 		testResult = null;
 	});
 
-	function input() {
+	function imapInput() {
 		return {
 			name,
 			address,
@@ -74,11 +86,22 @@
 		};
 	}
 
+	/** Microsoft takes over from here: the admin signs in there and grants access */
+	function connectMicrosoft() {
+		const params = new URLSearchParams({
+			name,
+			address,
+			pollIntervalSeconds: pollInterval,
+			...(mailbox ? { mailboxId: String(mailbox.id) } : {})
+		});
+		window.location.href = `/dashboard/settings/mailboxes/microsoft?${params}`;
+	}
+
 	async function test() {
 		testing = true;
 		try {
 			const { data } = await api.post('/api/settings/mailboxes/test', {
-				...input(),
+				...imapInput(),
 				...(mailbox ? { id: mailbox.id } : {})
 			});
 			testResult = { imap: data.imap, smtp: data.smtp };
@@ -91,14 +114,26 @@
 
 	async function save(event: SubmitEvent) {
 		event.preventDefault();
+		if (provider === 'microsoft' && !mailbox) {
+			connectMicrosoft();
+			return;
+		}
+
 		saving = true;
 		try {
-			if (mailbox) {
-				await api.patch(`/api/settings/mailboxes/${mailbox.id}`, input());
+			if (!mailbox) {
+				await api.post('/api/settings/mailboxes', imapInput());
+				toast.success(`Added ${address}. New email to it becomes tickets from now on.`);
+			} else if (mailbox.provider === 'imap') {
+				await api.patch(`/api/settings/mailboxes/${mailbox.id}`, imapInput());
 				toast.success(`Saved ${address}.`);
 			} else {
-				await api.post('/api/settings/mailboxes', input());
-				toast.success(`Added ${address}. New email to it becomes tickets from now on.`);
+				await api.patch(`/api/settings/mailboxes/${mailbox.id}`, {
+					name,
+					pollIntervalSeconds: Number(pollInterval),
+					enabled
+				});
+				toast.success(`Saved ${mailbox.address}.`);
 			}
 			await invalidate('app:mailboxes');
 			open = false;
@@ -119,6 +154,22 @@
 			</Dialog.Description>
 		</Dialog.Header>
 		<form class="grid gap-6" onsubmit={save}>
+			{#if !mailbox && microsoftAvailable}
+				<div class="grid gap-2">
+					<Field.Label>Provider</Field.Label>
+					<Select.Root type="single" bind:value={provider}>
+						<Select.Trigger class="w-full">
+							{providers.find((option) => option.value === provider)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							{#each providers as option (option.value)}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+			{/if}
+
 			<div class="grid grid-cols-2 gap-3">
 				<div class="grid gap-2">
 					<Field.Label for="mailbox-name">Name</Field.Label>
@@ -131,23 +182,31 @@
 						type="email"
 						bind:value={address}
 						placeholder="support@company.com"
+						readonly={mailbox !== null && provider !== 'imap'}
 						required
 					/>
 				</div>
 			</div>
 
-			<MailboxServerFields
-				label="Incoming mail (IMAP)"
-				id="imap"
-				bind:server={imap}
-				hasPassword={mailbox?.imap.hasPassword ?? false}
-			/>
-			<MailboxServerFields
-				label="Outgoing mail (SMTP)"
-				id="smtp"
-				bind:server={smtp}
-				hasPassword={mailbox?.smtp.hasPassword ?? false}
-			/>
+			{#if provider === 'imap'}
+				<MailboxServerFields
+					label="Incoming mail (IMAP)"
+					id="imap"
+					bind:server={imap}
+					hasPassword={mailbox?.provider === 'imap' && mailbox.imap.hasPassword}
+				/>
+				<MailboxServerFields
+					label="Outgoing mail (SMTP)"
+					id="smtp"
+					bind:server={smtp}
+					hasPassword={mailbox?.provider === 'imap' && mailbox.smtp.hasPassword}
+				/>
+			{:else if !mailbox}
+				<p class="text-sm text-muted-foreground">
+					You sign in with Microsoft next, as an admin of the Microsoft 365 organization the address
+					belongs to, and allow Keydesk to read and send its email.
+				</p>
+			{/if}
 
 			<div class="grid grid-cols-2 items-end gap-3">
 				<div class="grid gap-2">
@@ -163,10 +222,12 @@
 						</Select.Content>
 					</Select.Root>
 				</div>
-				<div class="flex h-9 items-center gap-2">
-					<Switch id="mailbox-enabled" bind:checked={enabled} />
-					<Field.Label for="mailbox-enabled" class="font-normal">On</Field.Label>
-				</div>
+				{#if mailbox || provider === 'imap'}
+					<div class="flex h-9 items-center gap-2">
+						<Switch id="mailbox-enabled" bind:checked={enabled} />
+						<Field.Label for="mailbox-enabled" class="font-normal">On</Field.Label>
+					</div>
+				{/if}
 			</div>
 
 			{#if testResult}
@@ -180,11 +241,23 @@
 			{/if}
 
 			<Dialog.Footer>
-				<Button type="button" variant="outline" onclick={test} disabled={testing}>
-					Test connection
-				</Button>
+				{#if provider === 'imap'}
+					<Button type="button" variant="outline" onclick={test} disabled={testing}>
+						Test connection
+					</Button>
+				{:else if mailbox && microsoftAvailable}
+					<Button type="button" variant="outline" onclick={connectMicrosoft}>Connect again</Button>
+				{/if}
 				<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
-				<Button type="submit" disabled={saving}>{mailbox ? 'Save' : 'Add mailbox'}</Button>
+				<Button type="submit" disabled={saving}>
+					{#if mailbox}
+						Save
+					{:else if provider === 'microsoft'}
+						Connect with Microsoft
+					{:else}
+						Add mailbox
+					{/if}
+				</Button>
 			</Dialog.Footer>
 		</form>
 	</Dialog.Content>
