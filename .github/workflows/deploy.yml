@@ -1,0 +1,53 @@
+name: Deploy
+
+# Deploys both Workers when CI has passed on main. It stays off until the Cloudflare account is set
+# up and the repository variable CLOUDFLARE_DEPLOY is true; see "Deploying to Cloudflare" in the
+# README.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success' && vars.CLOUDFLARE_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout the commit CI passed
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Before the new code runs: migrations only add to the schema the running code uses
+      - name: Migrate the database
+        run: bun run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Build
+        run: bun run build && bun run build:mail
+
+      # The mail Worker first: the app sends it jobs in the shape the new code expects
+      - name: Deploy the mail Worker
+        working-directory: workers/mail
+        run: bunx wrangler deploy
+
+      - name: Deploy the app
+        run: bunx wrangler deploy

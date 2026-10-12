@@ -29,6 +29,13 @@
       "when": 1791828173742,
       "tag": "20261012180253_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791830339331,
+      "tag": "20261012183859_attachments_in_r2",
+      "breakpoints": true
     }
   ]
 }

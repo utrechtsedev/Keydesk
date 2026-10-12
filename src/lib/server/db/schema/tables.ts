@@ -538,7 +538,8 @@ export const ticketAttachment = pgTable(
 		messageId: integer('message_id').references(() => ticketMessage.id, { onDelete: 'set null' }),
 		fileName: varchar('file_name', { length: 255 }).notNull(),
 		originalFileName: varchar('original_file_name', { length: 255 }).notNull(),
-		filePath: varchar('file_path', { length: 500 }).notNull(),
+		/** Where the file is in the attachments bucket (R2) */
+		storageKey: varchar('storage_key', { length: 500 }).notNull(),
 		fileSize: integer('file_size').notNull(),
 		mimeType: varchar('mime_type', { length: 100 }).notNull(),
 		uploadedByType: uploadedByTypeEnum('uploaded_by_type').notNull(),

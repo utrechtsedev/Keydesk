@@ -2,6 +2,7 @@ import pg from 'pg';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { sql } from 'drizzle-orm';
 import * as schema from '#lib/server/db/schema/index.js';
+import { setting } from '#lib/server/settings.js';
 
 /**
  * A connection as the tables' owner, which row level security doesn't limit. Only better-auth,
@@ -53,11 +54,7 @@ export function withTenant<T>(
 	});
 }
 
-/** The database URL for the command line tools and the Node processes, from DATABASE_URL */
+/** The database URL for the command line tools and the tests, which connect without Hyperdrive */
 export function databaseUrl(): string {
-	const url = process.env.DATABASE_URL;
-	if (!url) {
-		throw new Error('Database URL not found in environment variables.');
-	}
-	return url;
+	return setting('DATABASE_URL');
 }

@@ -110,7 +110,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 			}
 		});
 
-		await sendNotification(user.organizationId, {
+		sendNotification(locals, user.organizationId, {
 			title: 'Task assigned to you',
 			message: `New task assigned by ${user.name}: ${task.title}`,
 			recipient: { userId: result.assigneeId },

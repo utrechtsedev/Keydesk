@@ -1,0 +1,1 @@
+ALTER TABLE "ticket_attachment" RENAME COLUMN "file_path" TO "storage_key";

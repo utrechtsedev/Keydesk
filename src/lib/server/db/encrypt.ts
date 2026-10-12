@@ -1,16 +1,15 @@
 import crypto from 'crypto';
-const { ENCRYPTION_KEY } = process.env;
+import { setting } from '#lib/server/settings.js';
 
 const ALGORITHM = 'aes-256-gcm';
 
 export function encrypt(text: string): string {
   if (!text) return '';
-  if (!ENCRYPTION_KEY) return '';
 
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(
     ALGORITHM,
-    Buffer.from(ENCRYPTION_KEY, 'hex'),
+    Buffer.from(setting('ENCRYPTION_KEY'), 'hex'),
     iv
   );
 
@@ -23,7 +22,6 @@ export function encrypt(text: string): string {
 
 export function decrypt(encrypted: string): string {
   if (!encrypted) return '';
-  if (!ENCRYPTION_KEY) return '';
 
   const parts = encrypted.split(':');
   const iv = Buffer.from(parts[0], 'hex');
@@ -32,7 +30,7 @@ export function decrypt(encrypted: string): string {
 
   const decipher = crypto.createDecipheriv(
     ALGORITHM,
-    Buffer.from(ENCRYPTION_KEY, 'hex'),
+    Buffer.from(setting('ENCRYPTION_KEY'), 'hex'),
 
     iv
   );

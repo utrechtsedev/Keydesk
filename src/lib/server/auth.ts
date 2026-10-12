@@ -4,6 +4,7 @@ import { admin, magicLink } from 'better-auth/plugins';
 import { inArray } from 'drizzle-orm';
 import { sendEmailToUser } from './email/email.js';
 import { messageEmail } from './email/compose.js';
+import { setting } from './settings.js';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
 import type { SystemDb, TenantDb } from './db/database.js';
@@ -51,6 +52,8 @@ const MAGIC_LINK_MINUTES = 5;
  */
 export function createAuth(systemDb: SystemDb) {
 	return betterAuth({
+		secret: setting('BETTER_AUTH_SECRET'),
+		baseURL: setting('APP_URL'),
 		// Signing in looks users up across organizations, so better-auth uses the owner connection
 		database: drizzleAdapter(systemDb, {
 			provider: 'pg',
@@ -136,13 +139,12 @@ export function createAuth(systemDb: SystemDb) {
 export type Auth = ReturnType<typeof createAuth>;
 
 /**
- * better-auth signs sessions with BETTER_AUTH_SECRET. The server checks it at startup, so a
- * missing secret stops it there instead of failing the first request.
+ * better-auth signs sessions with BETTER_AUTH_SECRET and builds links on APP_URL. The app checks
+ * them at startup, so a missing one stops it there instead of failing the first request.
  */
-export function assertAuthSecret(): void {
-	if (!process.env.BETTER_AUTH_SECRET) {
-		throw new Error('BETTER_AUTH_SECRET is not set.');
-	}
+export function assertAuthSettings(): void {
+	setting('BETTER_AUTH_SECRET');
+	setting('APP_URL');
 }
 
 /**

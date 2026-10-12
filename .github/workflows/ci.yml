@@ -42,10 +42,15 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Type check
-        run: bun run check
+        run: bun run check && bun run check:mail
 
       - name: Build
-        run: bun run build
+        run: bun run build && bun run build:mail
 
-      - name: Test
+      - name: Test against the dev server
         run: bun run test
+
+      - name: Test against the built app in workerd
+        run: bun run test
+        env:
+          TEST_APP: build

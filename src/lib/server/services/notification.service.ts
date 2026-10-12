@@ -9,6 +9,7 @@ import type {
 	Organization
 } from '#lib/types/index.js';
 import { logger } from '#lib/server/logger.js';
+import { setting } from '#lib/server/settings.js';
 import type { TenantDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq, inArray } from 'drizzle-orm';
@@ -536,7 +537,7 @@ export class NotificationService {
 	 * Generate action URL based on notification type
 	 */
 	private generateActionUrl(options: NotificationOptions, external: boolean = false): string {
-		const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
+		const baseUrl = setting('APP_URL');
 
 		if (options.notification.type === 'entity') {
 			const { entity } = options.notification;
