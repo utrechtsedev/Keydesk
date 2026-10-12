@@ -7,13 +7,27 @@
 	import MailboxForm from '#lib/components/settings/mailbox-form.svelte';
 	import api from '#lib/utils/axios.js';
 	import { toast } from 'svelte-sonner';
-	import { invalidate } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
+	import { page } from '$app/state';
 	import Dots from '#lib/icons/dots.svelte';
 	import Plus from '#lib/icons/plus.svelte';
 	import type { MailboxView } from '#lib/server/mail/mailboxes.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	const providerNames = { imap: 'IMAP', microsoft: 'Microsoft 365' };
+
+	// Coming back from connecting a mailbox at a provider
+	$effect(() => {
+		const error = page.url.searchParams.get('error');
+		const connected = page.url.searchParams.get('connected');
+		if (!error && !connected) return;
+		if (error) toast.error(error);
+		if (connected)
+			toast.success(`Connected ${connected}. New email to it becomes tickets from now on.`);
+		goto(page.url.pathname, { replaceState: true });
+	});
 
 	let formOpen = $state(false);
 	let editing = $state<MailboxView | null>(null);
@@ -75,9 +89,10 @@
 		<Table.Root>
 			<Table.Header>
 				<Table.Row class="font-bold">
-					<Table.Head class="w-[25%]">Name</Table.Head>
+					<Table.Head class="w-[20%]">Name</Table.Head>
 					<Table.Head class="w-[30%]">Address</Table.Head>
-					<Table.Head class="w-[35%]">Status</Table.Head>
+					<Table.Head class="w-[10%]">Provider</Table.Head>
+					<Table.Head class="w-[30%]">Status</Table.Head>
 					<Table.Head class="w-[10%]">Actions</Table.Head>
 				</Table.Row>
 			</Table.Header>
@@ -86,6 +101,7 @@
 					<Table.Row>
 						<Table.Cell>{mailbox.name}</Table.Cell>
 						<Table.Cell>{mailbox.address}</Table.Cell>
+						<Table.Cell>{providerNames[mailbox.provider]}</Table.Cell>
 						<Table.Cell class="whitespace-normal">
 							{#if !mailbox.enabled}
 								<Badge variant="outline">Off</Badge>
@@ -124,7 +140,7 @@
 					</Table.Row>
 				{:else}
 					<Table.Row>
-						<Table.Cell colspan={4} class="h-24 text-center text-muted-foreground">
+						<Table.Cell colspan={5} class="h-24 text-center text-muted-foreground">
 							No mailboxes yet. Add one to turn email into tickets.
 						</Table.Cell>
 					</Table.Row>
@@ -134,5 +150,5 @@
 	</div>
 </div>
 
-<MailboxForm bind:open={formOpen} mailbox={editing} />
+<MailboxForm bind:open={formOpen} mailbox={editing} microsoftAvailable={data.microsoftAvailable} />
 <ConfirmDialog />

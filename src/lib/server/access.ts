@@ -26,8 +26,11 @@ export function requiredAccess(routeId: string, method: string): Access {
 	return 'user';
 }
 
-/** Endpoints answer a refusal with a status code; pages send the visitor somewhere else */
-function isEndpoint(routeId: string): boolean {
+/**
+ * Endpoints answer a refusal with a status code; pages, and the routes a browser navigates to
+ * (such as the steps of connecting a mailbox), send the visitor somewhere else
+ */
+export function isEndpoint(routeId: string): boolean {
 	return routeId.startsWith('/(index)/api/') || routeId === '/(index)/logo';
 }
 

@@ -44,10 +44,31 @@ jobs:
       - name: Build
         run: bun run build && bun run build:mail
 
+      # The Workers' secrets come from the repository's secrets on every deploy, which also works
+      # for a Worker's first deploy. One left empty (such as the Microsoft 365 app registration
+      # before there is one) is left out, which switches that feature off.
+      - name: Collect the Workers' secrets
+        env:
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MICROSOFT_CLIENT_SECRET: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+        run: |
+          jq -n 'env | {BETTER_AUTH_SECRET, ENCRYPTION_KEY, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET}
+            | with_entries(select(.value != null and .value != ""))' > "$RUNNER_TEMP/secrets.json"
+          for name in BETTER_AUTH_SECRET ENCRYPTION_KEY; do
+            jq -e --arg name "$name" 'has($name)' "$RUNNER_TEMP/secrets.json" > /dev/null \
+              || { echo "The repository secret $name is not set"; exit 1; }
+          done
+
       # The mail Worker first: the app sends it jobs in the shape the new code expects
       - name: Deploy the mail Worker
         working-directory: workers/mail
-        run: bunx wrangler deploy
+        run: bunx wrangler deploy --secrets-file "$RUNNER_TEMP/secrets.json"
 
       - name: Deploy the app
-        run: bunx wrangler deploy
+        run: bunx wrangler deploy --secrets-file "$RUNNER_TEMP/secrets.json"
+
+      - name: Remove the secrets file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/secrets.json"

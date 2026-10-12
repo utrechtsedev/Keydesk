@@ -30,13 +30,11 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 	}
 
 	const existing = parsed.data.id ? await findMailbox(db, parsed.data.id) : null;
-	if (parsed.data.id && !existing) {
-		return Response.json({ message: 'Mailbox not found.' }, { status: 404 });
+	if (parsed.data.id && existing?.provider !== 'imap') {
+		return Response.json({ message: 'IMAP mailbox not found.' }, { status: 404 });
 	}
-	const credentials = credentialsFor(
-		parsed.data,
-		existing ? openCredentials(existing.credentials) : undefined
-	);
+	const stored = existing ? openCredentials(existing.credentials) : undefined;
+	const credentials = credentialsFor(parsed.data, stored?.provider === 'imap' ? stored : undefined);
 
 	const [imap, smtp] = await Promise.all([
 		outcome(() => testImap(credentials.imap)),

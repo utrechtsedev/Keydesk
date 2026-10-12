@@ -1,7 +1,7 @@
 import * as schema from '#lib/server/db/schema/index.js';
 import type { RequestHandler } from './$types';
 import { requireAuth } from '#lib/server/auth.js';
-import { createMailbox, listMailboxes, mailboxView } from '#lib/server/mail/mailboxes.js';
+import { createImapMailbox, listMailboxes, mailboxView } from '#lib/server/mail/mailboxes.js';
 import { queueJob } from '#lib/server/queue.js';
 
 export const GET: RequestHandler = async ({ locals }): Promise<Response> => {
@@ -19,7 +19,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 		return Response.json({ message: 'Enter the IMAP and SMTP passwords.' }, { status: 400 });
 	}
 
-	const saved = await createMailbox(db, parsed.data);
+	const saved = await createImapMailbox(db, parsed.data);
 	if (!saved.ok) {
 		return Response.json({ message: saved.message }, { status: saved.status });
 	}

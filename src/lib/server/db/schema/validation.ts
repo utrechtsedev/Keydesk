@@ -94,6 +94,22 @@ export const adminUpdateUserSchema = z
 		message: 'At least one field must be provided for update'
 	});
 
+/** What every mailbox has, whatever its provider */
+export const mailboxSettingsSchema = z.object({
+	name: z.string().trim().min(1, 'Name is required').max(255),
+	pollIntervalSeconds: z.number().int().min(60).max(300),
+	enabled: z.boolean()
+});
+
+/** An admin starting to connect a mailbox at a provider such as Microsoft */
+export const connectMailboxSchema = z.object({
+	name: z.string().trim().min(1, 'Name is required').max(255),
+	address: z.email('Invalid email address').max(255).toLowerCase(),
+	pollIntervalSeconds: z.coerce.number().int().min(60).max(300).default(120),
+	/** A mailbox to connect again, instead of adding one */
+	mailboxId: z.coerce.number().int().positive().optional()
+});
+
 export const publicUserSchema = createSelectSchema(user).pick({
 	id: true,
 	name: true,
@@ -861,6 +877,8 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type InviteUser = z.infer<typeof inviteUserSchema>;
 export type ImapMailboxInput = z.infer<typeof imapMailboxSchema>;
+export type MailboxSettings = z.infer<typeof mailboxSettingsSchema>;
+export type ConnectMailbox = z.infer<typeof connectMailboxSchema>;
 export type MailServer = z.infer<typeof mailServerSchema>;
 export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
 export type PublicUser = z.infer<typeof publicUserSchema>;

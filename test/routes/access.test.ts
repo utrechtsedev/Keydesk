@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, sep } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { requiredAccess, type Access } from '#lib/server/access.js';
+import { isEndpoint, requiredAccess, type Access } from '#lib/server/access.js';
 import { Browser, createOrganization, signIn, systemDb } from '../app.js';
 
 interface Route {
@@ -34,7 +34,8 @@ function discoverRoutes(): Route[] {
 				/export (?:const|async function|function) (GET|POST|PUT|PATCH|DELETE)\b/g
 			);
 			for (const [, method] of methods) {
-				routes.push({ id, url, method, kind: 'endpoint', access: requiredAccess(id, method) });
+				const kind = isEndpoint(id) ? 'endpoint' : 'page';
+				routes.push({ id, url, method, kind, access: requiredAccess(id, method) });
 			}
 		} else if (name === '+page.svelte' || name === '+page.server.ts') {
 			if (!routes.some((route) => route.id === id && route.kind === 'page')) {

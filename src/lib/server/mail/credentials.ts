@@ -8,7 +8,16 @@ export interface ImapCredentials {
 	smtp: MailServer;
 }
 
-export type MailboxCredentials = ImapCredentials;
+/**
+ * A Microsoft 365 mailbox, read and sent through Microsoft Graph with Keydesk's own application
+ * permissions in the customer's tenant, which its admin granted when connecting it
+ */
+export interface MicrosoftCredentials {
+	provider: 'microsoft';
+	tenantId: string;
+}
+
+export type MailboxCredentials = ImapCredentials | MicrosoftCredentials;
 
 /** Encrypts a mailbox's credentials for the `credentials` column */
 export function sealCredentials(credentials: MailboxCredentials): string {

@@ -24,8 +24,5 @@
 	"vars": {
 		// Sign-in and invitation links point here
 		"APP_URL": "http://localhost:5173"
-	},
-	"secrets": {
-		"required": ["BETTER_AUTH_SECRET", "ENCRYPTION_KEY"]
 	}
 }

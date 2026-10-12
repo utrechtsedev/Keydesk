@@ -5,7 +5,10 @@ import { logger } from '#lib/server/logger.js';
 import { NotificationService } from '#lib/server/services/notification.service.js';
 import { openCredentials } from './credentials.js';
 import { readImapInbox, type ImapCursor } from './imap.js';
-import { describeOutcome, processIncomingEmail } from './incoming.js';
+import { describeOutcome, processIncomingEmail, type IncomingEmail } from './incoming.js';
+import { readGraphInbox, type GraphCursor } from './microsoft.js';
+
+type Cursor = ImapCursor | GraphCursor;
 
 /** Messages per sync; with more waiting, the next sync follows right away */
 const BATCH_SIZE = 20;
@@ -35,26 +38,38 @@ export async function syncMailbox(
 	if (!mailbox || !mailbox.enabled) return null;
 
 	const credentials = openCredentials(mailbox.credentials);
-	let read: { cursor: ImapCursor; more: boolean };
+	// Saves each message together with the cursor past it
+	const handle = (message: IncomingEmail & { cursor: Cursor }) =>
+		withTenant(systemDb, organizationId, async (db) => {
+			const outcome = await processIncomingEmail(db, organizationId, mailbox, message);
+			await db
+				.update(schema.mailbox)
+				.set({ cursor: message.cursor })
+				.where(eq(schema.mailbox.id, mailbox.id));
+			logger.info(
+				{ organizationId, mailboxId, message: message.providerMessageId },
+				describeOutcome(outcome)
+			);
+		});
+
+	let read: { cursor: Cursor; more: boolean };
 	try {
-		read = await readImapInbox(
-			credentials.imap,
-			mailbox.cursor as ImapCursor | null,
-			mailbox.lastSyncedAt,
-			BATCH_SIZE,
-			(message) =>
-				withTenant(systemDb, organizationId, async (db) => {
-					const outcome = await processIncomingEmail(db, organizationId, mailbox, message);
-					await db
-						.update(schema.mailbox)
-						.set({ cursor: message.cursor })
-						.where(eq(schema.mailbox.id, mailbox.id));
-					logger.info(
-						{ organizationId, mailboxId, message: message.providerMessageId },
-						describeOutcome(outcome)
+		read =
+			credentials.provider === 'imap'
+				? await readImapInbox(
+						credentials.imap,
+						mailbox.cursor as ImapCursor | null,
+						mailbox.lastSyncedAt,
+						BATCH_SIZE,
+						handle
+					)
+				: await readGraphInbox(
+						credentials.tenantId,
+						mailbox.address,
+						mailbox.cursor as GraphCursor | null,
+						BATCH_SIZE,
+						handle
 					);
-				})
-		);
 	} catch (error) {
 		return recordFailure(systemDb, organizationId, mailbox, error);
 	}

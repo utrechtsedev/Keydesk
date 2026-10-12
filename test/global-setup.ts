@@ -9,11 +9,14 @@ import { join } from 'node:path';
 import { createServer } from 'vite';
 import type { TestProject } from 'vitest/node';
 import { testRegistryPath } from '../vite.config.js';
+import { CLIENT_ID, CLIENT_SECRET, startFakeMicrosoft } from './fakes/microsoft.js';
 
 declare module 'vitest' {
 	export interface ProvidedContext {
 		/** Base URL of the app the route tests talk to */
 		appUrl: string;
+		/** Base URL of the stand-in for Microsoft; see test/fakes/microsoft.ts */
+		microsoftUrl: string;
 	}
 }
 
@@ -37,6 +40,16 @@ export default async function setup(project: TestProject) {
 	// vite.config.ts has pointed both Workers' Hyperdrive at the test database and given the run a
 	// registry of local Workers of its own
 
+	// Microsoft 365 mailboxes connect to a stand-in for Microsoft
+	const microsoft = await startFakeMicrosoft();
+	Object.assign(process.env, {
+		MICROSOFT_CLIENT_ID: CLIENT_ID,
+		MICROSOFT_CLIENT_SECRET: CLIENT_SECRET,
+		MICROSOFT_LOGIN_URL: `${microsoft.url}/login`,
+		MICROSOFT_GRAPH_URL: `${microsoft.url}/graph`
+	});
+	project.provide('microsoftUrl', microsoft.url);
+
 	// The mail Worker runs in workerd, as on Cloudflare; it handles the jobs the app queues
 	const mailWorker = await createServer({
 		root: 'workers/mail',
@@ -52,6 +65,7 @@ export default async function setup(project: TestProject) {
 	return async () => {
 		await app.close();
 		await mailWorker.close();
+		await microsoft.close();
 		await rm(testRegistryPath, { recursive: true, force: true });
 	};
 }
@@ -94,8 +108,13 @@ async function startBuiltApp(project: TestProject): Promise<RunningApp> {
 		'bunx',
 		['wrangler', 'dev', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', state],
 		{
-			// The secrets come from the environment (see `secrets` in wrangler.jsonc)
-			env: { ...process.env, ...project.config.env, APP_URL: url },
+			// The Worker takes its secrets from this environment
+			env: {
+				...process.env,
+				...project.config.env,
+				APP_URL: url,
+				CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true'
+			},
 			stdio: ['ignore', 'pipe', 'pipe']
 		}
 	);
