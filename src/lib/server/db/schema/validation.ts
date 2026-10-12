@@ -743,7 +743,7 @@ export const businessHoursSettingsSchema = z.object({
 });
 
 export const ticketConfigSchema = z.object({
-	nextTicketNumber: z.number(),
+	nextTicketNumber: z.number().int().positive(),
 	autoCreateRequesters: z.boolean(),
 	ticketPrefix: z.string()
 });

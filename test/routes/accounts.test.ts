@@ -1,18 +1,18 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq, like } from 'drizzle-orm';
-import { db } from '#lib/server/db/database.js';
+import { systemDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { Browser } from '../app.js';
 
 afterAll(async () => {
-	await db.$client.end();
+	await systemDb.$client.end();
 });
 
 const anonymous = new Browser();
 const newEmail = () => `stranger-${crypto.randomUUID()}@keydesk.test`;
 
 async function accountExists(email: string) {
-	const users = await db.select().from(schema.user).where(eq(schema.user.email, email));
+	const users = await systemDb.select().from(schema.user).where(eq(schema.user.email, email));
 	return users.length > 0;
 }
 
@@ -39,7 +39,7 @@ describe('creating accounts', () => {
 		const email = newEmail();
 		// Mail isn't configured in the tests, so the link isn't sent, but its token is stored first
 		await anonymous.sendJson('POST', '/api/auth/sign-in/magic-link', { email });
-		const [verification] = await db
+		const [verification] = await systemDb
 			.select()
 			.from(schema.verification)
 			.where(like(schema.verification.value, `%${email}%`));

@@ -1,6 +1,12 @@
 import { PgBoss } from 'pg-boss';
 import { logger } from '#lib/server/logger.js';
 import type { NotificationOptions, Task, Ticket, User } from '#lib/types/index.js';
+import { withTenant } from '#lib/server/db/database.js';
+
+/** Every job belongs to an organization; its handler runs in that organization's tenant transaction */
+interface OrganizationJob {
+	organizationId: number;
+}
 
 let boss: PgBoss | null = null;
 
@@ -37,29 +43,37 @@ export async function registerWorkers() {
 		throw new Error('Queue not initialized');
 	}
 
-	const { notificationService } = await import('#lib/server/services/notification.service.js');
+	const { NotificationService } = await import('#lib/server/services/notification.service.js');
 
-	await boss.work<{ oldTask: Task; newTask: Task; user: User }>(
+	await boss.work<OrganizationJob & { oldTask: Task; newTask: Task; user: User }>(
 		'handle-task-update',
 		async ([job]) => {
-			await notificationService.handleTaskUpdate(job.data.oldTask, job.data.newTask, job.data.user);
-		}
-	);
-
-	await boss.work<{ oldTicket: Ticket; newTicket: Ticket; user: User }>(
-		'handle-ticket-update',
-		async ([job]) => {
-			await notificationService.handleTicketUpdate(
-				job.data.oldTicket,
-				job.data.newTicket,
-				job.data.user
+			const { organizationId, oldTask, newTask, user } = job.data;
+			await withTenant(organizationId, (db) =>
+				new NotificationService(db, organizationId).handleTaskUpdate(oldTask, newTask, user)
 			);
 		}
 	);
 
-	await boss.work<NotificationOptions>('handle-standalone-notification', async ([job]) => {
-		await notificationService.sendNotification(job.data);
-	});
+	await boss.work<OrganizationJob & { oldTicket: Ticket; newTicket: Ticket; user: User }>(
+		'handle-ticket-update',
+		async ([job]) => {
+			const { organizationId, oldTicket, newTicket, user } = job.data;
+			await withTenant(organizationId, (db) =>
+				new NotificationService(db, organizationId).handleTicketUpdate(oldTicket, newTicket, user)
+			);
+		}
+	);
+
+	await boss.work<OrganizationJob & { options: NotificationOptions }>(
+		'handle-standalone-notification',
+		async ([job]) => {
+			const { organizationId, options } = job.data;
+			await withTenant(organizationId, (db) =>
+				new NotificationService(db, organizationId).sendNotification(options)
+			);
+		}
+	);
 
 	logger.info('Workers registered');
 }
@@ -68,19 +82,29 @@ export async function ticketNotification(oldTicket: Ticket, newTicket: Ticket, u
 	if (!boss) {
 		throw new Error('Queue not initialized');
 	}
-	await boss.send('handle-ticket-update', { oldTicket, newTicket, user });
+	await boss.send('handle-ticket-update', {
+		organizationId: user.organizationId,
+		oldTicket,
+		newTicket,
+		user
+	});
 }
 
 export async function taskNotification(oldTask: Task, newTask: Task, user: User) {
 	if (!boss) {
 		throw new Error('Queue not initialized');
 	}
-	await boss.send('handle-task-update', { oldTask, newTask, user });
+	await boss.send('handle-task-update', {
+		organizationId: user.organizationId,
+		oldTask,
+		newTask,
+		user
+	});
 }
 
-export async function sendNotification(options: NotificationOptions) {
+export async function sendNotification(organizationId: number, options: NotificationOptions) {
 	if (!boss) {
 		throw new Error('Queue not initialized');
 	}
-	await boss.send('handle-standalone-notification', options);
+	await boss.send('handle-standalone-notification', { organizationId, options });
 }

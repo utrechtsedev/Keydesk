@@ -1,10 +1,11 @@
 import * as schema from '#lib/server/db/schema/index.js';
-import { db } from '#lib/server/db/database.js';
 import type { RequestHandler } from './$types';
 import { and, eq } from 'drizzle-orm';
 import { NotFoundError } from '#lib/server/errors.js';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, locals }) => {
+	const { db } = requireAuth(locals);
 	const ticketId = schema.idParamSchema.parse(params.id);
 	const tagId = schema.idParamSchema.parse(params.tagId);
 

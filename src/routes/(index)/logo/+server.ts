@@ -1,10 +1,10 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { NotFoundError, ValidationError } from '#lib/server/errors.js';
 import type { RequestHandler } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+  const { db } = requireAuth(locals);
   const formData = await request.formData();
   const file = formData.get('image') as File;
 
@@ -17,13 +17,12 @@ export const POST: RequestHandler = async ({ request }) => {
   await db
     .insert(schema.image)
     .values({
-      id: 1,
       fileName: file.name,
       mimeType: file.type,
       fileData: buffer,
     })
     .onConflictDoUpdate({
-      target: schema.image.id,
+      target: schema.image.organizationId,
       set: {
         fileName: file.name,
         mimeType: file.type,
@@ -38,11 +37,10 @@ export const POST: RequestHandler = async ({ request }) => {
   });
 };
 
-export const GET: RequestHandler = async () => {
-  const [image] = await db
-    .select()
-    .from(schema.image)
-    .where(eq(schema.image.id, 1));
+export const GET: RequestHandler = async ({ locals }) => {
+  const { db } = requireAuth(locals);
+  // The tenant transaction only sees this organization's logo
+  const [image] = await db.select().from(schema.image);
 
   if (!image)
     throw new NotFoundError('Image not found');

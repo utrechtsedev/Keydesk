@@ -1,4 +1,3 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { uploadFile } from '#lib/server/file-upload.js';
 import type { Attachment } from '#lib/types/index.js';
@@ -9,7 +8,7 @@ import { textToHtml } from '#lib/server/html.js';
 import { NotFoundError } from '#lib/server/errors.js';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
-	const { user } = requireAuth(locals);
+	const { user, db } = requireAuth(locals);
 
 	const formData = await request.formData();
 

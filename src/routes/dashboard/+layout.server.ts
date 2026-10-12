@@ -1,13 +1,12 @@
 import type { LayoutServerLoad } from './$types';
 import { eq, and, desc } from 'drizzle-orm';
 import * as schema from '#lib/server/db/schema/index.js';
-import { db } from '#lib/server/db/database.js';
 import { requireAuth } from '#lib/server/auth.js';
-import { redirect } from '@sveltejs/kit';
+import { getOrganizationSettings } from '#lib/server/services/organization.service.js';
 
 export const load: LayoutServerLoad = async ({ locals, depends }) => {
 	depends('app:root');
-	const { user, session } = requireAuth(locals);
+	const { user, session, db } = requireAuth(locals);
 
 	const notifications = await db.query.userNotification.findMany({
 		where: and(
@@ -20,16 +19,12 @@ export const load: LayoutServerLoad = async ({ locals, depends }) => {
 		orderBy: desc(schema.userNotification.createdAt),
 		limit: 99
 	});
-	const organization = await db.query.config.findFirst({
-		where: (config, { eq }) => eq(config.key, 'organization')
-	});
-
-	if (!organization) throw redirect(303, '/setup');
+	const organization = await getOrganizationSettings(db, user.organizationId);
 
 	return {
 		user,
 		session,
 		notifications,
-		organization: organization.value
+		organization
 	};
 };

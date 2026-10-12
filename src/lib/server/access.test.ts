@@ -4,8 +4,6 @@ import { requiredAccess } from './access.js';
 describe('requiredAccess', () => {
 	it.each([
 		['/(index)/(auth)/login', 'GET', 'public'],
-		['/(index)/setup', 'GET', 'setup'],
-		['/(index)/setup/admin-account', 'POST', 'setup'],
 		['/(index)/logo', 'GET', 'user'],
 		['/(index)/logo', 'POST', 'admin'],
 		['/(index)/api/settings/outgoing-email', 'GET', 'admin'],

@@ -1,11 +1,12 @@
 import { decrypt, encrypt } from '#lib/server/db/encrypt.js';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { type SMTP } from '#lib/types/index.js';
 import { eq } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const POST: RequestHandler = async ({ request }): Promise<Response> => {
+export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const smtp = await schema.validate(schema.smtpSettingsSchema)(request);
 	if (smtp.password) {
 		smtp.password = encrypt(smtp.password);
@@ -18,7 +19,7 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 			value: smtp
 		})
 		.onConflictDoUpdate({
-			target: schema.config.key,
+			target: [schema.config.organizationId, schema.config.key],
 			set: {
 				value: smtp,
 				updatedAt: new Date()
@@ -38,7 +39,8 @@ export const POST: RequestHandler = async ({ request }): Promise<Response> => {
 	);
 };
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
+	const { db } = requireAuth(locals);
 	const [config] = await db.select().from(schema.config).where(eq(schema.config.key, 'smtp'));
 
 	if (!config) {

@@ -1,10 +1,11 @@
 import type { RequestHandler } from './$types';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { NotFoundError, ValidationError } from '#lib/server/errors.js';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
+export const PATCH: RequestHandler = async ({ request, params, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const taskId = schema.idParamSchema.parse(params.id);
 
 	const [findTask] = await db

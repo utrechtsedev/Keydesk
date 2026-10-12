@@ -1,9 +1,10 @@
 import type { PageServerLoad } from './$types';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+  const { db } = requireAuth(locals);
   const [config] = await db
     .select()
     .from(schema.config)

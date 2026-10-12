@@ -1,5 +1,4 @@
 import { requireAuth } from '#lib/server/auth.js';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { NotFoundError, ValidationError } from '#lib/server/errors.js';
 import { uploadFile } from '#lib/server/file-upload.js';
@@ -8,10 +7,11 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
 import { sendNotification } from '#lib/server/queue.js';
 import { textToHtml } from '#lib/server/html.js';
+import { allocateTicketNumber } from '#lib/server/services/ticket.service.js';
 import z from 'zod';
 
 export const POST: RequestHandler = async ({ request, locals }): Promise<Response> => {
-	const { user } = requireAuth(locals);
+	const { user, db } = requireAuth(locals);
 
 	const formData = schema.parseFormData(await request.formData());
 
@@ -79,6 +79,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 		const [newTicket] = await tx
 			.insert(schema.ticket)
 			.values({
+				ticketNumber: await allocateTicketNumber(tx, user.organizationId),
 				requesterId: validatedData.requesterId,
 				assigneeId: validatedData.assigneeId,
 				subject: validatedData.subject,
@@ -179,7 +180,7 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 			}
 		});
 
-		await sendNotification({
+		await sendNotification(user.organizationId, {
 			title: 'Ticket assigned to you',
 			message: `New ticket assigned by ${user.name}: ${validatedData.subject}`,
 			recipient: { userId: result.assigneeId },
@@ -201,7 +202,8 @@ export const POST: RequestHandler = async ({ request, locals }): Promise<Respons
 	);
 };
 
-export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
+export const PATCH: RequestHandler = async ({ request, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const bulkUpdateSchema = z.object({
 		ids: z.array(z.number().int().positive()).min(1, 'At least one ticket ID required'),
 		ticket: schema.updateTicketSchema
@@ -325,7 +327,8 @@ export const PATCH: RequestHandler = async ({ request }): Promise<Response> => {
 	);
 };
 
-export const DELETE: RequestHandler = async ({ request }) => {
+export const DELETE: RequestHandler = async ({ request, locals }) => {
+	const { db } = requireAuth(locals);
 	const ids = await schema.validate(schema.idsBulkSchema)(request);
 
 	if (!ids || !Array.isArray(ids) || ids.length < 1)

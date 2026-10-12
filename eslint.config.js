@@ -46,6 +46,25 @@ export default defineConfig(
 		}
 	},
 	{
+		// Routes work with one organization's data, through the tenant transaction from requireAuth
+		files: ['src/routes/**', 'src/lib/components/**'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					paths: [
+						{
+							name: '#lib/server/db/database.js',
+							importNames: ['systemDb', 'withTenant'],
+							message:
+								"Use the db from requireAuth(locals), which only sees the user's organization."
+						}
+					]
+				}
+			]
+		}
+	},
+	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
 			parserOptions: {

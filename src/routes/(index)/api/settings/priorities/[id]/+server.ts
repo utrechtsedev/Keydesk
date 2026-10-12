@@ -1,10 +1,11 @@
 import type { RequestHandler } from './$types';
 import * as schema from '#lib/server/db/schema/index.js';
-import { db } from '#lib/server/db/database.js';
 import { ConflictError, NotFoundError, ValidationError } from '#lib/server/errors.js';
 import { eq, sql } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
+export const DELETE: RequestHandler = async ({ params, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const id = schema.idParamSchema.parse(params.id);
 
 	const [priority] = await db.select().from(schema.priority).where(eq(schema.priority.id, id));
@@ -39,7 +40,8 @@ export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 	});
 };
 
-export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
+export const PATCH: RequestHandler = async ({ request, params, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const id = schema.idParamSchema.parse(params.id);
 	const priority = await schema.validate(schema.updatePrioritySchema)(request);
 

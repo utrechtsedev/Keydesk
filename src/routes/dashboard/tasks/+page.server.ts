@@ -1,9 +1,10 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq, and, gte, lte, asc, SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const load: PageServerLoad = async ({ depends, url }) => {
+export const load: PageServerLoad = async ({ depends, url, locals }) => {
+	const { db } = requireAuth(locals);
 	depends('app:tasks');
 
 	const statusFilter = url.searchParams.get('status');

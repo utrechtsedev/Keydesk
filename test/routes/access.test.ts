@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, sep } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { db } from '#lib/server/db/database.js';
+import { systemDb } from '#lib/server/db/database.js';
 import { requiredAccess, type Access } from '#lib/server/access.js';
-import { Browser, createUser, signIn } from '../app.js';
+import { Browser, createOrganization, signIn } from '../app.js';
 
 interface Route {
 	id: string;
@@ -61,13 +61,11 @@ function request(browser: Browser, route: Route) {
 let user: Browser;
 
 beforeAll(async () => {
-	// With an account in place the setup wizard is over
-	await createUser('admin');
-	({ browser: user } = await signIn('user'));
+	({ browser: user } = await signIn(await createOrganization(), 'user'));
 });
 
 afterAll(async () => {
-	await db.$client.end();
+	await systemDb.$client.end();
 });
 
 describe('route discovery', () => {
@@ -84,13 +82,6 @@ describe('route discovery', () => {
 
 describe('without a session', () => {
 	const anonymous = new Browser();
-
-	it.each(routes.filter((route) => route.access === 'setup').map((route) => [label(route), route]))(
-		'%s is gone once an account exists',
-		async (_, route) => {
-			expect((await request(anonymous, route)).status).toBe(404);
-		}
-	);
 
 	it.each(
 		routes

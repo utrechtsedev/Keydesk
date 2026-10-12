@@ -1,10 +1,11 @@
 import type { RequestHandler } from './$types';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq, sql } from 'drizzle-orm';
 import { ConflictError, NotFoundError, ValidationError } from '#lib/server/errors.js';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
+export const DELETE: RequestHandler = async ({ params, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const id = schema.idParamSchema.parse(params.id);
 
 	if (!id || isNaN(id)) {
@@ -36,7 +37,8 @@ export const DELETE: RequestHandler = async ({ params }): Promise<Response> => {
 	});
 };
 
-export const PATCH: RequestHandler = async ({ request, params }): Promise<Response> => {
+export const PATCH: RequestHandler = async ({ request, params, locals }): Promise<Response> => {
+	const { db } = requireAuth(locals);
 	const id = schema.idParamSchema.parse(params.id);
 	const category = await schema.validate(schema.updateCategorySchema)(request);
 

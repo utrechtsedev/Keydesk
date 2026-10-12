@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -14,9 +13,9 @@ declare module 'vitest' {
 }
 
 /**
- * Gives every test run a fresh database (drop and recreate it, apply the migrations and load the
- * default configuration, exactly as `bun run db:migrate` and `bun run db:init` would), then starts
- * the app against it, the way `bun run dev` does, for the route tests.
+ * Gives every test run a fresh database (drop and recreate it, then apply the migrations as
+ * `bun run db:migrate` would) and starts the app against it, the way `bun run dev` does, for the
+ * route tests. Each test file creates the organizations it needs.
  */
 export default async function setup(project: TestProject) {
 	const url = project.config.env.DATABASE_URL;
@@ -85,9 +84,4 @@ async function recreateDatabase(url: string) {
 	} finally {
 		await db.$client.end();
 	}
-
-	execFileSync('bun', ['run', 'db:init'], {
-		env: { ...process.env, DATABASE_URL: url },
-		stdio: 'pipe'
-	});
 }

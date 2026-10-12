@@ -1,8 +1,9 @@
 import type { PageServerLoad } from './$types';
-import { db } from '#lib/server/db/database.js';
 import { redirect } from '@sveltejs/kit';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const load: PageServerLoad = async ({ params, depends }) => {
+export const load: PageServerLoad = async ({ params, depends, locals }) => {
+	const { db } = requireAuth(locals);
 	depends('app:ticket');
 
 	const id = Number(params.id);

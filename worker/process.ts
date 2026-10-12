@@ -1,6 +1,6 @@
-import { db } from '#lib/server/db/database.js';
+import { inOrganization } from './tenant';
 import * as schema from '#lib/server/db/schema/index.js';
-import { eq, sql, and, gte } from 'drizzle-orm';
+import { eq, sql, and, gte, desc } from 'drizzle-orm';
 import { getFileExtension, generateRandomString } from '#lib/utils/string.js';
 import { type Attachment } from '#lib/types/index.js';
 import { MailParser } from 'mailparser';
@@ -10,7 +10,8 @@ import { logger } from '#lib/server/logger.js';
 import path from 'path';
 import fs from 'fs';
 import { archiveEmail, markEmailFailed, updateArchivedEmail } from './archive';
-import { ticketService } from '#lib/server/services/ticket.service.js';
+import { allocateTicketNumber, getTicketPrefix } from '#lib/server/services/ticket.service.js';
+import { workerOrganizationId } from './tenant';
 
 const client = await getClient();
 
@@ -49,12 +50,18 @@ const client = await getClient();
  * - Continues processing remaining emails even if one fails
  */
 export async function processMessage(unseenUIDs: number[], options: Attachment): Promise<void> {
-	const [openStatus] = await db
-		.select()
-		.from(schema.status)
-		.where(eq(schema.status.isDefault, true));
+	const [openStatus] = await inOrganization((db) =>
+		db.select().from(schema.status).where(eq(schema.status.isDefault, true))
+	);
 	if (!openStatus)
 		throw new Error('Status configuration is not available. Cancelling all email processing');
+
+	// The default priority, or the first one when none is marked default
+	const [defaultPriority] = await inOrganization((db) =>
+		db.select().from(schema.priority).orderBy(desc(schema.priority.isDefault)).limit(1)
+	);
+	if (!defaultPriority)
+		throw new Error('Priority configuration is not available. Cancelling all email processing');
 
 	for (const uid of unseenUIDs) {
 		let archivedEmail: schema.Email | null = null;
@@ -96,7 +103,7 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 			const attachmentsEnabled = options.enabled !== false;
 
 			// Database operations in transaction
-			const result = await db.transaction(async (tx) => {
+			const result = await inOrganization(async (tx) => {
 				// Find or create requester
 				const [requester] =
 					(await tx
@@ -112,7 +119,7 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 						.returning());
 
 				// Extract ticket number from subject
-				const prefix = await ticketService.getTicketPrefix();
+				const prefix = await getTicketPrefix(tx);
 				const match = message.envelope!.subject!.match(new RegExp(`${prefix}(\\d+)`, 'i'));
 				const ticketNumber = match ? parseInt(match[1], 10) : null;
 
@@ -135,12 +142,13 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 					const [newTicket] = await tx
 						.insert(schema.ticket)
 						.values({
+							ticketNumber: await allocateTicketNumber(tx, workerOrganizationId()),
 							requesterId: requester.id,
 							assigneeId: null,
 							subject: message.envelope!.subject!,
 							channel: 'email',
 							statusId: openStatus.id,
-							priorityId: 1,
+							priorityId: defaultPriority.id,
 							firstResponseAt: null,
 							resolvedAt: null,
 							closedAt: null,
@@ -196,37 +204,41 @@ export async function processMessage(unseenUIDs: number[], options: Attachment):
 				continue;
 			}
 			// Create ticket message and attachments
-			const [ticketMessage] = await db
-				.insert(schema.ticketMessage)
-				.values({
-					ticketId: ticket.id,
-					senderType: 'requester',
-					requesterId: requester.id,
-					senderName: requester.name || null,
-					senderEmail: requester.email,
-					userId: null,
-					message: sanitize(emailContent.html, emailContent.text),
-					isPrivate: false,
-					channel: 'email',
-					isFirstResponse: false,
-					hasAttachments: attachmentData.length > 0
-				})
-				.returning();
+			const [ticketMessage] = await inOrganization((db) =>
+				db
+					.insert(schema.ticketMessage)
+					.values({
+						ticketId: ticket.id,
+						senderType: 'requester',
+						requesterId: requester.id,
+						senderName: requester.name || null,
+						senderEmail: requester.email,
+						userId: null,
+						message: sanitize(emailContent.html, emailContent.text),
+						isPrivate: false,
+						channel: 'email',
+						isFirstResponse: false,
+						hasAttachments: attachmentData.length > 0
+					})
+					.returning()
+			);
 
 			for (const attachment of attachmentData) {
-				await db.insert(schema.ticketAttachment).values({
-					ticketId: ticket.id,
-					messageId: ticketMessage.id,
-					fileName: attachment.storedFilename,
-					originalFileName: attachment.originalFilename,
-					filePath: attachment.filePath,
-					fileSize: attachment.size,
-					mimeType: attachment.mimeType,
-					uploadedByType: 'requester',
-					uploadedById: requester.id,
-					uploadedByName: requester.name || requester.email,
-					downloadCount: 0
-				});
+				await inOrganization((db) =>
+					db.insert(schema.ticketAttachment).values({
+						ticketId: ticket.id,
+						messageId: ticketMessage.id,
+						fileName: attachment.storedFilename,
+						originalFileName: attachment.originalFilename,
+						filePath: attachment.filePath,
+						fileSize: attachment.size,
+						mimeType: attachment.mimeType,
+						uploadedByType: 'requester',
+						uploadedById: requester.id,
+						uploadedByName: requester.name || requester.email,
+						downloadCount: 0
+					})
+				);
 			}
 
 			await updateArchivedEmail({
@@ -372,12 +384,14 @@ async function checkRateLimit(fromAddress: string): Promise<{
 	const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
 	// Check 10-minute limit (max 2 emails)
-	const [recentEmails] = await db
-		.select({ count: sql<number>`count(*)::int` })
-		.from(schema.email)
-		.where(
-			and(eq(schema.email.fromAddress, fromAddress), gte(schema.email.createdAt, tenMinutesAgo))
-		);
+	const [recentEmails] = await inOrganization((db) =>
+		db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(schema.email)
+			.where(
+				and(eq(schema.email.fromAddress, fromAddress), gte(schema.email.createdAt, tenMinutesAgo))
+			)
+	);
 
 	if (recentEmails.count >= 2) {
 		return {
@@ -387,10 +401,14 @@ async function checkRateLimit(fromAddress: string): Promise<{
 	}
 
 	// Check 1-hour limit (max 5 emails)
-	const [hourlyEmails] = await db
-		.select({ count: sql<number>`count(*)::int` })
-		.from(schema.email)
-		.where(and(eq(schema.email.fromAddress, fromAddress), gte(schema.email.createdAt, oneHourAgo)));
+	const [hourlyEmails] = await inOrganization((db) =>
+		db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(schema.email)
+			.where(
+				and(eq(schema.email.fromAddress, fromAddress), gte(schema.email.createdAt, oneHourAgo))
+			)
+	);
 
 	if (hourlyEmails.count >= 5) {
 		return {

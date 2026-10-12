@@ -1,10 +1,11 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import type { PageServerLoad } from './$types';
 import { eq, and, gte, lte, isNull, desc, asc, sql, SQL } from 'drizzle-orm';
-import { ticketSearchCondition, ticketService } from '#lib/server/services/ticket.service.js';
+import { getTicketPrefix, ticketSearchCondition } from '#lib/server/services/ticket.service.js';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const load: PageServerLoad = async ({ url, depends }) => {
+export const load: PageServerLoad = async ({ url, depends, locals }) => {
+	const { db } = requireAuth(locals);
 	depends('app:tickets');
 
 	const page = Number(url.searchParams.get('page')) || 1;
@@ -138,7 +139,7 @@ export const load: PageServerLoad = async ({ url, depends }) => {
 
 	const totalCount = Number(countResult.count);
 
-	const ticketPrefix = await ticketService.getTicketPrefix();
+	const ticketPrefix = await getTicketPrefix(db);
 	return {
 		tickets,
 		totalCount,

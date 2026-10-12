@@ -1,10 +1,11 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { NotFoundError } from '#lib/server/errors.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { eq, inArray } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const PATCH: RequestHandler = async ({ request }) => {
+export const PATCH: RequestHandler = async ({ request, locals }) => {
+	const { db } = requireAuth(locals);
 	const { ids, itemId, itemType } = await schema.validate(schema.bulkAssignmentSchema)(request);
 
 	let updatedCount = 0;
@@ -81,7 +82,8 @@ export const PATCH: RequestHandler = async ({ request }) => {
 	);
 };
 
-export const DELETE: RequestHandler = async ({ request }) => {
+export const DELETE: RequestHandler = async ({ request, locals }) => {
+	const { db } = requireAuth(locals);
 	const { ids } = await schema.validate(schema.idsBodySchema)(request);
 
 	const deleted = await db.delete(schema.task).where(inArray(schema.task.id, ids)).returning();

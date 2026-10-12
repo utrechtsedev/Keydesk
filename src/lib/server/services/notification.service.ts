@@ -9,27 +9,31 @@ import type {
 	Organization
 } from '#lib/types/index.js';
 import { logger } from '#lib/server/logger.js';
-import { db } from '#lib/server/db/database.js';
+import type { TenantDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq, inArray } from 'drizzle-orm';
 import { generateEmailTemplate, sendEmail } from '#lib/server/email/index.js';
 
-class NotificationService {
+/** Notifications for one organization, written through its tenant transaction */
+export class NotificationService {
+	constructor(
+		private readonly db: TenantDb,
+		private readonly organizationId: number
+	) {}
+
 	/**
 	 * Handler for sending notifications
 	 */
 	async sendNotification(options: NotificationOptions): Promise<void> {
 		try {
-			const [getOrganization] = await db
+			const [organization] = await this.db
 				.select()
-				.from(schema.config)
-				.where(eq(schema.config.key, 'organization'));
+				.from(schema.organization)
+				.where(eq(schema.organization.id, this.organizationId));
 
-			if (!getOrganization) {
-				throw new Error('Could not send notification. Organization configuration not found.');
+			if (!organization) {
+				throw new Error('Could not send notification. Organization not found.');
 			}
-
-			const organization: Organization = getOrganization.value as Organization;
 
 			// Handle external email notifications (non-user recipients)
 			if ('email' in options.recipient) {
@@ -329,7 +333,7 @@ class NotificationService {
 		options: NotificationOptions,
 		organization: Organization
 	): Promise<void> {
-		const [adminSettingsConfig] = await db
+		const [adminSettingsConfig] = await this.db
 			.select()
 			.from(schema.config)
 			.where(eq(schema.config.key, 'notifications'));
@@ -361,7 +365,7 @@ class NotificationService {
 
 							const actionUrl = this.generateActionUrl(options);
 
-							const [notification] = await db
+							const [notification] = await this.db
 								.insert(schema.notification)
 								.values({
 									title: options.title,
@@ -374,7 +378,7 @@ class NotificationService {
 								})
 								.returning();
 
-							await db.insert(schema.userNotification).values({
+							await this.db.insert(schema.userNotification).values({
 								notificationId: notification.id,
 								userId: user.id,
 								isRead: false,
@@ -390,7 +394,13 @@ class NotificationService {
 										actionUrl
 									});
 
-									await sendEmail(user.email, options.title, emailHtml);
+									await sendEmail(
+										this.db,
+										this.organizationId,
+										user.email,
+										options.title,
+										emailHtml
+									);
 									logger.info(`Email sent successfully to ${user.email}`);
 								} catch (emailError) {
 									logger.error(
@@ -421,7 +431,7 @@ class NotificationService {
 			throw new Error('Email recipient required for external notifications');
 		}
 
-		const [adminSettingsConfig] = await db
+		const [adminSettingsConfig] = await this.db
 			.select()
 			.from(schema.config)
 			.where(eq(schema.config.key, 'notifications'));
@@ -447,7 +457,7 @@ class NotificationService {
 		const actionUrl = this.generateActionUrl(options, true);
 
 		if (options.notification.type === 'entity') {
-			await db.insert(schema.notification).values({
+			await this.db.insert(schema.notification).values({
 				title: options.title,
 				message: options.message,
 				type: notificationType,
@@ -466,7 +476,13 @@ class NotificationService {
 				actionUrl
 			});
 
-			await sendEmail(options.recipient.email, options.title, emailHtml);
+			await sendEmail(
+				this.db,
+				this.organizationId,
+				options.recipient.email,
+				options.title,
+				emailHtml
+			);
 			logger.info(`External email sent successfully to ${options.recipient.email}`);
 		} catch (emailError) {
 			logger.error(
@@ -484,7 +500,7 @@ class NotificationService {
 		options: NotificationOptions
 	): Promise<(typeof schema.user.$inferSelect)[]> {
 		if ('userId' in options.recipient) {
-			const [user] = await db
+			const [user] = await this.db
 				.select()
 				.from(schema.user)
 				.where(eq(schema.user.id, options.recipient.userId));
@@ -495,14 +511,14 @@ class NotificationService {
 		if ('userIds' in options.recipient) {
 			if (options.recipient.userIds.length === 0) return [];
 
-			return await db
+			return await this.db
 				.select()
 				.from(schema.user)
 				.where(inArray(schema.user.id, options.recipient.userIds));
 		}
 
 		if ('allUsers' in options.recipient) {
-			return await db.select().from(schema.user);
+			return await this.db.select().from(schema.user);
 		}
 
 		return [];
@@ -698,5 +714,3 @@ class NotificationService {
 		return false;
 	}
 }
-
-export const notificationService = new NotificationService();

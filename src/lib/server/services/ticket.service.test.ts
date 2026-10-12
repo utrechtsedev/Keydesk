@@ -1,41 +1,45 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { db } from '#lib/server/db/database.js';
+import { systemDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
-import type { TicketConfig } from '#lib/types/index.js';
-import { ticketService } from './ticket.service.js';
+import { createOrganization, createTicket, inOrganization } from '../../../../test/app.js';
+import { getTicketPrefix } from './ticket.service.js';
 
 afterAll(async () => {
-	await db.$client.end();
+	await systemDb.$client.end();
 });
 
-async function readTicketConfig(): Promise<TicketConfig> {
-	const [config] = await db.select().from(schema.config).where(eq(schema.config.key, 'tickets'));
-	expect(config, 'db:init should have created the ticket configuration').toBeDefined();
-	return config.value as TicketConfig;
-}
-
-describe('ticketService.getTicketPrefix', () => {
+describe('getTicketPrefix', () => {
 	it('reads the prefix from the default configuration', async () => {
-		const config = await readTicketConfig();
+		const organization = await createOrganization();
 
-		expect(await ticketService.getTicketPrefix()).toBe(config.ticketPrefix);
+		expect(await inOrganization(organization, getTicketPrefix)).toBe('TKT-');
 	});
 
 	it('follows a changed prefix', async () => {
-		const original = await readTicketConfig();
-		await db
-			.update(schema.config)
-			.set({ value: { ...original, ticketPrefix: 'HD-' } })
-			.where(eq(schema.config.key, 'tickets'));
-
-		try {
-			expect(await ticketService.getTicketPrefix()).toBe('HD-');
-		} finally {
-			await db
+		const organization = await createOrganization();
+		await inOrganization(organization, (db) =>
+			db
 				.update(schema.config)
-				.set({ value: original })
-				.where(eq(schema.config.key, 'tickets'));
-		}
+				.set({ value: { autoCreateRequesters: true, ticketPrefix: 'HD-' } })
+				.where(eq(schema.config.key, 'tickets'))
+		);
+
+		expect(await inOrganization(organization, getTicketPrefix)).toBe('HD-');
+	});
+});
+
+describe('allocateTicketNumber', () => {
+	it('numbers tickets per organization', async () => {
+		const first = await createOrganization();
+		const second = await createOrganization();
+
+		const numbers = [
+			(await createTicket(first, { subject: 'One' })).ticketNumber,
+			(await createTicket(first, { subject: 'Two' })).ticketNumber,
+			(await createTicket(second, { subject: 'One' })).ticketNumber
+		];
+
+		expect(numbers).toEqual([1, 2, 1]);
 	});
 });

@@ -1,10 +1,11 @@
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { ValidationError } from '#lib/server/errors.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { or, ilike, asc } from 'drizzle-orm';
+import { requireAuth } from '#lib/server/auth.js';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
+  const { db } = requireAuth(locals);
   const search = url.searchParams.get('search') || '';
   const limit = Number(url.searchParams.get('limit')) || 20;
 

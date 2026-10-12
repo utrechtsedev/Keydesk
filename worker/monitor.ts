@@ -1,5 +1,5 @@
 import { type Attachment } from '#lib/types/index.js';
-import { db } from '#lib/server/db/database.js';
+import { inOrganization } from './tenant';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { getClient } from './client';
@@ -186,10 +186,10 @@ async function ensureConnection(): Promise<void> {
  */
 async function getMailOptions(): Promise<Attachment> {
   try {
-    const [attachmentConfig] = await db
+    const [attachmentConfig] = await inOrganization((db) => db
       .select()
       .from(schema.config)
-      .where(eq(schema.config.key, 'attachments'));
+      .where(eq(schema.config.key, 'attachments')));
 
     const config = attachmentConfig?.value as Attachment | undefined;
 

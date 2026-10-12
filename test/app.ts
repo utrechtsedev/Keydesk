@@ -1,7 +1,9 @@
 import { inject } from 'vitest';
-import { eq } from 'drizzle-orm';
-import { db } from '#lib/server/db/database.js';
+import { desc, eq } from 'drizzle-orm';
+import { systemDb, withTenant, type TenantDb } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
+import { createOrganizationDefaults } from '#lib/server/db/initialize.js';
+import { allocateTicketNumber } from '#lib/server/services/ticket.service.js';
 import { hashPassword } from '#lib/utils/password.js';
 
 export const appUrl = inject('appUrl');
@@ -29,26 +31,51 @@ export class Browser {
 	}
 }
 
+export type TestOrganization = typeof schema.organization.$inferSelect;
+
+/** A new organization with its default settings, like `bun run org:create` makes */
+export async function createOrganization(name = `Test ${crypto.randomUUID()}`) {
+	const [organization] = await systemDb.insert(schema.organization).values({ name }).returning();
+	await withTenant(organization.id, (db) => createOrganizationDefaults(db, () => {}));
+	return organization;
+}
+
+/** Runs test setup or checks inside the organization's tenant transaction */
+export function inOrganization<T>(
+	organization: TestOrganization,
+	work: (db: TenantDb) => Promise<T>
+): Promise<T> {
+	return withTenant(organization.id, work);
+}
+
 const notificationPreferences = {
 	dashboard: { ticketCreated: true, itemAssigned: true, itemUpdated: true, itemClosed: true },
 	email: { ticketCreated: true, itemAssigned: true, itemUpdated: true, itemClosed: true }
 };
 
-export async function createUser(role: 'admin' | 'user' = 'user', password?: string) {
-	const [user] = await db
-		.insert(schema.user)
-		.values({
-			name: `Test ${role}`,
-			email: `${role}-${crypto.randomUUID()}@keydesk.test`,
-			emailVerified: true,
-			role,
-			banned: false,
-			notificationPreferences
-		})
-		.returning();
+export async function createUser(
+	organization: TestOrganization,
+	role: 'admin' | 'user' = 'user',
+	password?: string
+) {
+	const user = await inOrganization(organization, async (db) => {
+		const [user] = await db
+			.insert(schema.user)
+			.values({
+				name: `Test ${role}`,
+				email: `${role}-${crypto.randomUUID()}@keydesk.test`,
+				emailVerified: true,
+				role,
+				banned: false,
+				notificationPreferences
+			})
+			.returning();
+		return user;
+	});
 
 	if (password) {
-		await db.insert(schema.account).values({
+		// better-auth's tables are outside the tenant role's reach
+		await systemDb.insert(schema.account).values({
 			accountId: String(user.id),
 			providerId: 'credential',
 			userId: user.id,
@@ -59,10 +86,10 @@ export async function createUser(role: 'admin' | 'user' = 'user', password?: str
 	return user;
 }
 
-/** Creates a user and signs in through better-auth, like the login page does */
-export async function signIn(role: 'admin' | 'user' = 'admin') {
+/** Creates a user in the organization and signs in through better-auth, like the login page does */
+export async function signIn(organization: TestOrganization, role: 'admin' | 'user' = 'admin') {
 	const password = 'Keydesk-test-123';
-	const user = await createUser(role, password);
+	const user = await createUser(organization, role, password);
 
 	const response = await new Browser().sendJson('POST', '/api/auth/sign-in/email', {
 		email: user.email,
@@ -79,77 +106,72 @@ export async function signIn(role: 'admin' | 'user' = 'admin') {
 	return { browser: new Browser(cookie), user };
 }
 
-/** The dashboard sends visitors to /setup until the organization settings exist */
-export async function ensureOrganization() {
-	await db
-		.insert(schema.config)
-		.values({
-			key: 'organization',
-			value: {
-				name: 'Test BV',
-				domain: 'keydesk.test',
-				address: 'Teststraat 1',
-				country: 'NL',
-				city: 'Utrecht',
-				zipCode: '1234 AB',
-				language: 'nl',
-				timezone: 'Europe/Amsterdam'
-			}
-		})
-		.onConflictDoNothing();
+/** The organization's default status and priority */
+export function defaults(organization: TestOrganization) {
+	return inOrganization(organization, async (db) => {
+		const [status] = await db.select().from(schema.status).where(eq(schema.status.isDefault, true));
+		const [priority] = await db
+			.select()
+			.from(schema.priority)
+			.orderBy(desc(schema.priority.isDefault))
+			.limit(1);
+		return { status, priority };
+	});
 }
 
-/** The default status and the first priority that db:init creates */
-export async function defaults() {
-	const [status] = await db.select().from(schema.status).where(eq(schema.status.isDefault, true));
-	const [priority] = await db.select().from(schema.priority).limit(1);
-	return { status, priority };
+export function createRequester(organization: TestOrganization) {
+	return inOrganization(organization, async (db) => {
+		const [requester] = await db
+			.insert(schema.requester)
+			.values({ name: 'Test Requester', email: `requester-${crypto.randomUUID()}@keydesk.test` })
+			.returning();
+		return requester;
+	});
 }
 
-export async function createRequester() {
-	const [requester] = await db
-		.insert(schema.requester)
-		.values({ name: 'Test Requester', email: `requester-${crypto.randomUUID()}@keydesk.test` })
-		.returning();
-	return requester;
+export async function createTicket(
+	organization: TestOrganization,
+	values: { subject: string; assigneeId?: number }
+) {
+	const requester = await createRequester(organization);
+	const { status, priority } = await defaults(organization);
+
+	return inOrganization(organization, async (db) => {
+		const [ticket] = await db
+			.insert(schema.ticket)
+			.values({
+				ticketNumber: await allocateTicketNumber(db, organization.id),
+				subject: values.subject,
+				requesterId: requester.id,
+				assigneeId: values.assigneeId ?? null,
+				statusId: status.id,
+				priorityId: priority.id,
+				channel: 'dashboard',
+				targetDate: new Date(Date.now() + 86_400_000)
+			})
+			.returning();
+		return ticket;
+	});
 }
 
-export async function createTicket(values: { subject: string; assigneeId?: number }) {
-	const requester = await createRequester();
-	const { status, priority } = await defaults();
+export async function createTask(
+	organization: TestOrganization,
+	values: { title: string; ticketId?: number; parentTaskId?: number }
+) {
+	const { status, priority } = await defaults(organization);
 
-	const [ticket] = await db
-		.insert(schema.ticket)
-		.values({
-			subject: values.subject,
-			requesterId: requester.id,
-			assigneeId: values.assigneeId ?? null,
-			statusId: status.id,
-			priorityId: priority.id,
-			channel: 'dashboard',
-			targetDate: new Date(Date.now() + 86_400_000)
-		})
-		.returning();
-	return ticket;
-}
-
-export async function createTask(values: {
-	title: string;
-	ticketId?: number;
-	parentTaskId?: number;
-}) {
-	const { status, priority } = await defaults();
-
-	const [task] = await db
-		.insert(schema.task)
-		.values({
-			title: values.title,
-			ticketId: values.ticketId ?? null,
-			parentTaskId: values.parentTaskId ?? null,
-			statusId: status.id,
-			priorityId: priority.id,
-			dueDate: new Date(Date.now() + 86_400_000)
-		})
-		.returning();
-	return task;
+	return inOrganization(organization, async (db) => {
+		const [task] = await db
+			.insert(schema.task)
+			.values({
+				title: values.title,
+				ticketId: values.ticketId ?? null,
+				parentTaskId: values.parentTaskId ?? null,
+				statusId: status.id,
+				priorityId: priority.id,
+				dueDate: new Date(Date.now() + 86_400_000)
+			})
+			.returning();
+		return task;
+	});
 }

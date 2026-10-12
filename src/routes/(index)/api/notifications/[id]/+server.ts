@@ -1,12 +1,11 @@
 import { requireAuth } from '#lib/server/auth.js';
-import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import { NotFoundError } from '#lib/server/errors.js';
 import type { RequestHandler } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 
 export const PATCH: RequestHandler = async ({ request, locals, params }) => {
-	const { user } = requireAuth(locals);
+	const { user, db } = requireAuth(locals);
 
 	const id = schema.idParamSchema.parse(params.id);
 
@@ -42,7 +41,7 @@ export const PATCH: RequestHandler = async ({ request, locals, params }) => {
 };
 
 export const DELETE: RequestHandler = async ({ locals, params }) => {
-	const { user } = requireAuth(locals);
+	const { user, db } = requireAuth(locals);
 
 	const id = schema.idParamSchema.parse(params.id);
 

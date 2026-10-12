@@ -1,4 +1,4 @@
-import { db } from '#lib/server/db/database.js';
+import { inOrganization } from './tenant';
 import * as schema from '#lib/server/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '#lib/server/logger.js';
@@ -40,14 +40,15 @@ export async function archiveEmail(params: ArchiveEmailParams) {
     if (!from?.address) {
       throw new Error('No sender address found');
     }
+    const fromAddress = from.address;
 
     const rawSource = typeof source === 'string' ? source : source.toString();
     
-    const [savedEmail] = await db
+    const [savedEmail] = await inOrganization((db) => db
       .insert(schema.email)
       .values({
         uid,
-        fromAddress: from.address,
+        fromAddress,
         fromName: from.name || null,
         subject: envelope.subject || 'No Subject',
         textContent: parsedEmail?.text || null,
@@ -58,7 +59,7 @@ export async function archiveEmail(params: ArchiveEmailParams) {
         hasAttachments: metadata?.hasAttachments || false,
         processed: false,
       })
-      .returning();
+      .returning());
 
     logger.info({ uid, emailId: savedEmail.id }, 'Email archived');
     
@@ -87,11 +88,11 @@ export async function updateArchivedEmail(params: UpdateArchiveParams) {
     if (messageId !== undefined) updateData.ticketMessageId = messageId;
     if (processingError !== undefined) updateData.processingError = processingError;
 
-    const [updatedEmail] = await db
+    const [updatedEmail] = await inOrganization((db) => db
       .update(schema.email)
       .set(updateData)
       .where(eq(schema.email.id, emailId))
-      .returning();
+      .returning());
 
     logger.info({ emailId }, 'Archived email updated');
     

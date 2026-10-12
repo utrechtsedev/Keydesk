@@ -1,9 +1,9 @@
 import { betterAuth, type Session, type User as BetterAuthUser } from 'better-auth';
 import { admin, magicLink } from 'better-auth/plugins';
-import { sendEmail } from './email/email';
+import { sendEmailToUser } from './email/email';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
-import { db } from './db/database';
+import { systemDb, type TenantDb } from './db/database';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import * as schema from './db/schema/index.js';
 import { redirect } from '@sveltejs/kit';
@@ -11,7 +11,8 @@ import type { User } from '#lib/types/index.js';
 
 function createAuth() {
 	return betterAuth({
-		database: drizzleAdapter(db, {
+		// Signing in looks users up across organizations, so better-auth uses the owner connection
+		database: drizzleAdapter(systemDb, {
 			provider: 'pg',
 			schema: {
 				user: schema.user,
@@ -30,7 +31,7 @@ function createAuth() {
 				// Nobody signs themselves up: a magic link only signs in an existing account
 				disableSignUp: true,
 				sendMagicLink: async ({ email, url }: { email: string; url: string }): Promise<void> => {
-					await sendEmail(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`);
+					await sendEmailToUser(email, 'Magic Link', `<p>${url}</p>`, `<p>${url}</p>`);
 				}
 			}),
 			admin({
@@ -53,7 +54,7 @@ function createAuth() {
 				user: BetterAuthUser;
 				url: string;
 			}): Promise<void> => {
-				await sendEmail(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
+				await sendEmailToUser(user.email, 'Verification Sign up', `<p>${url}</p>`, `<p>${url}</p>`);
 			}
 		},
 		user: {
@@ -92,13 +93,18 @@ export function getAuth() {
 	return instance;
 }
 
-export function requireAuth(locals: App.Locals): { user: User; session: Session } {
-	if (!locals.user || !locals.session) {
+/**
+ * The signed-in user, their session and the request's tenant transaction, which only sees the
+ * user's organization. Sends visitors without a session to the login page.
+ */
+export function requireAuth(locals: App.Locals): { user: User; session: Session; db: TenantDb } {
+	if (!locals.user || !locals.session || !locals.db) {
 		throw redirect(302, '/login');
 	}
 
 	return {
 		user: locals.user,
-		session: locals.session
+		session: locals.session,
+		db: locals.db
 	};
 }

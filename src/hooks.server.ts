@@ -5,7 +5,7 @@ import { logger } from '#lib/server/logger.js';
 import { AppError } from '#lib/server/errors.js';
 import { initQueue, registerWorkers } from '#lib/server/queue.js';
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
-import { assertDatabaseUrl, db } from '#lib/server/db/database.js';
+import { assertDatabaseUrl, systemDb, withTenant } from '#lib/server/db/database.js';
 import { refuseAccess } from '#lib/server/access.js';
 
 export const init: ServerInit = async () => {
@@ -25,8 +25,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		headers: event.request.headers
 	});
 	event.locals.session = session?.session ?? null;
+	event.locals.db = null;
 	if (session?.user) {
-		const user = await db.query.user.findFirst({
+		const user = await systemDb.query.user.findFirst({
 			where: (user, { eq }) => eq(user.id, Number(session.user.id))
 		});
 		event.locals.user = user ?? null;
@@ -34,10 +35,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.user = null;
 	}
 
-	const refusal = await refuseAccess(event);
+	const refusal = refuseAccess(event);
 	if (refusal) return refusal;
 
-	return svelteKitHandler({ event, resolve, auth, building });
+	const { user } = event.locals;
+	if (!user) return svelteKitHandler({ event, resolve, auth, building });
+
+	// One tenant transaction per request: its loads and endpoints only see the user's organization
+	return withTenant(user.organizationId, (db) => {
+		event.locals.db = db;
+		return svelteKitHandler({ event, resolve, auth, building });
+	});
 };
 
 export const handleError: HandleServerError = ({ kind, error, event }) => {
