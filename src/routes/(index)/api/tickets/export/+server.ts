@@ -1,8 +1,9 @@
 import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import type { RequestHandler } from '@sveltejs/kit';
-import { createObjectCsvStringifier } from 'csv-writer';
-import { and, or, gte, lte, isNull, eq, ilike, desc, SQL } from 'drizzle-orm';
+import { stringify } from 'csv-stringify/sync';
+import { and, gte, lte, isNull, eq, desc, SQL } from 'drizzle-orm';
+import { ticketSearchCondition } from '#lib/server/services/ticket.service.js';
 
 export const GET: RequestHandler = async ({ url }) => {
 	const params = schema.ticketExportQuerySchema.parse(schema.parseSearchParams(url.searchParams));
@@ -10,13 +11,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	const conditions: (SQL | undefined)[] = [];
 
 	if (params.search) {
-		const searchPattern = `%${params.search}%`;
-		conditions.push(
-			or(
-				ilike(schema.ticket.ticketNumber, searchPattern),
-				ilike(schema.ticket.subject, searchPattern)
-			)
-		);
+		conditions.push(ticketSearchCondition(params.search));
 	}
 
 	if (params.status) {
@@ -62,27 +57,25 @@ export const GET: RequestHandler = async ({ url }) => {
 		orderBy: desc(schema.ticket.createdAt)
 	});
 
-	const csvStringifier = createObjectCsvStringifier({
-		header: [
-			{ id: 'ticketNumber', title: 'Ticket Number' },
-			{ id: 'subject', title: 'Subject' },
-			{ id: 'requester', title: 'Requester' },
-			{ id: 'requesterEmail', title: 'Requester Email' },
-			{ id: 'assignee', title: 'Assigned To' },
-			{ id: 'status', title: 'Status' },
-			{ id: 'priority', title: 'Priority' },
-			{ id: 'category', title: 'Category' },
-			{ id: 'channel', title: 'Channel' },
-			{ id: 'lastRequesterResponseAt', title: 'Last Requester Response' },
-			{ id: 'lastUserResponseAt', title: 'Last User Response' },
-			{ id: 'firstResponseAt', title: 'First Response' },
-			{ id: 'firstResponseTime', title: 'First Response Time (minutes)' },
-			{ id: 'resolutionTime', title: 'Resolution Time (minutes)' },
-			{ id: 'resolvedAt', title: 'Resolved At' },
-			{ id: 'createdAt', title: 'Created At' },
-			{ id: 'updatedAt', title: 'Updated At' }
-		]
-	});
+	const columns = [
+		{ key: 'ticketNumber', header: 'Ticket Number' },
+		{ key: 'subject', header: 'Subject' },
+		{ key: 'requester', header: 'Requester' },
+		{ key: 'requesterEmail', header: 'Requester Email' },
+		{ key: 'assignee', header: 'Assigned To' },
+		{ key: 'status', header: 'Status' },
+		{ key: 'priority', header: 'Priority' },
+		{ key: 'category', header: 'Category' },
+		{ key: 'channel', header: 'Channel' },
+		{ key: 'lastRequesterResponseAt', header: 'Last Requester Response' },
+		{ key: 'lastUserResponseAt', header: 'Last User Response' },
+		{ key: 'firstResponseAt', header: 'First Response' },
+		{ key: 'firstResponseTime', header: 'First Response Time (minutes)' },
+		{ key: 'resolutionTime', header: 'Resolution Time (minutes)' },
+		{ key: 'resolvedAt', header: 'Resolved At' },
+		{ key: 'createdAt', header: 'Created At' },
+		{ key: 'updatedAt', header: 'Updated At' }
+	];
 
 	const records = tickets.map((ticket) => {
 		const firstResponseTime =
@@ -116,9 +109,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		};
 	});
 
-	const csvHeader = csvStringifier.getHeaderString();
-	const csvBody = csvStringifier.stringifyRecords(records);
-	const csv = csvHeader + csvBody;
+	const csv = stringify(records, { header: true, columns });
 
 	let filename = 'tickets-export';
 	if (params.search) filename += `-search-${params.search.substring(0, 20)}`;

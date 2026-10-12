@@ -1,8 +1,8 @@
 import { db } from '#lib/server/db/database.js';
 import * as schema from '#lib/server/db/schema/index.js';
 import type { PageServerLoad } from './$types';
-import { eq, and, or, gte, lte, isNull, ilike, desc, asc, sql, SQL } from 'drizzle-orm';
-import { ticketService } from '#lib/server/services/ticket.service.js';
+import { eq, and, gte, lte, isNull, desc, asc, sql, SQL } from 'drizzle-orm';
+import { ticketSearchCondition, ticketService } from '#lib/server/services/ticket.service.js';
 
 export const load: PageServerLoad = async ({ url, depends }) => {
 	depends('app:tickets');
@@ -53,13 +53,7 @@ export const load: PageServerLoad = async ({ url, depends }) => {
 	}
 
 	if (search) {
-		const searchPattern = `%${search}%`;
-		conditions.push(
-			or(
-				ilike(schema.ticket.ticketNumber, searchPattern),
-				ilike(schema.ticket.subject, searchPattern)
-			)
-		);
+		conditions.push(ticketSearchCondition(search));
 	}
 
 	// Build order by based on sortBy

@@ -3,8 +3,7 @@ import * as schema from '#lib/server/db/schema/index.js';
 import type { RequestHandler } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async ({ request }): Promise<Response> => {
-	const bulkTagTicketSchema = schema.idsBulkSchema.extend(schema.setTagsSchema.shape);
-	const { ids, tags } = await schema.validate(bulkTagTicketSchema)(request);
+	const { ids, tags } = await schema.validate(schema.bulkTagsSchema)(request);
 
 	const tagIds: number[] = [];
 

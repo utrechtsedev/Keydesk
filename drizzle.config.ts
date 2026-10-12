@@ -3,7 +3,8 @@ import { defineConfig } from 'drizzle-kit';
 export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
-  schema: './src/lib/server/db/schema',
+  // Only the table definitions; the folder also holds relations, validation and their tests
+  schema: './src/lib/server/db/schema/tables.ts',
 
   dbCredentials: {
     url: process.env.DATABASE_URL!,
